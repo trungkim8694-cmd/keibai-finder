@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { getProperties, getAreaStats } from '../actions/propertyActions';
 import type { BoundingBox, SearchFilters } from '../actions/propertyActions';
 import PropertyCard from '../components/PropertyCard';
@@ -167,7 +167,9 @@ export default function DashboardPage() {
       
       {/* 2. Horizontal Toolbar (Search & Filter) */}
       <div className="w-full z-[9999] shadow-none lg:shadow-none bg-zinc-50 dark:bg-zinc-950 lg:bg-transparent dark:lg:bg-transparent shrink-0 relative lg:pt-2">
-        <SearchBar onSearch={handleSearch} areaStats={areaStats} />
+        <Suspense fallback={<div className="h-16 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800"></div>}>
+          <SearchBar onSearch={handleSearch} areaStats={areaStats} />
+        </Suspense>
       </div>
 
       {/* 3. Content Area (Split Screen on Desktop, Toggle on Mobile) */}
