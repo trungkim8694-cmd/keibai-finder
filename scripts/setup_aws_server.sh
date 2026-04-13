@@ -2,7 +2,7 @@
 set -e
 
 # Configuration
-SSH_KEY="./certs/keibai-key.pem"
+SSH_KEY="./web/certs/keibai-key.pem"
 SERVER_IP="35.79.228.176"
 USER="ubuntu"
 
@@ -26,7 +26,7 @@ ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$SERVER_IP" << 'EOF'
     # 2. Install Python 3.12
     sudo add-apt-repository -y ppa:deadsnakes/ppa
     sudo apt-get update -y
-    sudo apt-get install -y python3.12 python3.12-venv python3.12-dev python3.12-distutils python3-pip
+    sudo apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip
 
     # 3. Install Docker & Docker Compose
     if ! command -v docker &> /dev/null; then
@@ -95,7 +95,7 @@ ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$SERVER_IP" << 'EOF'
     chmod +x run_daily.sh
     
     # Setup Crontab for 2:00 AM daily
-    CRON_CMD="0 2 * * * cd /app/crawler && /app/venv/bin/bash ./run_daily.sh >> /app/logs/cron.log 2>&1"
+    CRON_CMD="0 2 * * * cd /app/crawler && /bin/bash ./run_daily.sh >> /app/logs/cron.log 2>&1"
     (crontab -l 2>/dev/null | grep -v "run_daily.sh"; echo "$CRON_CMD") | crontab -
     
     echo "----------------------------------------------------------"

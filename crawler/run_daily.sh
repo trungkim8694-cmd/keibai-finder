@@ -22,6 +22,7 @@ handle_error() {
     exit 1
 }
 
+source /app/venv/bin/activate
 cd /app/crawler
 
 # 1. Advanced Crawler (BIT)
