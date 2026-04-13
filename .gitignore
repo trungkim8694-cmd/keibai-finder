@@ -1,0 +1,29 @@
+# SSH Keys & Certificates
+*.pem
+certs/
+
+# Python Virtual Environments
+venv/
+env/
+.env/
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs & Temporary Data
+*.log
+*.sqlite
+*.sqlite3
+crawler/**/*.html
+
+# Node & JS (if run in root)
+node_modules/
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# Agents memory
+.agents
+.antigravity
