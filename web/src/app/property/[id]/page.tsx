@@ -494,5 +494,6 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         />
       </main>
     </div>
+    </>
   );
 }
