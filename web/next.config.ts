@@ -25,6 +25,18 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/property_images/:path*',
+        destination: 'http://35.79.228.176/property_images/:path*'
+      },
+      {
+        source: '/pdfs/:path*',
+        destination: 'http://35.79.228.176/pdfs/:path*'
+      }
+    ];
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
