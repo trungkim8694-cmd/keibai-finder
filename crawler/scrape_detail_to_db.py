@@ -7,12 +7,12 @@ import requests
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
-load_dotenv("/Users/kimtrung/keibai-finder/web/.env")
+load_dotenv("../web/.env")
 
 from crawler_utils import get_nearest_station_from_db, get_gsi_coords
 from ai_analyzer import extract_text_and_purge
 
-PDF_DIR = "/Users/kimtrung/keibai-finder/web/public/pdfs"
+PDF_DIR = "../web/public/pdfs"
 os.makedirs(PDF_DIR, exist_ok=True)
 os.makedirs(PDF_DIR, exist_ok=True)
 
@@ -330,7 +330,7 @@ async def main():
                             print(f"  Downloaded PDF: /pdfs/{sale_unit_id}.pdf")
                             try:
                                 doc = fitz.open(pdf_path_full)
-                                prop_img_dir = f"/Users/kimtrung/keibai-finder/web/public/property_images/{sale_unit_id}"
+                                prop_img_dir = f"../web/public/property_images/{sale_unit_id}"
                                 os.makedirs(prop_img_dir, exist_ok=True)
                                 from PIL import Image, ImageStat
                                 import io

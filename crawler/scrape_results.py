@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 
-load_dotenv("/Users/kimtrung/keibai-finder/web/.env")
+load_dotenv("../web/.env")
 db_url = os.environ.get("DATABASE_URL").replace("?schema=public", "")
 gemini_key = os.environ.get("GEMINI_API_KEY")
 

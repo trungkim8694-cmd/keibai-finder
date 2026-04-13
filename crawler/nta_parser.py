@@ -10,7 +10,7 @@ import urllib.parse
 import requests
 from playwright.sync_api import sync_playwright
 
-load_dotenv("/Users/kimtrung/keibai-finder/web/.env")
+load_dotenv("../web/.env")
 
 NTA_BASE_URL = "https://www.koubai.nta.go.jp/auctionx/public"
 

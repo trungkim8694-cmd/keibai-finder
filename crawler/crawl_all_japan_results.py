@@ -8,7 +8,7 @@ from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 import random
 
-load_dotenv("/Users/kimtrung/keibai-finder/web/.env")
+load_dotenv("../web/.env")
 db_url = os.environ.get("DATABASE_URL").replace("?schema=public", "")
 gemini_key = os.environ.get("GEMINI_API_KEY")
 
@@ -237,9 +237,9 @@ async def scrape_results():
                         success = True
                     except Exception as e:
                         print(f"    Timeout/Error during crawl: {e}")
-                        os.makedirs("/Users/kimtrung/keibai-finder/logs", exist_ok=True)
+                        os.makedirs("../logs", exist_ok=True)
                         try:
-                            await page.screenshot(path=f"/Users/kimtrung/keibai-finder/logs/error_results_{region_code}_{court_name}.png")
+                            await page.screenshot(path=f"../logs/error_results_{region_code}_{court_name}.png")
                         except: pass
                         retry_count += 1
                         print(f"    Retrying ({retry_count}/{max_retries})...")

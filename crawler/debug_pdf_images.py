@@ -6,7 +6,7 @@ from PIL import Image, ImageStat
 import io
 from playwright.sync_api import sync_playwright
 
-sys.path.insert(0, '/Users/kimtrung/keibai-finder/crawler')
+sys.path.insert(0, '../crawler')
 
 SAVE_DEBUG_DIR = "/tmp/bit_debug"
 TARGET_ID = "00000025269"

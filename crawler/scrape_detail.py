@@ -2,7 +2,7 @@ import asyncio
 from playwright.async_api import async_playwright
 import os
 
-DUMP_DIR = "/Users/kimtrung/keibai-finder/.antigravity/research"
+DUMP_DIR = "../.antigravity/research"
 
 async def main():
     async with async_playwright() as p:

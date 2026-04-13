@@ -17,10 +17,10 @@ import shutil
 import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv("/Users/kimtrung/keibai-finder/web/.env")
+load_dotenv("../web/.env")
 db_url = os.environ.get("DATABASE_URL").replace("?schema=public", "")
 
-IMAGES_DIR = "/Users/kimtrung/keibai-finder/web/public/property_images"
+IMAGES_DIR = "../web/public/property_images"
 DRY_RUN = "--delete" not in sys.argv
 
 def get_sale_unit_ids_from_db():

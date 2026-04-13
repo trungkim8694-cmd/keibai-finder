@@ -3,7 +3,7 @@ import requests
 import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv("/Users/kimtrung/keibai-finder/web/.env")
+load_dotenv("../web/.env")
 db_url = os.environ.get("DATABASE_URL")
 if not db_url:
     print("Database URL not found in .env")

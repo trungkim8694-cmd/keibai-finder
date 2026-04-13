@@ -6,7 +6,7 @@ import traceback
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-env_path = "/Users/kimtrung/keibai-finder/web/.env"
+env_path = "../web/.env"
 load_dotenv(env_path)
 
 db_url = os.environ.get("DATABASE_URL")

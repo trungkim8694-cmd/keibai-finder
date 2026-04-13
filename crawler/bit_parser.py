@@ -7,8 +7,8 @@ import time
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-DUMP_DIR = "/Users/kimtrung/keibai-finder/.antigravity/research"
-load_dotenv("/Users/kimtrung/keibai-finder/web/.env")
+DUMP_DIR = "../.antigravity/research"
+load_dotenv("../web/.env")
 
 def parse_price(price_str):
     if not price_str:

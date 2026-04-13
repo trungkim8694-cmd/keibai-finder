@@ -3,7 +3,7 @@ import psycopg2
 from dotenv import load_dotenv
 import math
 
-load_dotenv("/Users/kimtrung/keibai-finder/web/.env")
+load_dotenv("../web/.env")
 db_url = os.environ.get("DATABASE_URL").replace("?schema=public", "")
 
 conn = psycopg2.connect(db_url)

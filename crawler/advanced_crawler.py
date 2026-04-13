@@ -9,7 +9,7 @@ from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 import time
 import random
-load_dotenv("/Users/kimtrung/keibai-finder/web/.env")
+load_dotenv("../web/.env")
 
 from crawler_utils import clean_area_string, convert_reiwa_to_datetime, get_nearest_station_from_db, get_random_user_agent, geocode_address
 
@@ -220,8 +220,8 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
             # Kiểm tra Captcha
             if "captcha" in detail_html.lower() or "異常なアクセス" in detail_html:
                 print(f"    [CẢNH BÁO] Phát hiện Captcha trên tài sản {sale_unit_id}. Đang chụp ảnh màn hình...")
-                os.makedirs("/Users/kimtrung/keibai-finder/logs", exist_ok=True)
-                await new_page.screenshot(path=f"/Users/kimtrung/keibai-finder/logs/captcha_detected_{sale_unit_id}.png")
+                os.makedirs("../logs", exist_ok=True)
+                await new_page.screenshot(path=f"../logs/captcha_detected_{sale_unit_id}.png")
             
             soup = BeautifulSoup(detail_html, 'html.parser')
 
@@ -300,7 +300,7 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                     async with new_page.expect_download(timeout=30000) as download_info:
                         await new_page.evaluate("if(document.getElementById('threeSetPDF')) document.getElementById('threeSetPDF').click();")
                     download = await download_info.value
-                    PDF_DIR = "/Users/kimtrung/keibai-finder/web/public/pdfs"
+                    PDF_DIR = "../web/public/pdfs"
                     os.makedirs(PDF_DIR, exist_ok=True)
                     pdf_path_full = os.path.join(PDF_DIR, f"{sale_unit_id}.pdf")
                     await download.save_as(pdf_path_full)
@@ -308,7 +308,7 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                     
                     try:
                         doc = fitz.open(pdf_path_full)
-                        prop_img_dir = f"/Users/kimtrung/keibai-finder/web/public/property_images/{sale_unit_id}"
+                        prop_img_dir = f"../web/public/property_images/{sale_unit_id}"
                         os.makedirs(prop_img_dir, exist_ok=True)
                         from PIL import Image, ImageStat
                         import io
@@ -585,9 +585,9 @@ async def main():
                     
                 except Exception as e:
                     print(f"Error during court {court_id}: {e}")
-                    os.makedirs("/Users/kimtrung/keibai-finder/logs", exist_ok=True)
+                    os.makedirs("../logs", exist_ok=True)
                     try:
-                        await page.screenshot(path=f"/Users/kimtrung/keibai-finder/logs/error_advanced_{court_id}.png")
+                        await page.screenshot(path=f"../logs/error_advanced_{court_id}.png")
                     except: pass
                     
             # GHOST SWEEP FOR PREFECTURE USING MEMORY CACHE

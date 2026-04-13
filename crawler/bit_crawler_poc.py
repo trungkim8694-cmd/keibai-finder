@@ -3,7 +3,7 @@ import os
 import re
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
-DUMP_DIR = "/Users/kimtrung/keibai-finder/.antigravity/research"
+DUMP_DIR = "../.antigravity/research"
 os.makedirs(DUMP_DIR, exist_ok=True)
 
 async def main():
