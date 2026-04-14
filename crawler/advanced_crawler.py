@@ -311,16 +311,7 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                     pdf_tmp_path = f"/tmp/{sale_unit_id}_{uuid.uuid4().hex[:8]}.pdf"
                     await download.save_as(pdf_tmp_path)
                     
-                    try:
-                        with open(pdf_tmp_path, "rb") as f:
-                            supabase.storage.from_(STORAGE_BUCKET).upload(
-                                path=f"pdfs/{sale_unit_id}.pdf",
-                                file=f,
-                                file_options={"content-type": "application/pdf", "upsert": "true"}
-                            )
-                        pdf_url = f"{supabase_url}/storage/v1/object/public/{STORAGE_BUCKET}/pdfs/{sale_unit_id}.pdf"
-                    except Exception as up_e:
-                        print(f"  Failed to upload PDF: {up_e}")
+                    pdf_url = None
 
                     try:
                         doc = fitz.open(pdf_tmp_path)
@@ -371,6 +362,8 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                             except Exception as up_img_e:
                                 print(f"    [IMG] Error uploading {image_filename}: {up_img_e}")
                         doc.close()
+                        if os.path.exists(pdf_tmp_path):
+                            os.remove(pdf_tmp_path)
                         print(f"    [INFO] Xử lý tài liệu 3点セット thành công.")
                     except Exception as e: print(f"  PDF IMG ERR: {e}")
                 except Exception as e: print(f"  PDF ERR: {e}")

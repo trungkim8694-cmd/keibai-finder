@@ -331,17 +331,9 @@ async def main():
                             await download.save_as(pdf_tmp_path)
                             print(f"  Downloaded PDF to {pdf_tmp_path}")
                             
-                            try:
-                                with open(pdf_tmp_path, "rb") as f:
-                                    supabase.storage.from_(STORAGE_BUCKET).upload(
-                                        path=f"pdfs/{sale_unit_id}.pdf",
-                                        file=f,
-                                        file_options={"content-type": "application/pdf", "upsert": "true"}
-                                    )
-                                pdf_url = f"{supabase_url}/storage/v1/object/public/{STORAGE_BUCKET}/pdfs/{sale_unit_id}.pdf"
-                                print(f"  Uploaded PDF to Supabase: {pdf_url}")
-                            except Exception as up_e:
-                                print(f"  Failed to upload PDF: {up_e}")
+                            # Xóa đoạn mã upload PDF lên Supabase theo luật "Tuyệt đối không lưu file PDF lên Server để tiết kiệm Disk".
+                            # Chỉ lấy URL Bypass trỏ thẳng vào tòa án.
+                            pdf_url = None
                                 
                             try:
                                 doc = fitz.open(pdf_tmp_path)
@@ -394,6 +386,10 @@ async def main():
 
                                 print(f"  Extracted {len(pdf_images)} high-quality photo images from PDF to Supabase.")
                                 doc.close()
+                                
+                                # Dọn dẹp file PDF tmp cho nhẹ server
+                                if os.path.exists(pdf_tmp_path):
+                                    os.remove(pdf_tmp_path)
                             except Exception as pdf_e:
                                 print(f"  Failed to extract PDF images: {pdf_e}")
 

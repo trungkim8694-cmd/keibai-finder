@@ -33,6 +33,15 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
     }
   }
 
+  if (!finalCourtId && sourceUrl) {
+    try {
+      const parsedSrc = new URL(sourceUrl);
+      finalCourtId = parsedSrc.searchParams.get('courtId') || parsedSrc.searchParams.get('courtCd');
+    } catch {
+       // Ignore
+    }
+  }
+
   // Tái tạo link tải trực tiếp giống đối thủ: `.../pd001/h04?courtId=xxx&saleUnitId=xxx`
   const bitDirectDownloadUrl = (sourceProvider !== 'NTA' && finalCourtId && saleUnitId) 
     ? `https://www.bit.courts.go.jp/app/detail/pd001/h04?courtId=${finalCourtId}&saleUnitId=${saleUnitId}` 
