@@ -18,6 +18,7 @@ import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 
 export default function DashboardPage() {
+  const [isHydrated, setIsHydrated] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
   const [clickedPropertyId, setClickedPropertyId] = useState<string | null>(null);
@@ -28,12 +29,24 @@ export default function DashboardPage() {
   const [mapMoved, setMapMoved] = useState(false);
 
   useEffect(() => {
+    try {
+      const storedFilters = sessionStorage.getItem('kb_currentFilters');
+      if (storedFilters) setCurrentFilters(JSON.parse(storedFilters));
+      
+      const storedBounds = sessionStorage.getItem('kb_bounds');
+      if (storedBounds) setBounds(JSON.parse(storedBounds));
+      
+      const storedViewMode = sessionStorage.getItem('kb_viewMode');
+      if (storedViewMode) setViewMode(storedViewMode as 'map'|'list');
+    } catch (e) { console.error('Failed to parse kb_ session storage', e); }
+    setIsHydrated(true);
+
     getAreaStats().then(setAreaStats).catch(console.error);
   }, []);
 
   // 1. Fetch Map Data (Minimal payload, all matching bounds)
   const { data: mapDataArray, isLoading: isMapLoading } = useSWR(
-    { ...currentFilters, mapOnly: true }, // Removed bounds from map caching key so we fetch nationally once!
+    isHydrated ? { ...currentFilters, mapOnly: true } : null, // Removed bounds from map caching key so we fetch nationally once!
     (filters) => getProperties({ ...filters, isMapPayload: true }),
     { revalidateOnFocus: false, dedupingInterval: 10000, refreshInterval: 15000 } // Poll every 15s for new properties
   );
@@ -49,6 +62,7 @@ export default function DashboardPage() {
     isValidating
   } = useSWRInfinite(
     (pageIndex, previousPageData) => {
+      if (!isHydrated) return null;
       // Reached end
       if (previousPageData && previousPageData.length < 20) return null;
       return { 
@@ -125,10 +139,11 @@ export default function DashboardPage() {
     }
   };
 
-  const handleBoundsChanged = useCallback((newBounds: BoundingBox) => {
-    setBounds(newBounds);
+  const handleMoveEnd = (newBounds: BoundingBox) => {
     setMapMoved(true);
-  }, []);
+    setBounds(newBounds);
+    try { sessionStorage.setItem('kb_bounds', JSON.stringify(newBounds)); } catch (e) {}
+  };
 
   const handleSearchThisArea = () => {
     setCurrentFilters(f => {
@@ -151,6 +166,8 @@ export default function DashboardPage() {
     
     const isNewLocation = filters.lat !== currentFilters.lat || filters.lng !== currentFilters.lng;
     setCurrentFilters(newFilters);
+    try { sessionStorage.setItem('kb_currentFilters', JSON.stringify(newFilters)); } catch (e) {}
+    
     if (!mapMoved || isNewLocation) {
         setMapMoved(false);
     }
@@ -272,7 +289,11 @@ export default function DashboardPage() {
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
            <button 
-             onClick={() => setViewMode(viewMode === 'map' ? 'list' : 'map')}
+             onClick={() => {
+                const nextMode = viewMode === 'map' ? 'list' : 'map';
+                setViewMode(nextMode);
+                try { sessionStorage.setItem('kb_viewMode', nextMode); } catch (e) {}
+             }}
              className="bg-zinc-900/90 backdrop-blur-md dark:bg-zinc-100/90 text-white dark:text-zinc-900 font-bold px-6 py-3.5 rounded-full shadow-lg flex items-center justify-center gap-2 border border-zinc-700 dark:border-zinc-200 transition-transform active:scale-95"
            >
              {viewMode === 'map' ? '📋 リストで見る' : '🗺️ 地図で見る'}
