@@ -19,28 +19,28 @@ import useSWRInfinite from 'swr/infinite';
 
 export default function DashboardPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const [viewMode, setViewMode] = useState<'map' | 'list'>(() => {
-    if (typeof window === 'undefined') return 'map';
-    return (sessionStorage.getItem('kb_viewMode') as 'map'|'list') || 'map';
-  });
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
   const [clickedPropertyId, setClickedPropertyId] = useState<string | null>(null);
 
-  const [bounds, setBounds] = useState<BoundingBox | undefined>(() => {
-    if (typeof window === 'undefined') return undefined;
-    const stored = sessionStorage.getItem('kb_bounds');
-    return stored ? JSON.parse(stored) : undefined;
-  });
-  const [currentFilters, setCurrentFilters] = useState<SearchFilters>(() => {
-    if (typeof window === 'undefined') return {};
-    const stored = sessionStorage.getItem('kb_currentFilters');
-    return stored ? JSON.parse(stored) : {};
-  });
+  const [bounds, setBounds] = useState<BoundingBox | undefined>(undefined);
+  const [currentFilters, setCurrentFilters] = useState<SearchFilters>({});
   const [areaStats, setAreaStats] = useState<Record<string, number>>({});
   const [mapMoved, setMapMoved] = useState(false);
 
   useEffect(() => {
+    try {
+      const storedFilters = sessionStorage.getItem('kb_currentFilters');
+      if (storedFilters) setCurrentFilters(JSON.parse(storedFilters));
+      
+      const storedBounds = sessionStorage.getItem('kb_bounds');
+      if (storedBounds) setBounds(JSON.parse(storedBounds));
+      
+      const storedViewMode = sessionStorage.getItem('kb_viewMode');
+      if (storedViewMode) setViewMode(storedViewMode as 'map'|'list');
+    } catch (e) { console.error('Failed to parse kb_ session storage', e); }
     setIsHydrated(true);
+
     getAreaStats().then(setAreaStats).catch(console.error);
   }, []);
 

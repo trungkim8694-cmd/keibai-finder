@@ -78,31 +78,17 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
     whileElementsMounted: autoUpdate,
   });
 
-  const [keyword, setKeyword] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    try {
-      const stored = sessionStorage.getItem('kb_search_ui');
-      return stored ? (JSON.parse(stored).keyword || '') : '';
-    } catch { return ''; }
-  });
+  const [keyword, setKeyword] = useState('');
   
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
-  const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
-
-  // Debounce logic for Autocomplete
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedKeyword(keyword), 300);
-    return () => clearTimeout(timer);
-  }, [keyword]);
+  const [debouncedKeyword] = useDebounce(keyword, 300);
 
   useEffect(() => {
-    if (debouncedKeyword && debouncedKeyword.trim().length >= 2) {
-      getSearchSuggestions(debouncedKeyword).then(res => {
-         setSuggestions(res);
-         setIsSuggestionsOpen(true);
-      });
+    if (debouncedKeyword.length >= 2) {
+      getSearchSuggestions(debouncedKeyword).then(setSuggestions).catch(() => setSuggestions([]));
+      setIsSuggestionsOpen(true);
     } else {
       setSuggestions([]);
       setIsSuggestionsOpen(false);
@@ -123,47 +109,38 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
   };
   const [isPending, startTransition] = useTransition();
 
-  const getInitialUI = () => {
-    if (typeof window === 'undefined') return {};
-    try {
-      const stored = sessionStorage.getItem('kb_search_ui');
-      return stored ? JSON.parse(stored) : {};
-    } catch { return {}; }
-  };
-  const initUI = getInitialUI();
-
   // Search state
-  const [types, setTypes] = useState<string[]>(initUI.types || []);
+  const [types, setTypes] = useState<string[]>([]);
   const [typeStats, setTypeStats] = useState<Record<string, number>>({});
   
   // Drill down states (Simulated region logic)
-  const [selectedRegions, setSelectedRegions] = useState<string[]>(initUI.selectedRegions || []);
-  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>(initUI.selectedPrefectures || []);
-  const [isNationwide, setIsNationwide] = useState(initUI.isNationwide !== undefined ? initUI.isNationwide : true);
-  const [viewingRegion, setViewingRegion] = useState(initUI.viewingRegion || '');
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
+  const [isNationwide, setIsNationwide] = useState(true);
+  const [viewingRegion, setViewingRegion] = useState('');
   
-  const [minPrice, setMinPrice] = useState<number | undefined>(initUI.minPrice);
-  const [maxPrice, setMaxPrice] = useState<number | undefined>(initUI.maxPrice);
-  const [isUrgent, setIsUrgent] = useState(initUI.isUrgent || false); // Time filter
-  const [provider, setProvider] = useState<string>(initUI.provider || 'ALL'); // Xoá dần hoặc giữ nguyên cho components cũ
-  const [activeProviders, setActiveProviders] = useState<string[]>(initUI.activeProviders || ['BIT', 'NTA']); // Master source toggle
+  const [minPrice, setMinPrice] = useState<number | undefined>();
+  const [maxPrice, setMaxPrice] = useState<number | undefined>();
+  const [isUrgent, setIsUrgent] = useState(false); // Time filter
+  const [provider, setProvider] = useState<string>('ALL'); // Xoá dần hoặc giữ nguyên cho components cũ
+  const [activeProviders, setActiveProviders] = useState<string[]>(['BIT', 'NTA']); // Master source toggle
   
-  const [walkTime, setWalkTime] = useState<number | undefined>(initUI.walkTime);
-  const [minArea, setMinArea] = useState<number | undefined>(initUI.minArea);
-  const [sort, setSort] = useState<'newest' | 'views'>(initUI.sort || 'newest');
+  const [walkTime, setWalkTime] = useState<number | undefined>();
+  const [minArea, setMinArea] = useState<number | undefined>();
+  const [sort, setSort] = useState<'newest' | 'views'>('newest');
   
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true); // Search collapse state
   const [isMounted, setIsMounted] = useState(false);
 
   const [railData, setRailData] = useState<{line: string, count: number, stations: string[]}[]>([]);
-  const [selectedLine, setSelectedLine] = useState<string>(initUI.selectedLine || 'ALL');
-  const [selectedStation, setSelectedStation] = useState<string>(initUI.selectedStation || 'ALL');
+  const [selectedLine, setSelectedLine] = useState<string>('ALL');
+  const [selectedStation, setSelectedStation] = useState<string>('ALL');
 
   // Authority Dropdown state
   const [authorityData, setAuthorityData] = useState<{ bit: {name:string;count:number}[], nta: {name:string;count:number}[] }>({ bit: [], nta: [] });
-  const [selectedCourt, setSelectedCourt] = useState<string>(initUI.selectedCourt || 'ALL');
-  const [selectedNtaAuth, setSelectedNtaAuth] = useState<string>(initUI.selectedNtaAuth || 'ALL');
+  const [selectedCourt, setSelectedCourt] = useState<string>('ALL');
+  const [selectedNtaAuth, setSelectedNtaAuth] = useState<string>('ALL');
   const [isBitOpen, setIsBitOpen] = useState(false);
   const [isNtaOpen, setIsNtaOpen] = useState(false);
   
@@ -181,6 +158,32 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
   useEffect(() => {
      if (isMounted) {
         let initialOverrides: any = {};
+        
+        // Always try to restore from SessionStorage first so UI state is maintained
+        try {
+            const storedUIRaw = sessionStorage.getItem('kb_search_ui');
+            if (storedUIRaw) {
+                const storedUI = JSON.parse(storedUIRaw);
+                if (storedUI.keyword !== undefined) setKeyword(storedUI.keyword);
+                if (storedUI.types !== undefined) setTypes(storedUI.types);
+                if (storedUI.selectedRegions !== undefined) setSelectedRegions(storedUI.selectedRegions);
+                if (storedUI.selectedPrefectures !== undefined) setSelectedPrefectures(storedUI.selectedPrefectures);
+                if (storedUI.isNationwide !== undefined) setIsNationwide(storedUI.isNationwide);
+                if (storedUI.viewingRegion !== undefined) setViewingRegion(storedUI.viewingRegion);
+                if (storedUI.minPrice !== undefined) setMinPrice(storedUI.minPrice);
+                if (storedUI.maxPrice !== undefined) setMaxPrice(storedUI.maxPrice);
+                if (storedUI.isUrgent !== undefined) setIsUrgent(storedUI.isUrgent);
+                if (storedUI.provider !== undefined) setProvider(storedUI.provider);
+                if (storedUI.activeProviders !== undefined) setActiveProviders(storedUI.activeProviders);
+                if (storedUI.walkTime !== undefined) setWalkTime(storedUI.walkTime);
+                if (storedUI.minArea !== undefined) setMinArea(storedUI.minArea);
+                if (storedUI.sort !== undefined) setSort(storedUI.sort);
+                if (storedUI.selectedLine !== undefined) setSelectedLine(storedUI.selectedLine);
+                if (storedUI.selectedStation !== undefined) setSelectedStation(storedUI.selectedStation);
+                if (storedUI.selectedCourt !== undefined) setSelectedCourt(storedUI.selectedCourt);
+                if (storedUI.selectedNtaAuth !== undefined) setSelectedNtaAuth(storedUI.selectedNtaAuth);
+            }
+        } catch(e) { console.error('Failed to parse kb_search_ui', e); }
 
         const lineParam = searchParams.get('line');
         const prefsParam = searchParams.get('prefs');
