@@ -1,8 +1,8 @@
 """
 cleanup_property_images.py
 --------------------------
-Kiểm tra thư mục property_images và xóa các folder ảnh không còn
-được liên kết với bất kỳ bản ghi nào trong Database.
+Quét dọn kho lưu trữ Supabase Storage (keibai-storage).
+Xóa folder hình ảnh và PDF của các tài sản ĐÃ HOÀN TẤT (Không còn ACTIVE).
 
 Chạy ở chế độ DRY-RUN trước để xem danh sách sẽ bị xóa:
     python cleanup_property_images.py
@@ -13,89 +13,95 @@ Chạy thực sự để xóa:
 
 import os
 import sys
-import shutil
 import psycopg2
+from supabase import create_client, Client
 from dotenv import load_dotenv
 
 load_dotenv("../web/.env")
-db_url = os.environ.get("DATABASE_URL").replace("?schema=public", "")
 
-IMAGES_DIR = "../web/public/property_images"
+db_url = os.environ.get("DATABASE_URL").replace("?schema=public", "")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
+STORAGE_BUCKET = "keibai-storage"
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 DRY_RUN = "--delete" not in sys.argv
 
-def get_sale_unit_ids_from_db():
-    """Lấy toàn bộ sale_unit_id đang tồn tại trong DB."""
+def get_active_ids():
     conn = psycopg2.connect(db_url)
     cur = conn.cursor()
-    cur.execute('SELECT sale_unit_id FROM "Property"')
+    cur.execute("SELECT sale_unit_id FROM \"Property\" WHERE status = 'ACTIVE'")
     ids = {row[0] for row in cur.fetchall()}
     cur.close()
     conn.close()
     return ids
 
+def delete_supabase_folder(bucket_name, folder_path):
+    # Supabase storage API `remove` requires exact file paths,
+    # so we must list all files in the folder and delete them.
+    res = supabase.storage.from_(bucket_name).list(folder_path)
+    if not res: return
+    
+    files_to_remove = [f"{folder_path}/{item['name']}" for item in res if item['name'] != '.emptyFolderPlaceholder']
+    if files_to_remove:
+        supabase.storage.from_(bucket_name).remove(files_to_remove)
+
 def main():
-    print("=== Kiểm Tra Thư Mục property_images ===\n")
+    print("=== Supabase Storage Cleanup ===")
+    
+    active_ids = get_active_ids()
+    print(f"🗃️  Total ACTIVE properties in DB: {len(active_ids)}")
 
-    # Lấy danh sách folder trên filesystem
-    disk_folders = set(os.listdir(IMAGES_DIR))
-    print(f"📁 Tổng số folder trên disk: {len(disk_folders)}")
+    # 1. Clean properties/ folders
+    print("\n[1] Checking 'properties/' folder...")
+    prop_folders = supabase.storage.from_(STORAGE_BUCKET).list("properties")
+    orphaned_props = []
+    if prop_folders:
+        for f in prop_folders:
+            folder_name = f['name']
+            if folder_name not in active_ids:
+                orphaned_props.append(folder_name)
+    
+    print(f"🗑️  Orphaned properties/ folders: {len(orphaned_props)}")
 
-    # Lấy danh sách sale_unit_id trong DB
-    db_ids = get_sale_unit_ids_from_db()
-    print(f"🗃️  Tổng số tài sản trong DB: {len(db_ids)}")
-
-    # Tính phần dư: folder có trên disk nhưng KHÔNG có trong DB
-    orphaned = disk_folders - db_ids
-    active = disk_folders & db_ids
-
-    print(f"\n✅ Folder đang dùng (có trong DB): {len(active)}")
-    print(f"🗑️  Folder không dùng (không có trong DB): {len(orphaned)}")
-
-    if not orphaned:
-        print("\n🎉 Không có folder thừa nào. Thư mục đã sạch!")
+    # 2. Clean pdfs/ files
+    print("\n[2] Checking 'pdfs/' folder...")
+    pdf_files = supabase.storage.from_(STORAGE_BUCKET).list("pdfs")
+    orphaned_pdfs = []
+    if pdf_files:
+        for f in pdf_files:
+            file_name_with_ext = f['name']
+            if file_name_with_ext == '.emptyFolderPlaceholder': continue
+            file_id = file_name_with_ext.replace(".pdf", "")
+            if file_id not in active_ids:
+                orphaned_pdfs.append(file_name_with_ext)
+                
+    print(f"🗑️  Orphaned pdfs/ files: {len(orphaned_pdfs)}")
+    
+    if not orphaned_props and not orphaned_pdfs:
+        print("\n🎉 Storage is clean. Nothing to delete!")
         return
 
-    # Tính tổng dung lượng sẽ giải phóng
-    total_size = 0
-    for folder in orphaned:
-        folder_path = os.path.join(IMAGES_DIR, folder)
-        for dirpath, dirnames, filenames in os.walk(folder_path):
-            for f in filenames:
-                total_size += os.path.getsize(os.path.join(dirpath, f))
-
-    total_mb = total_size / (1024 * 1024)
-
-    print(f"💾 Dung lượng có thể giải phóng: {total_mb:.2f} MB")
-
     if DRY_RUN:
-        print(f"\n⚠️  [DRY-RUN] Danh sách {len(orphaned)} folder sẽ bị xóa:")
-        for folder in sorted(orphaned):
-            folder_path = os.path.join(IMAGES_DIR, folder)
-            size = sum(
-                os.path.getsize(os.path.join(dp, f))
-                for dp, dn, fns in os.walk(folder_path) for f in fns
-            )
-            print(f"   - {folder}  ({size/1024:.1f} KB)")
-        print(f"\n💡 Chạy lại với tham số --delete để thực sự xóa:")
+        print(f"\n⚠️  [DRY-RUN] Would delete {len(orphaned_props)} prop folders and {len(orphaned_pdfs)} PDFs.")
+        print(f"💡 Run again with --delete to permanently remove them from Supabase:")
         print(f"   python cleanup_property_images.py --delete")
     else:
-        print(f"\n🗑️  [DELETE] Đang xóa {len(orphaned)} folder thừa...")
+        print("\n🗑️  [DELETE] Removing orphaned data from Supabase...")
+        
         deleted = 0
-        errors = 0
-        for folder in sorted(orphaned):
-            folder_path = os.path.join(IMAGES_DIR, folder)
-            try:
-                shutil.rmtree(folder_path)
-                print(f"   ✅ Đã xóa: {folder}")
-                deleted += 1
-            except Exception as e:
-                print(f"   ❌ Lỗi khi xóa {folder}: {e}")
-                errors += 1
+        for pdf in orphaned_pdfs:
+             supabase.storage.from_(STORAGE_BUCKET).remove([f"pdfs/{pdf}"])
+             print(f"   ✅ Deleted PDF: pdfs/{pdf}")
+             deleted += 1
+             
+        for prop in orphaned_props:
+             delete_supabase_folder(STORAGE_BUCKET, f"properties/{prop}")
+             print(f"   ✅ Deleted Image Folder: properties/{prop}")
+             deleted += 1
 
-        print(f"\n=== KẾT QUẢ ===")
-        print(f"✅ Đã xóa: {deleted} folder")
-        print(f"❌ Lỗi: {errors} folder")
-        print(f"💾 Đã giải phóng: ~{total_mb:.2f} MB")
+        print(f"\n=== RESULT ===")
+        print(f"✅ Successfully deleted {deleted} items/folders from Supabase Storage.")
 
 if __name__ == "__main__":
     main()

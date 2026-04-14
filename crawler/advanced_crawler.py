@@ -12,6 +12,13 @@ import random
 load_dotenv("../web/.env")
 
 from crawler_utils import clean_area_string, convert_reiwa_to_datetime, get_nearest_station_from_db, get_random_user_agent, geocode_address
+from supabase import create_client, Client
+import io
+
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
+supabase: Client = create_client(supabase_url, supabase_key)
+STORAGE_BUCKET = "keibai-storage"
 
 db_url = os.environ.get("DATABASE_URL", "").replace("?schema=public", "")
 gemini_key = os.environ.get("GEMINI_API_KEY")
@@ -300,16 +307,23 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                     async with new_page.expect_download(timeout=30000) as download_info:
                         await new_page.evaluate("if(document.getElementById('threeSetPDF')) document.getElementById('threeSetPDF').click();")
                     download = await download_info.value
-                    PDF_DIR = "../web/public/pdfs"
-                    os.makedirs(PDF_DIR, exist_ok=True)
-                    pdf_path_full = os.path.join(PDF_DIR, f"{sale_unit_id}.pdf")
-                    await download.save_as(pdf_path_full)
-                    pdf_url = f"/pdfs/{sale_unit_id}.pdf"
+                    import uuid
+                    pdf_tmp_path = f"/tmp/{sale_unit_id}_{uuid.uuid4().hex[:8]}.pdf"
+                    await download.save_as(pdf_tmp_path)
                     
                     try:
-                        doc = fitz.open(pdf_path_full)
-                        prop_img_dir = f"../web/public/property_images/{sale_unit_id}"
-                        os.makedirs(prop_img_dir, exist_ok=True)
+                        with open(pdf_tmp_path, "rb") as f:
+                            supabase.storage.from_(STORAGE_BUCKET).upload(
+                                path=f"pdfs/{sale_unit_id}.pdf",
+                                file=f,
+                                file_options={"content-type": "application/pdf", "upsert": "true"}
+                            )
+                        pdf_url = f"{supabase_url}/storage/v1/object/public/{STORAGE_BUCKET}/pdfs/{sale_unit_id}.pdf"
+                    except Exception as up_e:
+                        print(f"  Failed to upload PDF: {up_e}")
+
+                    try:
+                        doc = fitz.open(pdf_tmp_path)
                         from PIL import Image, ImageStat
                         import io
                     
@@ -318,35 +332,44 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                             image_list = pdf_page.get_images(full=True)
                             if len(image_list) > 0:
                                 print(f"    [INFO] Đang xử lý ảnh tài sản trang {page_idx}...")
-                            for page_idx in range(len(doc)):
-                                pdf_page = doc[page_idx]
+                            
+                            pix_color = pdf_page.get_pixmap(matrix=fitz.Matrix(1, 1))
+                            try:
+                                pil_color = Image.frombytes("RGB", [pix_color.width, pix_color.height], pix_color.samples)
+                            except ValueError:
+                                pil_color = Image.frombytes("RGBA", [pix_color.width, pix_color.height], pix_color.samples).convert("RGB")
                                 
-                                pix_color = pdf_page.get_pixmap(matrix=fitz.Matrix(1, 1))
-                                try:
-                                    pil_color = Image.frombytes("RGB", [pix_color.width, pix_color.height], pix_color.samples)
-                                except ValueError:
-                                    pil_color = Image.frombytes("RGBA", [pix_color.width, pix_color.height], pix_color.samples).convert("RGB")
-                                    
-                                sample = pil_color.resize((150, 150))
-                                pixels = list(sample.getdata())
-                                colorful = sum(1 for r,g,b in pixels if max(r,g,b) - min(r,g,b) > 20)
-                                color_ratio = colorful / len(pixels)
-                                
-                                if color_ratio <= 0.015:
-                                    continue
+                            sample = pil_color.resize((150, 150))
+                            pixels = list(sample.getdata())
+                            colorful = sum(1 for r,g,b in pixels if max(r,g,b) - min(r,g,b) > 20)
+                            color_ratio = colorful / len(pixels)
+                            
+                            if color_ratio <= 0.015:
+                                continue
 
-                                mat_high = fitz.Matrix(200 / 72, 200 / 72)
-                                pix_high = pdf_page.get_pixmap(matrix=mat_high, alpha=False)
-                                try:
-                                    pil_high = Image.frombytes("RGB", [pix_high.width, pix_high.height], pix_high.samples)
-                                except ValueError:
-                                    pil_high = Image.frombytes("RGBA", [pix_high.width, pix_high.height], pix_high.samples).convert("RGB")
+                            mat_high = fitz.Matrix(200 / 72, 200 / 72)
+                            pix_high = pdf_page.get_pixmap(matrix=mat_high, alpha=False)
+                            try:
+                                pil_high = Image.frombytes("RGB", [pix_high.width, pix_high.height], pix_high.samples)
+                            except ValueError:
+                                pil_high = Image.frombytes("RGBA", [pix_high.width, pix_high.height], pix_high.samples).convert("RGB")
 
-                                image_filename = f"{sale_unit_id}_p{page_idx}.jpg"
-                                with open(os.path.join(prop_img_dir, image_filename), "wb") as f_out:
-                                    pil_high.save(f_out, "JPEG", quality=85)
-                                pdf_images.append(f"/property_images/{sale_unit_id}/{image_filename}")
-                                print(f"    [INFO] Rendered & Kept: page={page_idx} | color_ratio={color_ratio:.4f}")
+                            image_filename = f"{sale_unit_id}_p{page_idx}.jpg"
+                            img_byte_arr = io.BytesIO()
+                            pil_high.save(img_byte_arr, format="JPEG", quality=85)
+                            img_bytes = img_byte_arr.getvalue()
+                            
+                            try:
+                                supabase.storage.from_(STORAGE_BUCKET).upload(
+                                    path=f"properties/{sale_unit_id}/{image_filename}",
+                                    file=img_bytes,
+                                    file_options={"content-type": "image/jpeg", "upsert": "true"}
+                                )
+                                public_img_url = f"{supabase_url}/storage/v1/object/public/{STORAGE_BUCKET}/properties/{sale_unit_id}/{image_filename}"
+                                pdf_images.append(public_img_url)
+                                print(f"    [INFO] Uploaded: {image_filename} | color_ratio={color_ratio:.4f}")
+                            except Exception as up_img_e:
+                                print(f"    [IMG] Error uploading {image_filename}: {up_img_e}")
                         doc.close()
                         print(f"    [INFO] Xử lý tài liệu 3点セット thành công.")
                     except Exception as e: print(f"  PDF IMG ERR: {e}")

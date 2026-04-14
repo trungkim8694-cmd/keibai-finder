@@ -11,10 +11,13 @@ load_dotenv("../web/.env")
 
 from crawler_utils import get_nearest_station_from_db, get_gsi_coords
 from ai_analyzer import extract_text_and_purge
+from supabase import create_client, Client
+import io
 
-PDF_DIR = "../web/public/pdfs"
-os.makedirs(PDF_DIR, exist_ok=True)
-os.makedirs(PDF_DIR, exist_ok=True)
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
+supabase: Client = create_client(supabase_url, supabase_key)
+STORAGE_BUCKET = "keibai-storage"
 
 import unicodedata
 import urllib.parse
@@ -323,15 +326,25 @@ async def main():
                             print(f"  Detected #threeSetPDF, downloading...")
                             async with new_page.expect_download(timeout=30000) as download_info:
                                 await new_page.evaluate("document.getElementById('threeSetPDF').click();")
-                            download = await download_info.value
-                            pdf_url = f"/pdfs/{sale_unit_id}.pdf"
-                            pdf_path_full = os.path.join(PDF_DIR, f"{sale_unit_id}.pdf")
-                            await download.save_as(pdf_path_full)
-                            print(f"  Downloaded PDF: /pdfs/{sale_unit_id}.pdf")
+                            import uuid
+                            pdf_tmp_path = f"/tmp/{sale_unit_id}_{uuid.uuid4().hex[:8]}.pdf"
+                            await download.save_as(pdf_tmp_path)
+                            print(f"  Downloaded PDF to {pdf_tmp_path}")
+                            
                             try:
-                                doc = fitz.open(pdf_path_full)
-                                prop_img_dir = f"../web/public/property_images/{sale_unit_id}"
-                                os.makedirs(prop_img_dir, exist_ok=True)
+                                with open(pdf_tmp_path, "rb") as f:
+                                    supabase.storage.from_(STORAGE_BUCKET).upload(
+                                        path=f"pdfs/{sale_unit_id}.pdf",
+                                        file=f,
+                                        file_options={"content-type": "application/pdf", "upsert": "true"}
+                                    )
+                                pdf_url = f"{supabase_url}/storage/v1/object/public/{STORAGE_BUCKET}/pdfs/{sale_unit_id}.pdf"
+                                print(f"  Uploaded PDF to Supabase: {pdf_url}")
+                            except Exception as up_e:
+                                print(f"  Failed to upload PDF: {up_e}")
+                                
+                            try:
+                                doc = fitz.open(pdf_tmp_path)
                                 from PIL import Image, ImageStat
                                 import io
                             
@@ -350,8 +363,6 @@ async def main():
                                     colorful = sum(1 for r,g,b in pixels if max(r,g,b) - min(r,g,b) > 20)
                                     color_ratio = colorful / len(pixels)
                                     
-                                    # LỌC TỐI THƯỢNG: Người dùng yêu cầu chỉ lấy "Hình ảnh MÀU SẮC" (bỏ sơ đồ đen trắng/text)
-                                    # Ngưỡng 0.015 (1.5%) đảm bảo trang đó chứa tấm ảnh đủ lớn có màu chứ không phải lỗi Scan
                                     if color_ratio <= 0.015:
                                         continue
                                         
@@ -363,14 +374,25 @@ async def main():
                                     except ValueError:
                                         pil_high = Image.frombytes("RGBA", [pix_high.width, pix_high.height], pix_high.samples).convert("RGB")
 
-                                    # Lưu ảnh Full page
+                                    # Upload ảnh Full page lên Supabase Storage qua bộ nhớ (BytesIO)
                                     image_filename = f"{sale_unit_id}_p{page_idx}.jpg"
-                                    with open(os.path.join(prop_img_dir, image_filename), "wb") as f_out:
-                                        pil_high.save(f_out, "JPEG", quality=85)
-                                    pdf_images.append(f"/property_images/{sale_unit_id}/{image_filename}")
-                                    print(f"    [IMG] Kept: page={page_idx} | color_ratio={color_ratio:.4f}")
+                                    img_byte_arr = io.BytesIO()
+                                    pil_high.save(img_byte_arr, format="JPEG", quality=85)
+                                    img_bytes = img_byte_arr.getvalue()
+                                    
+                                    try:
+                                        supabase.storage.from_(STORAGE_BUCKET).upload(
+                                            path=f"properties/{sale_unit_id}/{image_filename}",
+                                            file=img_bytes,
+                                            file_options={"content-type": "image/jpeg", "upsert": "true"}
+                                        )
+                                        public_img_url = f"{supabase_url}/storage/v1/object/public/{STORAGE_BUCKET}/properties/{sale_unit_id}/{image_filename}"
+                                        pdf_images.append(public_img_url)
+                                        print(f"    [IMG] Uploaded: {image_filename} | color_ratio={color_ratio:.4f}")
+                                    except Exception as up_img_e:
+                                        print(f"    [IMG] Error uploading {image_filename}: {up_img_e}")
 
-                                print(f"  Extracted {len(pdf_images)} high-quality photo images from PDF.")
+                                print(f"  Extracted {len(pdf_images)} high-quality photo images from PDF to Supabase.")
                                 doc.close()
                             except Exception as pdf_e:
                                 print(f"  Failed to extract PDF images: {pdf_e}")

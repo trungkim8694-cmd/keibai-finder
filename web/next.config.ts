@@ -23,19 +23,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'profile.line-scdn.net',
       },
-    ],
-  },
-  async rewrites() {
-    return [
       {
-        source: '/property_images/:path*',
-        destination: 'http://35.79.228.176/property_images/:path*'
+        protocol: 'https',
+        hostname: 'nuyfejmbvxkgcitvygcy.supabase.co',
       },
-      {
-        source: '/pdfs/:path*',
-        destination: 'http://35.79.228.176/pdfs/:path*'
-      }
-    ];
+    ],
   },
   eslint: {
     ignoreDuringBuilds: true,
