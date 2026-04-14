@@ -18,7 +18,7 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
   let courtContactUrl: string | null = (property as any).contact_url || null;
   if (!courtContactUrl && rawData && Array.isArray(rawData)) {
     const summary = rawData.find((s: any) => s?.asset_title === 'Summary');
-    if (summary?.contact_url) courtContactUrl = summary.contact_url;
+    if (summary?.data?.contact_url) courtContactUrl = summary.data.contact_url;
   }
   
   // Progress computation

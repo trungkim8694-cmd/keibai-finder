@@ -27,7 +27,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
 
   // Khôi phục CourtId từ contactUrl để phục vụ cho tính năng link trực tiếp PDF (Bypass Hotlink)
   if (!finalCourtId && bitContactUrl) {
-    const match = bitContactUrl.match(/info_(\d+)\.html/);
+    const match = bitContactUrl.match(/info_([A-Za-z0-9_]+)\.html/);
     if (match) {
         finalCourtId = match[1];
     }

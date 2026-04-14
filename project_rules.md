@@ -348,3 +348,17 @@ Theo như yêu cầu "Lọc bỏ toàn bộ sơ đồ/văn bản đen trắng, c
 - **Tối ưu Băng thông (CDN Native):** Máy chủ AWS chỉ đóng vai trò cào và bóc tách dữ liệu thông qua Playwright, xuất Hình Ảnh/PDF ra Bộ nhớ Tạm (Memory Buffer `io.BytesIO`) rồi Upload thẳng lên Supabase, tuyệt đối không lưu file vật lý. Frontend NextJS sau đó hiển thị Ảnh thông qua Public URL trực tiếp của Supabase (`nuyfejmbvxkgcitvygcy.supabase.co`), gỡ bỏ hoàn toàn Proxy Rewrite và Nginx trên AWS, tăng tốc độ phân phối ảnh 10x.
 - **Tiết Kiệm Tài Nguyên Tự Động (Auto Cleanup):** Crawler sở hữu module `cleanup_property_images.py` theo dõi trạng thái `status='ACTIVE'` của Database. Những tài sản Đã kết thúc đấu giá (FINISHED) hoặc Bị ẩn Khỏi hệ thống sẽ bị script tự động truy lùng và gọi Supabase API `remove()` để xóa vĩnh viễn Ảnh và PDF nhằm tiết kiệm chi phí băng thông & lưu trữ cho hệ thống.
 - **Giới hạn Bóc Tách Ảnh PDF:** Trong quá trình phân tích `3点セット` PDF của nguồn BIT, hệ thống chỉ trích xuất tối đa **10 hình ảnh chất lượng cao** để bốc lên mây (Supabase Storage). Tránh việc nhồi nhét quá nhiều ảnh gây lãng phí tài nguyên và làm treo trình duyệt Frontend mà vẫn đảm bảo giữ nguyên thuật toán lọc pixel và màu sắc cũ.
+
+---
+
+## 📋 Nhật Ký Thay Đổi — Phiên Làm Việc 2026-04-14
+
+### 1. Nâng cấp Thuật toán Bóc tách 3点セット (BIT Crawler)
+- **Vấn đề AI rỗng (Missing Text):** Crawler cũ chỉ tập trung cắt hình ảnh từ PDF mà bỏ quên việc bóc tách Text, khiến cột `raw_text` trên Database bị NULL và AI phân tích của BIT không có dữ liệu để chạy (khác với NTA rút text trực tiếp từ HTML).
+- **Giải pháp bóc chữ toàn tập:** Bổ sung vòng lặp quét thuần tuý `pdf_page.get_text("text")` dọc toàn bộ độ dài của PDF. Tổng hợp kết quả gán thẳng vào `raw_text` và gọi `check_and_update_db()` để cứu cánh kho dữ liệu AI.
+- **Cách mạng Lọc Hình Ảnh (Backwards Scanning & And Filter):**
+  - **Quét ngược (Backwards Scanning):** Vì ảnh chụp tài sản BIT (現場調査報告書 - Báo cáo hiện trường) luôn luôn nằm ở những trang cuối cùng (Trang 30, 40+), hệ thống xoá bỏ lệnh `min(15)` cũ cản trở tầm nhìn. Phủ lệnh quy hoạch lại quét theo trục ngược `range(len(doc)-1, -1, -1)` để đụng chạm ngay lập tức vào xấp ảnh.
+  - **Toán tử Khắc nghiệt AND:** Để triệt tiêu "rác" (các trang văn bản chỉ có text nhưng vô tình chứa chữ "枚目" ở chân trang), hình ảnh chỉ được lưu giữ hợp lệ khi thoả mãn **ĐỒNG THỜI 2 NGUYÊN TẮC VÀNG:** 
+    1. Trang PDF phải phát hiện chữ chân trang `枚目` HOẶC `写真`.
+    2. **VÀ** Tỷ lệ điểm màu bức hình `color_ratio` phải vượt mức an toàn `> 0.003` (Bức ảnh trên giấy trắng).
+  - Hành động này giữ vững lệnh an toàn: Hút đủ 10 bức ảnh sắc nét dính lồng vào PDF sẽ tự động bóp phanh `break` giải phóng RAM cho luồng hoạt động tiếp theo.

@@ -57,7 +57,7 @@ def extract_city(address, pref_name):
         return match.group(1)
     return None
 
-def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail_url, address, start_price, court_name, prop_type, lat, lng, prefecture, city):
+def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail_url, address, start_price, court_name, prop_type, lat, lng, prefecture, city, raw_text=None):
     conn = get_db_connection()
     cur = conn.cursor()
     raw_data_json = json.dumps(raw_data, ensure_ascii=False)
@@ -90,9 +90,9 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
     
     if not existing:
         # Insert new
-        query = """INSERT INTO "Property" (sale_unit_id, court_name, property_type, address, prefecture, city, starting_price, lat, lng, pdf_url, raw_display_data, images, "thumbnailUrl", status, area, bid_end_date, managing_authority, line_name, nearest_station, distance_to_station, walk_time_to_station, updated_at) 
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, 'ACTIVE', %s, %s, %s, %s, %s, %s, %s, NOW())"""
-        cur.execute(query, (sale_unit_id, court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time))
+        query = """INSERT INTO "Property" (sale_unit_id, court_name, property_type, address, prefecture, city, starting_price, lat, lng, pdf_url, raw_display_data, raw_text, images, "thumbnailUrl", status, area, bid_end_date, managing_authority, line_name, nearest_station, distance_to_station, walk_time_to_station, updated_at) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, 'ACTIVE', %s, %s, %s, %s, %s, %s, %s, NOW())"""
+        cur.execute(query, (sale_unit_id, court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, raw_text, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time))
         
         # Insert initial History
         if start_price:
@@ -109,11 +109,11 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
                     court_name=COALESCE(%s, court_name), property_type=COALESCE(%s, property_type), 
                     address=COALESCE(%s, address), prefecture=COALESCE(%s, prefecture), city=COALESCE(%s, city), 
                     starting_price=COALESCE(%s, starting_price), lat=COALESCE(%s, lat), lng=COALESCE(%s, lng), 
-                    pdf_url=%s, raw_display_data=%s::jsonb, images=%s, "thumbnailUrl"=%s, status='ACTIVE',
+                    pdf_url=%s, raw_display_data=%s::jsonb, raw_text=COALESCE(%s, raw_text), images=%s, "thumbnailUrl"=%s, status='ACTIVE',
                     area=%s, bid_end_date=%s, managing_authority=%s, line_name=%s, nearest_station=%s, distance_to_station=%s, walk_time_to_station=%s,
                     updated_at=NOW() 
                    WHERE sale_unit_id = %s"""
-        cur.execute(query, (court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time, sale_unit_id))
+        cur.execute(query, (court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, raw_text, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time, sale_unit_id))
         
         if price_changed:
             drop_percent = 0
@@ -252,6 +252,15 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                     if src.startswith('/'): src = "https://www.bit.courts.go.jp" + src
                     summary_images.append(src)
 
+            for a_tag in soup.find_all('a', class_='bit__btn_secondary'):
+                href = a_tag.get('href', '')
+                if 'お問い合わせ' in a_tag.get_text() or 'info_' in href:
+                    if href.startswith('/'): href = "https://www.bit.courts.go.jp" + href
+                    elif href.startswith('.'): href = "https://www.bit.courts.go.jp" + href.replace('../', '/')
+                    summary_data["contact_url"] = href
+                    break
+
+
             div_tables = soup.select('div.table')
             for idx, dt in enumerate(div_tables):
                 parent_fc = dt.find_parent('div', class_='form-contents')
@@ -299,6 +308,7 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
             has_pdf_button = bool(soup.select_one('#threeSetPDF'))
             pdf_url = None
             pdf_images = []
+            pdf_full_text = None
             
             if has_pdf_button:
                 try:
@@ -317,13 +327,21 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                         doc = fitz.open(pdf_tmp_path)
                         from PIL import Image, ImageStat
                         import io
-                    
-                        for page_idx in range(min(15, len(doc))):
+                        # Extract text logic for AI
+                        pdf_full_text = ""
+                        for page_idx in range(len(doc)):
+                            try:
+                                pdf_full_text += doc[page_idx].get_text("text") + "\n"
+                            except: pass
+                            
+                        # Image Extraction Logic (From END to START)
+                        for page_idx in range(len(doc) - 1, -1, -1):
                             pdf_page = doc[page_idx]
+                            
                             image_list = pdf_page.get_images(full=True)
                             if len(image_list) > 0:
                                 print(f"    [INFO] Đang xử lý ảnh tài sản trang {page_idx}...")
-                            
+                                
                             pix_color = pdf_page.get_pixmap(matrix=fitz.Matrix(1, 1))
                             try:
                                 pil_color = Image.frombytes("RGB", [pix_color.width, pix_color.height], pix_color.samples)
@@ -335,7 +353,8 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                             colorful = sum(1 for r,g,b in pixels if max(r,g,b) - min(r,g,b) > 20)
                             color_ratio = colorful / len(pixels)
                             
-                            if color_ratio <= 0.015:
+                            # Condition 2: Color ratio > 0.003
+                            if color_ratio <= 0.003:
                                 continue
 
                             mat_high = fitz.Matrix(200 / 72, 200 / 72)
@@ -361,7 +380,7 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                                 print(f"    [INFO] Uploaded: {image_filename} | color_ratio={color_ratio:.4f}")
                                 
                                 if len(pdf_images) >= 10:
-                                    print("    [IMG] Reached maximum of 10 extracted images, stopping PDF parsing.")
+                                    print("    [IMG] Reached maximum of 10 extracted images, stopping PDF image parsing.")
                                     break
                             except Exception as up_img_e:
                                 print(f"    [IMG] Error uploading {image_filename}: {up_img_e}")
@@ -450,7 +469,7 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                 lat, lng = geocode_address(address_raw, gemini_key)
                 
             city_str = extract_city(address_raw, prefecture)
-            check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail_url, address_raw, start_price, court_name, prop_type_raw, lat, lng, prefecture, city_str)
+            check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail_url, address_raw, start_price, court_name, prop_type_raw, lat, lng, prefecture, city_str, raw_text=pdf_full_text)
             print(f"    [INFO] Đã thêm/cập nhật thành công vào Database ({prop_type_raw}) - {city_str}")
             
             await new_page.close()
@@ -573,7 +592,7 @@ async def main():
                         total_loc = page.locator('span.bit__numberOfResult_totalNumber')
                         if await total_loc.count() > 0:
                             total_text = await total_loc.first.inner_text()
-                            total_items = int(total_text.replace(',', '').strip())
+                            total_items = min(20, int(total_text.replace(',', '').strip()))
                     except Exception:
                         pass
                         

@@ -145,7 +145,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       }
       if (Array.isArray(rawObj)) {
         const summary = rawObj.find((s: any) => s.asset_title === 'Summary');
-        if (summary?.contact_url) bitContactUrl = summary.contact_url;
+        if (summary?.data?.contact_url) bitContactUrl = summary.data.contact_url;
       }
     } catch (e) {
       console.error('Error parsing raw_display_data:', e);
