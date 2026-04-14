@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import FavoriteButton from '@/components/FavoriteButton';
 
 export function StickyActionBar({ 
@@ -28,9 +29,9 @@ export function StickyActionBar({
         
         {/* Left Side: Back button & Breadcrumb / Action combo */}
         <div className="flex flex-row items-center gap-1 sm:gap-4 flex-1">
-          <a href="/" className="text-gray-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 text-sm font-medium flex items-center gap-1.5 transition-colors shrink-0">
+          <Link href="/" className="text-gray-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 text-sm font-medium flex items-center gap-1.5 transition-colors shrink-0">
              <span>&larr;</span> <span>リストへ戻る</span>
-          </a>
+          </Link>
           
           <div className={`hidden sm:flex items-center transition-all duration-300 overflow-hidden
             ${isScrolled ? 'opacity-100 w-auto ml-2' : 'opacity-0 w-0 pointer-events-none'}
