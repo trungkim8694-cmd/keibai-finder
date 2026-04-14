@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { calculateRoi, convertToWesternYear, extractAuctionSchedule, extractAuctionRoundFromData, extractTotalArea } from '@/lib/utils';
 import { resolveCityCode } from '@/lib/mlitApi';
 import { formatBidPeriod } from '@/utils/dateFormatter';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 import { headers } from 'next/headers';
 
 // Simple in-memory rate limiting map for debouncing
@@ -47,63 +47,66 @@ export async function incrementViewCount(propertyId: string) {
 }
 
 export async function getAreaStats() {
-  try {
-    const stats = await prisma.property.groupBy({
-      by: ['prefecture'],
-      where: { status: 'ACTIVE' },
-      _count: { _all: true },
-    });
-    
-    // Also get total count
-    const total = await prisma.property.count({ where: { status: 'ACTIVE' }});
-    
-    const result: Record<string, number> = { '全国': total };
-    stats.forEach(item => {
-      if (item.prefecture) {
-        result[item.prefecture] = item._count._all;
-      }
-    });
-    
-    return result;
-  } catch (err) {
-    console.error("Fetch area stats err", err);
-    return {};
-  }
+  return unstable_cache(async () => {
+    try {
+      const stats = await prisma.property.groupBy({
+        by: ['prefecture'],
+        where: { status: 'ACTIVE' },
+        _count: { _all: true },
+      });
+      
+      const total = await prisma.property.count({ where: { status: 'ACTIVE' }});
+      
+      const result: Record<string, number> = { '全国': total };
+      stats.forEach(item => {
+        if (item.prefecture) {
+          result[item.prefecture] = item._count._all;
+        }
+      });
+      
+      return result;
+    } catch (err) {
+      console.error("Fetch area stats err", err);
+      return {};
+    }
+  }, ['area_stats_cache_v1'], { revalidate: 3600, tags: ['stats'] })();
 }
 
 export async function getTypeStats() {
-  try {
-    const stats = await prisma.property.groupBy({
-      by: ['property_type'],
-      where: { status: 'ACTIVE' },
-      _count: { _all: true },
-    });
-    
-    const result: Record<string, number> = {
-      '戸建て': 0,
-      'マンション': 0,
-      '土地': 0,
-      '農地': 0,
-      'その他': 0
-    };
-    
-    const mainTypes = ['戸建て', 'マンション', '土地', '農地'];
-    
-    stats.forEach(item => {
-      const type = item.property_type;
-      const count = item._count._all;
-      if (type && mainTypes.includes(type)) {
-        result[type] += count;
-      } else {
-        result['その他'] += count;
-      }
-    });
+  return unstable_cache(async () => {
+    try {
+      const stats = await prisma.property.groupBy({
+        by: ['property_type'],
+        where: { status: 'ACTIVE' },
+        _count: { _all: true },
+      });
+      
+      const result: Record<string, number> = {
+        '戸建て': 0,
+        'マンション': 0,
+        '土地': 0,
+        '農地': 0,
+        'その他': 0
+      };
+      
+      const mainTypes = ['戸建て', 'マンション', '土地', '農地'];
+      
+      stats.forEach(item => {
+        const type = item.property_type;
+        const count = item._count._all;
+        if (type && mainTypes.includes(type)) {
+          result[type] += count;
+        } else {
+          result['その他'] += count;
+        }
+      });
 
-    return result;
-  } catch (err) {
-    console.error("Fetch type stats err", err);
-    return {};
-  }
+      return result;
+    } catch (err) {
+      console.error("Fetch type stats err", err);
+      return {};
+    }
+  }, ['type_stats_cache_v1'], { revalidate: 3600, tags: ['stats'] })();
 }
 
 
@@ -583,51 +586,53 @@ async function mapPropertiesWithStations(data: any[]) {
 }
 
 export async function getRailLinesAndStations() {
-  try {
-    const data = await prisma.property.groupBy({
-      by: ['line_name', 'nearest_station'],
-      where: {
-        status: 'ACTIVE',
-        line_name: { not: null },
-        nearest_station: { not: null }
-      },
-      _count: {
-        _all: true
-      }
-    });
-
-    // Group stations by line
-    const aggregated: Record<string, { count: number, stations: string[] }> = {};
-    for (const item of data) {
-      const line = (item as any).line_name;
-      const station = (item as any).nearest_station;
-      const count = item._count._all;
-      
-      if (line && station) {
-        if (!aggregated[line]) {
-          aggregated[line] = { count: 0, stations: [] };
+  return unstable_cache(async () => {
+    try {
+      const data = await prisma.property.groupBy({
+        by: ['line_name', 'nearest_station'],
+        where: {
+          status: 'ACTIVE',
+          line_name: { not: null },
+          nearest_station: { not: null }
+        },
+        _count: {
+          _all: true
         }
-        aggregated[line].count += count;
+      });
+
+      // Group stations by line
+      const aggregated: Record<string, { count: number, stations: string[] }> = {};
+      for (const item of data) {
+        const line = (item as any).line_name;
+        const station = (item as any).nearest_station;
+        const count = item._count._all;
         
-        // Assuming nearest_station represents the pure station name now
-        if (!aggregated[line].stations.includes(station)) {
-          aggregated[line].stations.push(station);
+        if (line && station) {
+          if (!aggregated[line]) {
+            aggregated[line] = { count: 0, stations: [] };
+          }
+          aggregated[line].count += count;
+          
+          // Assuming nearest_station represents the pure station name now
+          if (!aggregated[line].stations.includes(station)) {
+            aggregated[line].stations.push(station);
+          }
         }
       }
-    }
-    
-    // Convert to easier Array structure
-    const results = Object.keys(aggregated).map(line => ({
-      line,
-      count: aggregated[line].count,
-      stations: aggregated[line].stations.sort()
-    })).sort((a,b) => a.line.localeCompare(b.line));
+      
+      // Convert to easier Array structure
+      const results = Object.keys(aggregated).map(line => ({
+        line,
+        count: aggregated[line].count,
+        stations: aggregated[line].stations.sort()
+      })).sort((a,b) => a.line.localeCompare(b.line));
 
-    return results;
-  } catch(e) {
-    console.error("getRailLinesAndStations Error", e);
-    return [];
-  }
+      return results;
+    } catch(e) {
+      console.error("getRailLinesAndStations Error", e);
+      return [];
+    }
+  }, ['rail_stats_cache_v1'], { revalidate: 3600, tags: ['stats'] })();
 }
 
 
@@ -635,32 +640,34 @@ export async function getAuthorityStats(): Promise<{
   bit: { name: string; count: number }[];
   nta: { name: string; count: number }[];
 }> {
-  try {
-    const [bitData, ntaData] = await Promise.all([
-      prisma.property.groupBy({
-        by: ['court_name'],
-        where: { status: 'ACTIVE', source_provider: 'BIT' },
-        _count: { _all: true },
-        orderBy: { _count: { court_name: 'desc' } }
-      }),
-      prisma.property.groupBy({
-        by: ['managing_authority'],
-        where: { status: 'ACTIVE', source_provider: 'NTA' },
-        _count: { _all: true },
-        orderBy: { _count: { managing_authority: 'desc' } }
-      })
-    ]);
+  return unstable_cache(async () => {
+    try {
+      const [bitData, ntaData] = await Promise.all([
+        prisma.property.groupBy({
+          by: ['court_name'],
+          where: { status: 'ACTIVE', source_provider: 'BIT' },
+          _count: { _all: true },
+          orderBy: { _count: { court_name: 'desc' } }
+        }),
+        prisma.property.groupBy({
+          by: ['managing_authority'],
+          where: { status: 'ACTIVE', source_provider: 'NTA' },
+          _count: { _all: true },
+          orderBy: { _count: { managing_authority: 'desc' } }
+        })
+      ]);
 
-    return {
-      bit: bitData
-        .filter((r: any) => r.court_name)
-        .map((r: any) => ({ name: r.court_name, count: r._count._all })),
-      nta: ntaData
-        .filter((r: any) => r.managing_authority)
-        .map((r: any) => ({ name: (r.managing_authority || '').replace(/\s+/g, ' ').trim(), count: r._count._all }))
-    };
-  } catch (e) {
-    console.error('getAuthorityStats Error', e);
-    return { bit: [], nta: [] };
-  }
+      return {
+        bit: bitData
+          .filter((r: any) => r.court_name)
+          .map((r: any) => ({ name: r.court_name, count: r._count._all })),
+        nta: ntaData
+          .filter((r: any) => r.managing_authority)
+          .map((r: any) => ({ name: (r.managing_authority || '').replace(/\s+/g, ' ').trim(), count: r._count._all }))
+      };
+    } catch (e) {
+      console.error('getAuthorityStats Error', e);
+      return { bit: [], nta: [] };
+    }
+  }, ['authority_stats_cache_v1'], { revalidate: 3600, tags: ['stats'] })();
 }
