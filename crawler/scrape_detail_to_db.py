@@ -381,6 +381,10 @@ async def main():
                                         public_img_url = f"{supabase_url}/storage/v1/object/public/{STORAGE_BUCKET}/properties/{sale_unit_id}/{image_filename}"
                                         pdf_images.append(public_img_url)
                                         print(f"    [IMG] Uploaded: {image_filename} | color_ratio={color_ratio:.4f}")
+                                        
+                                        if len(pdf_images) >= 10:
+                                            print("    [IMG] Reached maximum of 10 extracted images, stopping PDF parsing.")
+                                            break
                                     except Exception as up_img_e:
                                         print(f"    [IMG] Error uploading {image_filename}: {up_img_e}")
 
