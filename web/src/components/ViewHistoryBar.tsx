@@ -52,7 +52,7 @@ export default function ViewHistoryBar() {
           </div>
           <div className="flex gap-3 overflow-x-auto px-4 py-4 scrollbar-hide snap-x">
              {history.map((item, idx) => (
-                 <Link href={`/property/${item.id}`} onClick={() => setIsOpen(false)} key={`${item.id}-${idx}`} className="snap-start min-w-[100px] max-w-[100px] block rounded-xl overflow-hidden bg-transparent shrink-0 group">
+                 <Link href={`/property/${item.id}`} prefetch={false} onClick={() => setIsOpen(false)} key={`${item.id}-${idx}`} className="snap-start min-w-[100px] max-w-[100px] block rounded-xl overflow-hidden bg-transparent shrink-0 group">
                      <div className="w-full aspect-square bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
                         {item.image ? (
                             <img src={item.image} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />

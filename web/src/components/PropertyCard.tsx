@@ -209,6 +209,7 @@ export default function PropertyCard({
             </button>
             <Link 
               href={`/property/${property.sale_unit_id}`} 
+              prefetch={false}
               onClick={(e) => e.stopPropagation()} 
               className="group/btn bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all duration-300 text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 shadow-sm border border-blue-100"
             >
