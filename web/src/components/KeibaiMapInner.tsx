@@ -521,11 +521,9 @@ export default function KeibaiMapInner({
              }}
           >
            <Popup>
-             <div 
-               className="p-0 w-[240px] sm:w-[260px] cursor-pointer hover:opacity-90 transition-opacity block group"
-               onClick={() => {
-                 router.push(`/property/${p.sale_unit_id}`);
-               }}
+             <a 
+               href={`/property/${p.sale_unit_id}`}
+               className="p-0 w-[240px] sm:w-[260px] cursor-pointer hover:opacity-90 transition-opacity block group outline-none focus:outline-none"
              >
                <div className="w-full h-[100px] bg-zinc-100 dark:bg-zinc-800 rounded-t-lg mb-2 overflow-hidden border-b border-zinc-200 dark:border-zinc-700 relative">
                   {p.thumbnailUrl ? <img src={p.thumbnailUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Thumbnail" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🏠</div>}
@@ -561,7 +559,7 @@ export default function KeibaiMapInner({
                    </div>
                  </div>
                </div>
-             </div>
+             </a>
            </Popup>
         </Marker>
     ));
