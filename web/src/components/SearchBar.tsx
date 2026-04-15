@@ -362,10 +362,6 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
       state: currentState
     };
 
-    (key) => getProperties({ ...key, limit: 20 }),
-    { revalidateOnFocus: false, revalidateFirstPage: true, refreshInterval: 15000 }
-  );
-
     const updated = [newFilter, ...savedFilters].slice(0, 10);
     updateSavedFilters(updated);
   };
