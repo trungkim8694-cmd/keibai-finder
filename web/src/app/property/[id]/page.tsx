@@ -282,6 +282,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   }
 
   // Process history items
+  let historyItems: any[] = [];
   if (similarProps.length > 0) {
     historyItems = similarProps.map((p, idx) => {
       let endDate = null;

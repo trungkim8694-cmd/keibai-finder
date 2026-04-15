@@ -224,6 +224,7 @@ export interface SearchFilters {
 }
 
 export async function getProperties(filters: SearchFilters = {}) {
+  console.log(">>> [DEBUG getProperties API CALLED]", JSON.stringify(filters));
   try {
     let data: any[] = [];
     
