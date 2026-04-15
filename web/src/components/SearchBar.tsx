@@ -225,7 +225,27 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
   const handleApply = (overrides?: any) => {
     // Prevent React Synthetic Event from being treated as search filters array
     const actualOverrides = (overrides && overrides.nativeEvent) ? undefined : overrides;
-    triggerSearch(actualOverrides);
+    
+    // Explicitly collect current state to avoid any transition/closure lag
+    const currentFilters: SearchFilters = {
+      types,
+      keyword,
+      minPrice,
+      maxPrice,
+      isClosingSoon: isUrgent,
+      prefectures: !isNationwide && selectedPrefectures.length > 0 ? selectedPrefectures : undefined,
+      provider: provider !== 'ALL' ? provider : undefined,
+      providers: activeProviders,
+      maxWalkTime: walkTime,
+      minArea,
+      sort,
+      lineName: selectedLine !== 'ALL' ? selectedLine : undefined,
+      stationName: selectedStation !== 'ALL' ? selectedStation : undefined,
+      courtName: selectedCourt !== 'ALL' ? selectedCourt : undefined,
+      managingAuthority: selectedNtaAuth !== 'ALL' ? selectedNtaAuth : undefined,
+    };
+
+    onSearch({ ...currentFilters, ...actualOverrides });
     setMobileFiltersOpen(false);
     setIsExpanded(false);
   };
@@ -341,6 +361,10 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
       name: filterName,
       state: currentState
     };
+
+    (key) => getProperties({ ...key, limit: 20 }),
+    { revalidateOnFocus: false, revalidateFirstPage: true, refreshInterval: 15000 }
+  );
 
     const updated = [newFilter, ...savedFilters].slice(0, 10);
     updateSavedFilters(updated);

@@ -228,121 +228,125 @@ export async function getProperties(filters: SearchFilters = {}) {
   try {
     let data: any[] = [];
     
-    // Bounds or Generic Search
-    let whereClause: any = { status: 'ACTIVE' };
-        
-        if (filters.bounds && filters.bounds.sw && filters.bounds.ne) {
-          whereClause.lat = { gte: filters.bounds.sw.lat, lte: filters.bounds.ne.lat };
-          // Handle longitude wrapping if needed, but normally in Japan it's not wrapping around 180
-          whereClause.lng = { gte: filters.bounds.sw.lng, lte: filters.bounds.ne.lng };
-        }
-        
-        whereClause.AND = [];
-        
-        if (filters.types && filters.types.length > 0) {
-          if (filters.types.includes('その他')) {
-            const explicitTypes = filters.types.filter(t => t !== 'その他');
-            if (explicitTypes.length > 0) {
-              whereClause.AND.push({
-                OR: [
-                  { property_type: { in: explicitTypes } },
-                  { property_type: { notIn: ['戸建て', 'マンション', '土地', '農地'] } }
-                ]
-              });
-            } else {
-              whereClause.AND.push({
-                property_type: { notIn: ['戸建て', 'マンション', '土地', '農地'] }
-              });
-            }
-          } else {
-            whereClause.AND.push({ property_type: { in: filters.types } });
-          }
-        }
-        
-        if (filters.prefectures && filters.prefectures.length > 0) {
-          whereClause.prefecture = { in: filters.prefectures };
-        } else if (filters.prefecture) {
-          whereClause.prefecture = filters.prefecture;
-        }
+    // 1. Initialize AND array with mandatory status filter
+    const andConditions: any[] = [{ status: 'ACTIVE' }];
 
-        // --- Xử lý Đa Nguồn Mới (Toggle & Độc lập) ---
-        const activeProviders = filters.providers || (filters.provider && filters.provider !== 'ALL' ? [filters.provider] : ['BIT', 'NTA']);
-        const orConditions: any[] = [];
-        
-        if (activeProviders.includes('BIT')) {
-          const bitCondition: any = { source_provider: 'BIT' };
-          if (filters.courtName && filters.courtName !== 'ALL') {
-             bitCondition.court_name = filters.courtName;
-          }
-          orConditions.push(bitCondition);
-        }
+    // 2. Map Bounds
+    if (filters.bounds && filters.bounds.sw && filters.bounds.ne) {
+      andConditions.push({
+        lat: { gte: filters.bounds.sw.lat, lte: filters.bounds.ne.lat },
+        lng: { gte: filters.bounds.sw.lng, lte: filters.bounds.ne.lng }
+      });
+    }
 
-        if (activeProviders.includes('NTA')) {
-          const ntaCondition: any = { source_provider: 'NTA' };
-          if (filters.managingAuthority && filters.managingAuthority !== 'ALL') {
-             ntaCondition.managing_authority = { contains: filters.managingAuthority.split(' ')[0] };
-          }
-          orConditions.push(ntaCondition);
-        }
-
-        if (orConditions.length > 0) {
-          whereClause.AND.push({ OR: orConditions });
-        }
-        
-        if (whereClause.AND.length === 0) {
-          delete whereClause.AND;
-        }
-
-        if (filters.lineName && filters.lineName !== 'ALL') {
-          if (!whereClause.AND) whereClause.AND = [];
-          whereClause.AND.push({
-             OR: [
-                { line_name: { contains: filters.lineName, mode: 'insensitive' } },
-                { nearest_station: { contains: filters.lineName, mode: 'insensitive' } }
-             ]
+    // 3. Property Types
+    if (filters.types && filters.types.length > 0) {
+      if (filters.types.includes('その他')) {
+        const explicitTypes = filters.types.filter(t => t !== 'その他');
+        if (explicitTypes.length > 0) {
+          andConditions.push({
+            OR: [
+              { property_type: { in: explicitTypes } },
+              { property_type: { notIn: ['戸建て', 'マンション', '土地', '農地'] } }
+            ]
+          });
+        } else {
+          andConditions.push({
+            property_type: { notIn: ['戸建て', 'マンション', '土地', '農地'] }
           });
         }
-        
-        if (filters.stationName && filters.stationName !== 'ALL') {
-          whereClause.nearest_station = { contains: filters.stationName, mode: 'insensitive' };
-        }
-        
-        if (filters.lineName || filters.stationName) {
-           console.log(`[Filter-Debug] Line selected: ${filters.lineName} | Station: ${filters.stationName} | where:`, JSON.stringify(whereClause, null, 2));
-        }
-        
-        if (filters.minPrice || filters.maxPrice) {
-          whereClause.starting_price = {};
-          if (filters.minPrice) whereClause.starting_price.gte = filters.minPrice;
-          if (filters.maxPrice) whereClause.starting_price.lte = filters.maxPrice;
-        }
-        
-        if (filters.newOnly) {
-          // Fallback approximate: past 7 days
-          const weekAgo = new Date();
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          whereClause.created_at = { gte: weekAgo };
-        }
-        
-        if (filters.isClosingSoon) {
-          const now = new Date();
-          const p7D = new Date();
-          p7D.setDate(p7D.getDate() + 7);
-          whereClause.bid_end_date = { gte: now, lte: p7D };
-        }
-        
-        if (filters.minArea) {
-          whereClause.area = { gte: filters.minArea };
-        }
-        
-        if (filters.keyword) {
-           whereClause.OR = [
-             { address: { contains: filters.keyword, mode: 'insensitive' } },
-             { nearest_station: { contains: filters.keyword, mode: 'insensitive' } },
-             { prefecture: { contains: filters.keyword, mode: 'insensitive' } },
-             { city: { contains: filters.keyword, mode: 'insensitive' } },
-           ];
-        }
+      } else {
+        andConditions.push({ property_type: { in: filters.types } });
+      }
+    }
+
+    // 4. Prefectures
+    if (filters.prefectures && filters.prefectures.length > 0) {
+      andConditions.push({ prefecture: { in: filters.prefectures } });
+    } else if (filters.prefecture) {
+      andConditions.push({ prefecture: filters.prefecture });
+    }
+
+    // 5. Providers (BIT / NTA)
+    const activeProviders = filters.providers || (filters.provider && filters.provider !== 'ALL' ? [filters.provider] : ['BIT', 'NTA']);
+    const providerOrConditions: any[] = [];
+    
+    if (activeProviders.includes('BIT')) {
+      const bitCondition: any = { source_provider: 'BIT' };
+      if (filters.courtName && filters.courtName !== 'ALL') {
+         bitCondition.court_name = filters.courtName;
+      }
+      providerOrConditions.push(bitCondition);
+    }
+
+    if (activeProviders.includes('NTA')) {
+      const ntaCondition: any = { source_provider: 'NTA' };
+      if (filters.managingAuthority && filters.managingAuthority !== 'ALL') {
+         ntaCondition.managing_authority = { contains: filters.managingAuthority.split(' ')[0] };
+      }
+      providerOrConditions.push(ntaCondition);
+    }
+
+    if (providerOrConditions.length > 0) {
+      andConditions.push({ OR: providerOrConditions });
+    }
+
+    // 6. Railway Lines & Stations
+    if (filters.lineName && filters.lineName !== 'ALL') {
+      andConditions.push({
+         OR: [
+            { line_name: { contains: filters.lineName, mode: 'insensitive' } },
+            { nearest_station: { contains: filters.lineName, mode: 'insensitive' } }
+         ]
+      });
+    }
+    
+    if (filters.stationName && filters.stationName !== 'ALL') {
+      andConditions.push({ nearest_station: { contains: filters.stationName, mode: 'insensitive' } });
+    }
+
+    // 7. Price, Area, Time
+    if (filters.minPrice || filters.maxPrice) {
+      const priceFilter: any = {};
+      if (filters.minPrice) priceFilter.gte = filters.minPrice;
+      if (filters.maxPrice) priceFilter.lte = filters.maxPrice;
+      andConditions.push({ starting_price: priceFilter });
+    }
+    
+    if (filters.newOnly) {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      andConditions.push({ created_at: { gte: weekAgo } });
+    }
+    
+    if (filters.isClosingSoon) {
+      const now = new Date();
+      const p7D = new Date();
+      p7D.setDate(p7D.getDate() + 7);
+      andConditions.push({ bid_end_date: { gte: now, lte: p7D } });
+    }
+    
+    if (filters.minArea) {
+      andConditions.push({ area: { gte: filters.minArea } });
+    }
+
+    // 8. Keyword Search
+    if (filters.keyword) {
+      andConditions.push({
+        OR: [
+          { address: { contains: filters.keyword, mode: 'insensitive' } },
+          { nearest_station: { contains: filters.keyword, mode: 'insensitive' } },
+          { prefecture: { contains: filters.keyword, mode: 'insensitive' } },
+          { city: { contains: filters.keyword, mode: 'insensitive' } },
+        ]
+      });
+    }
+
+    // Final Where Clause Construction
+    const whereClause: any = { AND: andConditions };
+    console.log(">>> [DEBUG getProperties FINAL WHERE]", JSON.stringify(whereClause, null, 2));
+
+
 
         let effectiveSort = filters.sort === 'views' ? 'viewsDesc' : (filters.sort || filters.sortBy);
         
