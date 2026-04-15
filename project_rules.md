@@ -362,3 +362,39 @@ Theo như yêu cầu "Lọc bỏ toàn bộ sơ đồ/văn bản đen trắng, c
     1. Trang PDF phải phát hiện chữ chân trang `枚目` HOẶC `写真`.
     2. **VÀ** Tỷ lệ điểm màu bức hình `color_ratio` phải vượt mức an toàn `> 0.003` (Bức ảnh trên giấy trắng).
   - Hành động này giữ vững lệnh an toàn: Hút đủ 10 bức ảnh sắc nét dính lồng vào PDF sẽ tự động bóp phanh `break` giải phóng RAM cho luồng hoạt động tiếp theo.
+
+---
+
+## 📋 Nhật Ký Thay Đổi — Phiên Làm Việc 2026-04-15
+
+### 1. Sửa lỗi Thuật Toán Lọc Ảnh BIT (advanced_crawler.py)
+- **Vấn đề:** Điều kiện lọc trang dựa vào OCR text (`枚目` / `写真`) khiến toàn bộ ảnh bị bỏ qua, vì PDF của BIT là **file scan ảnh thuần túy** — không có text layer. Kết quả: DB chỉ có 1 ảnh duy nhất (thumbnail từ HTML), không có ảnh từ PDF.
+- **Giải pháp:** Xóa bỏ hoàn toàn điều kiện kiểm tra text `枚目/写真`. Chỉ giữ lại điều kiện `color_ratio > 0.003` để lọc trang trắng/trang văn bản. Thuật toán quét ngược (backwards) vẫn được giữ nguyên.
+- **Kết quả xác nhận:** 43/43 tài sản BIT trong DB đều có >1 ảnh sau khi áp dụng fix.
+
+### 2. Fix Data Flow `contact_url` BIT (page.tsx & PropertyInfoTags.tsx)
+- **Vấn đề:** Frontend đọc sai đường dẫn JSON. `contact_url` được lưu trong `raw_display_data[].data.contact_url` (lồng trong object `data`), nhưng code cũ đọc `raw_display_data[].contact_url` (sai cấp).
+- **Fix tại `page.tsx`:** `summary?.data?.contact_url` thay vì `summary?.contact_url`.
+- **Fix tại `PropertyInfoTags.tsx`:** Tương tự — đọc đúng `summary.data.contact_url`.
+- **Kết quả:** Nút `📞 問い合わせ` và nút `📥 物件資料PDF` đều hoạt động chính xác sau khi deploy.
+
+### 3. Chuẩn hóa `contact_url` (advanced_crawler.py)
+- **Vấn đề:** URL được lưu dưới dạng `https://www.bit.courts.go.jp/app/../info/info_38311.html` (có `../`) thay vì URL sạch.
+- **Giải pháp:** Dùng `urllib.parse.urljoin(base, href)` với base cố định `https://www.bit.courts.go.jp/app/detail/pd001/h04` để tự động resolve đường dẫn tương đối thành URL tuyệt đối sạch.
+- **Quy tắc:** Luôn dùng `urljoin` thay vì string replace thủ công khi xử lý relative URL của BIT.
+
+### 4. Fix Build Lỗi Vercel — `handleBoundsChanged is not defined` (page.tsx)
+- **Vấn đề:** Hàm `handleBoundsChanged` được truyền vào prop `onBoundsChanged` của `<KeibaiMap>` nhưng không được định nghĩa trong component. Tên hàm đúng là `handleMoveEnd`.
+- **Fix:** Đổi `onBoundsChanged={handleBoundsChanged}` → `onBoundsChanged={handleMoveEnd}`.
+- **Bài học:** Vercel build strict hơn local — lỗi tham chiếu hàm undefined chỉ bị phát hiện khi prerender SSR trên Vercel.
+
+### 5. Fix Build Lỗi Vercel — `useDebounce is not defined` (SearchBar.tsx)
+- **Vấn đề:** Hook `useDebounce` từ package `use-debounce` được sử dụng nhưng package này **không có trong `package.json`** (ghost dependency). Chạy được local nhưng fail trên Vercel vì build clean.
+- **Giải pháp:** Xóa bỏ `useDebounce`, thay bằng pattern native React: `useEffect` + `setTimeout` + `clearTimeout` với delay 300ms. Không cần cài thêm package.
+- **Quy tắc:** Không được dùng hook/utility của package chưa được khai báo trong `package.json`. Luôn ưu tiên native React pattern cho debounce/throttle đơn giản.
+
+### 6. Quy trình Deploy & Xác nhận
+- **Vercel Auto-Deploy:** Vercel tự động trigger build mỗi khi có commit push lên nhánh `main`. Không cần thao tác thủ công.
+- **Xác nhận deploy thành công:** Vào `vercel.com/dashboard` → project → Deployments. Status `Ready` (xanh lá) = thành công. `Error` (đỏ) = cần xem Build Logs.
+- **Hard Reload sau deploy:** Bắt buộc bấm `Cmd+Shift+R` (Mac) hoặc `Ctrl+Shift+R` (Windows) để xóa cache trình duyệt và load code mới nhất.
+- **Khi build Error:** Vào Deployments → click vào deployment lỗi → xem tab **Logs** để tìm dòng đỏ → fix code → push lại.
