@@ -398,3 +398,26 @@ Theo như yêu cầu "Lọc bỏ toàn bộ sơ đồ/văn bản đen trắng, c
 - **Xác nhận deploy thành công:** Vào `vercel.com/dashboard` → project → Deployments. Status `Ready` (xanh lá) = thành công. `Error` (đỏ) = cần xem Build Logs.
 - **Hard Reload sau deploy:** Bắt buộc bấm `Cmd+Shift+R` (Mac) hoặc `Ctrl+Shift+R` (Windows) để xóa cache trình duyệt và load code mới nhất.
 - **Khi build Error:** Vào Deployments → click vào deployment lỗi → xem tab **Logs** để tìm dòng đỏ → fix code → push lại.
+
+### 7. Import Dữ liệu Ga Tàu (import_station_data.py)
+- **Vấn đề:** Tính năng "Ga gần nhất" (Nearest Station) không hoạt động vì bảng `RailwayStation` trống rỗng sau khi reset DB.
+- **Giải pháp:** Sử dụng script `import_station_data.py` gọi **OpenStreetMap Overpass API** để lấy toàn bộ danh sách ga tàu tại Nhật Bản (~9,100 node).
+- **Tối ưu Bulk Insert:** Thay vì `INSERT` từng dòng (mất 15-20 phút), sử dụng `cur.executemany()` với batch 500 dòng/lần. Tốc độ tăng gấp 10 lần (~1-2 phút).
+- **Xác nhận:** Query Haversine tìm ga trong bán kính 10km phản hồi trong **0.07s**.
+
+### 8. Tối ưu Hiệu năng Trang Chi Tiết (page.tsx & MarketComparison.tsx)
+- **Vấn đề:** Trang chi tiết tài sản load cực chậm (>3s) hoặc timeout.
+- **Nguyên nhân 1 (Sequential Awaits):** 3 lệnh `await` lấy Ga tàu, Tài sản lân cận, và Kết quả đấu giá chạy tuần tự, cộng dồn thời gian chờ.
+- **Fix 1 (Parallelization):** Dùng `Promise.all([fetch1, fetch2, fetch3])` để chạy song song. Giảm 70% thời gian chờ dữ liệu.
+- **Nguyên nhân 2 (Double Fetch):** Component `MarketComparison` tự gọi lại API trùng lặp với `page.tsx`.
+- **Fix 2 (Prop Drilling):** Truyền kết quả `nearbySold` từ `page.tsx` xuống `MarketComparison` qua props. Xóa bỏ fetch thừa.
+- **Nguyên nhân 3 (DB Spam):** Metadata và Page Render cùng gọi `findUnique` vào Database.
+- **Fix 3 (React Cache):** Gói query vào `React.cache(id => prisma.property.findUnique(...))` để Next.js tự động khử trùng lặp (deduplicate) trong cùng 1 request.
+
+### 9. Fix lỗi "Click không ăn / Đơ trang" (PropertyCard.tsx & prefetch)
+- **Vấn đề:** Người dùng click "詳細を見る" nhưng trình duyệt không chuyển trang, cảm giác bị treo.
+- **Nguyên nhân (HTTP Connection Exhaustion):** Next.js mặc định `prefetch={true}` cho tất cả các thẻ `<Link>` trong khung nhìn. Với 43 tài sản trên danh sách, trình duyệt nã 43 request tải ngầm đồng thời -> Nghẽn hàng đợi (Queue) mạng. Lệnh click chính chủ bị xếp cuối hàng đợi 2-3 phút mới được xử lý.
+- **Giải pháp:** Gắn `prefetch={false}` cho tất cả các nút chi tiết tại `PropertyCard.tsx`, `DetailMapComponent.tsx` và `ViewHistoryBar.tsx`.
+- **Kết quả:** Trình duyệt chỉ tải khi người dùng click thực sự. Tốc độ chuyển trang ngay lập tức (Instant).
+
+---
