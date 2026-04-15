@@ -252,11 +252,13 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                     if src.startswith('/'): src = "https://www.bit.courts.go.jp" + src
                     summary_images.append(src)
 
+            from urllib.parse import urljoin
             for a_tag in soup.find_all('a', class_='bit__btn_secondary'):
                 href = a_tag.get('href', '')
                 if 'お問い合わせ' in a_tag.get_text() or 'info_' in href:
-                    if href.startswith('/'): href = "https://www.bit.courts.go.jp" + href
-                    elif href.startswith('.'): href = "https://www.bit.courts.go.jp" + href.replace('../', '/')
+                    # Normalize URL: resolve ../ fragments cleanly
+                    base = "https://www.bit.courts.go.jp/app/detail/pd001/h04"
+                    href = urljoin(base, href)
                     summary_data["contact_url"] = href
                     break
 
