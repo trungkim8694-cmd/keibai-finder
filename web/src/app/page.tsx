@@ -270,7 +270,7 @@ export default function DashboardPage() {
           <KeibaiMap 
              mode="list"
              properties={mapProperties} 
-             onBoundsChanged={handleBoundsChanged} 
+             onBoundsChanged={handleMoveEnd} 
              center={currentFilters.lat && currentFilters.lng ? [currentFilters.lat, currentFilters.lng] : undefined}
              hoveredPropertyId={hoveredPropertyId}
              clickedPropertyId={clickedPropertyId}
