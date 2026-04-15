@@ -508,7 +508,7 @@ export default function KeibaiMapInner({
                }
              }}
           >
-           <Popup>
+           <Popup autoPan={false}>
              <a 
                href={`/property/${p.sale_unit_id}`}
                target="_blank"
@@ -556,7 +556,7 @@ export default function KeibaiMapInner({
            </Popup>
         </Marker>
     ));
-  }, [properties, hoveredPropertyId, onMarkerClick]);
+  }, [properties, onMarkerClick, onMarkerHover]);
 
   return (
     <>
