@@ -80,7 +80,7 @@ export default function DetailMapComponent({ property, nearestStations, nearbyAc
                   className={`shrink-0 w-[240px] md:w-[280px] bg-white dark:bg-zinc-900 border rounded-xl p-3 snap-center shadow-sm transition-all block relative ${activeItemId === p.sale_unit_id ? 'border-blue-500 ring-2 ring-blue-500/20 -translate-y-1' : 'border-zinc-200 dark:border-zinc-700 hover:border-blue-300'}`}
                   style={{ scrollSnapAlign: 'center' }}
                >
-                 <a href={`/property/${p.sale_unit_id}`} className="flex gap-3 h-full">
+                 <a href={`/property/${p.sale_unit_id}`} target="_blank" rel="noopener noreferrer" className="flex gap-3 h-full">
                    <div className="w-16 h-16 md:w-20 md:h-20 bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden shrink-0 border border-zinc-100 dark:border-zinc-800 relative">
                       {p.thumbnailUrl ? <img src={p.thumbnailUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl bg-zinc-100">🏠</div>}
                    </div>

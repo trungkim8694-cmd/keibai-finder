@@ -523,6 +523,8 @@ export default function KeibaiMapInner({
            <Popup>
              <a 
                href={`/property/${p.sale_unit_id}`}
+               target="_blank"
+               rel="noopener noreferrer"
                className="p-0 w-[240px] sm:w-[260px] cursor-pointer hover:opacity-90 transition-opacity block group outline-none focus:outline-none"
              >
                <div className="w-full h-[100px] bg-zinc-100 dark:bg-zinc-800 rounded-t-lg mb-2 overflow-hidden border-b border-zinc-200 dark:border-zinc-700 relative">
@@ -536,24 +538,22 @@ export default function KeibaiMapInner({
                  <div className="font-black text-blue-600 dark:text-blue-500 text-[16px] mb-1">
                    ¥{p.starting_price ? Number(p.starting_price).toLocaleString() : '未定'}
                  </div>
-                 <div className="mb-1.5">
+                 <div className="mb-1.5 flex flex-row flex-nowrap items-center gap-1 overflow-x-auto scrollbar-hide whitespace-nowrap w-full pb-1">
                     {(() => {
                        const typeLabel = !p.property_type || p.property_type === 'Unknown' ? '種類不明' : p.property_type;
                        const color = getPropertyTypeColor(typeLabel);
                        return (
-                          <span className={`text-[9px] font-black border px-1.5 py-0.5 rounded-sm ${color.bg} ${color.text} ${color.border} inline-block dark:bg-opacity-20`}>
+                          <span className={`text-[9px] font-black border px-1 py-0.5 rounded-sm shrink-0 ${color.bg} ${color.text} ${color.border} inline-block dark:bg-opacity-20 leading-none`}>
                              {typeLabel}
                           </span>
                        )
                     })()}
+                    <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none">
+                      {p.lat && p.lng ? <AsyncStationInfo lat={p.lat} lng={p.lng} initial={p.nearest_station} /> : (p.nearest_station || '駅情報なし')}
+                    </span>
                  </div>
                  <div className="text-[10px] text-zinc-500 flex flex-col gap-1.5 border-t border-zinc-100 dark:border-zinc-200 pt-1.5 mt-1.5">
-                   <div className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-start gap-1 font-bold w-full">
-                     <span className="shrink-0 text-xs">🚉</span>
-                     <span className="break-words line-clamp-2 leading-tight">
-                        {p.lat && p.lng ? <AsyncStationInfo lat={p.lat} lng={p.lng} initial={p.nearest_station} /> : (p.nearest_station || '駅情報なし')}
-                     </span>
-                   </div>
+
                    <div className="text-blue-600 font-bold group-hover:underline text-right w-full flex items-center justify-end gap-1">
                      詳細を見る <span className="text-lg leading-none">→</span>
                    </div>

@@ -184,12 +184,7 @@ export default function PropertyCard({
            <PropertyInfoTags property={property} displayArea={(property as any).area ? `${Math.round((property as any).area).toLocaleString('en-US')}m²` : null} />
          </div>
         
-        {property.nearest_station && (
-           <div className="mb-3 lg:mb-1.5 text-zinc-600 dark:text-zinc-400 font-medium text-[13px] lg:text-xs flex items-center gap-1.5 line-clamp-1 break-all">
-             <span className="text-sm lg:text-xs">🚉</span>
-             <span>{(property as any).line_name ? `${(property as any).line_name} / ` : ''}{(property as any).walk_time_to_station ? `${property.nearest_station} 徒歩${(property as any).walk_time_to_station}分` : property.nearest_station}</span>
-           </div>
-        )}
+
         
         {ntaCountdownUI}
         
@@ -209,6 +204,8 @@ export default function PropertyCard({
             </button>
             <a 
               href={`/property/${property.sale_unit_id}`} 
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()} 
               className="group/btn bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all duration-300 text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 shadow-sm border border-blue-100"
             >
