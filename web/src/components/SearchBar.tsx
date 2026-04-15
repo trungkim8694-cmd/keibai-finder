@@ -722,32 +722,22 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
 
             {/* Action Buttons */}
             <div className="flex items-center pl-2 lg:pl-1 pr-1 lg:pr-0 gap-1 shrink-0">
-               <Transition
-                 show={hasActiveFilters}
-                 enter="transition-opacity duration-300 ease-out"
-                 enterFrom="opacity-0"
-                 enterTo="opacity-100"
-                 leave="transition-opacity duration-200 ease-in"
-                 leaveFrom="opacity-100"
-                 leaveTo="opacity-0"
-               >
                  <div className="flex items-center gap-0.5 border-r border-zinc-200 dark:border-zinc-700 pr-2 mr-1">
                    <button 
                      onClick={handleSaveFilter} 
                      title="この条件を保存 (Save Filter)"
                      className="flex items-center justify-center gap-1 bg-transparent hover:bg-yellow-50 dark:hover:bg-yellow-900/30 text-yellow-500 hover:text-yellow-600 font-bold py-2.5 lg:py-1 px-3 lg:px-2 rounded-md transition-all text-sm lg:text-xs"
                    >
-                     ⭐️ <span>保存</span>
+                     ⭐️ <span className="hidden sm:inline">保存</span>
                    </button>
                    <button 
                      onClick={handleClear} 
                      title="条件をクリア (Clear All)"
                      className="flex items-center gap-1 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 font-bold py-2.5 lg:py-1.5 px-3 lg:px-2 rounded-md transition-all text-sm lg:text-xs"
                    >
-                     🔄 <span>クリア</span>
+                     🔄 <span className="hidden sm:inline">クリア</span>
                    </button>
                  </div>
-               </Transition>
                <button onClick={handleApply} className="bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center justify-center gap-1.5 py-3 lg:py-1.5 px-5 lg:px-6 rounded-md shadow-sm text-sm lg:text-xs transition-colors tracking-widest">
                  <MagnifyingGlassIcon className="w-5 h-5 sm:hidden" />
                  <span className="hidden sm:inline">検索</span>

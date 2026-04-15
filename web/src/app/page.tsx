@@ -161,6 +161,11 @@ export default function DashboardPage() {
       newFilters.lng = filters.station.lng;
     }
     
+    // Nếu màn hình bản đồ đã có Bounds, phải cõng theo Bounds đó khi filter mới ghi đè
+    if (bounds) {
+       newFilters.bounds = bounds;
+    }
+    
     // Support legacy properties mapped by SearchBar earlier
     if (filters.newOnly !== undefined) newFilters.isClosingSoon = filters.newOnly;
     
