@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [currentFilters, setCurrentFilters] = useState<SearchFilters>({});
   const [areaStats, setAreaStats] = useState<Record<string, number>>({});
   const [mapMoved, setMapMoved] = useState(false);
+  const [searchVersion, setSearchVersion] = useState(0); // Bump to force SWR refetch
 
   useEffect(() => {
     setIsHydrated(true);
@@ -36,9 +37,9 @@ export default function DashboardPage() {
 
   // 1. Fetch Map Data (Minimal payload, all matching bounds)
   const { data: mapDataArray, isLoading: isMapLoading } = useSWR(
-    isHydrated ? { ...currentFilters, mapOnly: true } : null, // Removed bounds from map caching key so we fetch nationally once!
+    isHydrated ? { ...currentFilters, mapOnly: true, _v: searchVersion } : null,
     (filters) => getProperties({ ...filters, isMapPayload: true }),
-    { revalidateOnFocus: false, dedupingInterval: 10000, refreshInterval: 15000 } // Poll every 15s for new properties
+    { revalidateOnFocus: false, dedupingInterval: 0, refreshInterval: 15000 }
   );
   
   const mapProperties = mapDataArray || [];
@@ -59,11 +60,12 @@ export default function DashboardPage() {
         ...currentFilters, 
         // DO NOT inject reactive bounds from state to decouple list from map!
         page: pageIndex + 1, 
-        listOnly: true 
+        listOnly: true,
+        _v: searchVersion
       };
     },
     (key) => getProperties({ ...key, limit: 20 }),
-    { revalidateOnFocus: false, revalidateFirstPage: false, refreshInterval: 15000 }
+    { revalidateOnFocus: false, revalidateFirstPage: true, refreshInterval: 15000 }
   );
 
   const rawListProperties = listDataArray ? ([] as any[]).concat(...listDataArray) : [];
@@ -165,6 +167,7 @@ export default function DashboardPage() {
     
     const isNewLocation = filters.lat !== currentFilters.lat || filters.lng !== currentFilters.lng;
     setCurrentFilters(newFilters);
+    setSearchVersion(v => v + 1); // Force SWR key change → always refetches
     
     if (!mapMoved || isNewLocation) {
         setMapMoved(false);
