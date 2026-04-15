@@ -226,17 +226,19 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   let formattedWinningBid = '-';
 
   if (property.lat && property.lng) {
-    nearestStations = await getNearestStations(property.lat, property.lng);
-    
-    // Fetch nearby active properties
-    const allNearby = await getProperties({ prefecture: property.prefecture || undefined, limit: 10 });
-    nearbyActive = allNearby.filter((p: any) => p.sale_unit_id !== id).slice(0, 10);
+    // Run all 3 async fetches IN PARALLEL to avoid sequential blocking
+    const [stationsResult, nearbyResult, soldResult] = await Promise.all([
+      getNearestStations(property.lat, property.lng),
+      getProperties({ prefecture: property.prefecture || undefined, limit: 10 }),
+      getNearbyAuctionResults(property.lat, property.lng, 10),
+    ]);
 
-    // Fetch past sold auctions for 10km radius to calculate avg margin
-    nearbySold = await getNearbyAuctionResults(property.lat, property.lng, 10);
-    
+    nearestStations = stationsResult;
+    nearbyActive = nearbyResult.filter((p: any) => p.sale_unit_id !== id).slice(0, 10);
+    nearbySold = soldResult;
+
     if (nearbySold && nearbySold.length > 0) {
-      const totalMargin = nearbySold.reduce((acc, curr) => acc + (curr.marginRate || 0), 0);
+      const totalMargin = nearbySold.reduce((acc: number, curr: any) => acc + (curr.marginRate || 0), 0);
       avgMargin = Math.round(totalMargin / nearbySold.length);
     }
   }
