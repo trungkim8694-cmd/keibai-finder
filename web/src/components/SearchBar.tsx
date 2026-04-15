@@ -776,7 +776,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          }}
                          className={`px-3 lg:px-2 py-1.5 lg:py-1 text-sm lg:text-[11px] font-bold rounded-full transition-colors border flex items-center gap-1 whitespace-nowrap ${types.includes(pt) ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900' : 'bg-transparent text-zinc-600 hover:bg-zinc-100 border-gray-200 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800'}`}
                        >
-                         <span>{pt}</span>
+                         <span>{pt}({count})</span>
                        </button>
                      );
                    })}
@@ -824,7 +824,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          }`}
                        >
                          <span>⚖️</span>
-                         <span className="max-w-[80px] truncate">{selectedCourt !== 'ALL' ? selectedCourt : 'BIT 裁判所'}</span>
+                         <span className="max-w-[80px] truncate">{selectedCourt !== 'ALL' ? selectedCourt : `BIT 裁判所(${authorityData.bit.reduce((acc, curr) => acc + curr.count, 0)})`}</span>
                         </button>
                        <button
                          ref={bitRefs.setReference}
@@ -890,7 +890,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          }`}
                        >
                          <span>🏛️</span>
-                         <span className="max-w-[80px] truncate">{selectedNtaAuth !== 'ALL' ? selectedNtaAuth : 'NTA 税務署'}</span>
+                         <span className="max-w-[80px] truncate">{selectedNtaAuth !== 'ALL' ? selectedNtaAuth : `NTA 税務署(${authorityData.nta.reduce((acc, curr) => acc + curr.count, 0)})`}</span>
                         </button>
                        <button
                          ref={ntaRefs.setReference}
