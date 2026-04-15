@@ -207,15 +207,14 @@ export default function PropertyCard({
                <span>🎯</span>
                <span className="hidden sm:inline">地図へ</span>
             </button>
-            <Link 
+            <a 
               href={`/property/${property.sale_unit_id}`} 
-              prefetch={false}
               onClick={(e) => e.stopPropagation()} 
               className="group/btn bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all duration-300 text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 shadow-sm border border-blue-100"
             >
                <span>詳細を見る</span>
                <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
-            </Link>
+            </a>
           </div>
         </div>
       </div>
