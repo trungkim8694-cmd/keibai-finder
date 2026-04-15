@@ -20,12 +20,17 @@ import { StickyActionBar } from '@/components/Detail/StickyActionBar';
 import { AiAnalysisPanel } from '@/components/Detail/AiAnalysisPanel';
 import { ImageGallery } from '@/components/Detail/ImageGallery';
 import { Metadata } from 'next';
+import { cache } from 'react';
+
+const getPropertyById = cache(async (id: string) => {
+  return prisma.property.findUnique({ where: { sale_unit_id: id } });
+});
 
 export const revalidate = 3600; // Cache property details for 1 hour
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const { id } = await params;
-  const property = await prisma.property.findUnique({ where: { sale_unit_id: id } });
+  const property = await getPropertyById(id);
   
   if (!property) return { title: '物件が見つかりません' };
 
@@ -57,9 +62,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   // Fix Next.js 15+ async params error by awaiting params
   const { id } = await params;
 
-  const property = await prisma.property.findUnique({
-    where: { sale_unit_id: id }
-  });
+  const property = await getPropertyById(id);
 
   if (!property) {
     return notFound();
@@ -458,17 +461,21 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
         {/* Advanced Property Detail Map */}
         {property.lat && property.lng && (
+          <React.Suspense fallback={<div className="h-64 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-2xl mb-8" />}>
             <DetailMapComponent 
               property={property} 
               nearestStations={nearestStations} 
               nearbyActive={nearbyActive} 
               nearbySold={nearbySold}
             />
+          </React.Suspense>
         )}
 
         {/* Market Analysis / Near by Phase 3 */}
         {property.lat && property.lng ? (
-          <MarketComparison propertyLat={property.lat} propertyLng={property.lng} stations={nearestStations} />
+          <React.Suspense fallback={<div className="h-48 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-2xl mt-8" />}>
+            <MarketComparison nearbySold={nearbySold} stations={nearestStations} />
+          </React.Suspense>
         ) : null}
 
         {/* MLIT API Real Estate Market Analytics */}

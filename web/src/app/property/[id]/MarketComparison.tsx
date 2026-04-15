@@ -1,8 +1,4 @@
-import { getNearbyAuctionResults } from './actions';
-
-export default async function MarketComparison({ propertyLat, propertyLng, stations = [] }: { propertyLat: number, propertyLng: number, stations?: any[] }) {
-  const nearbySold = await getNearbyAuctionResults(propertyLat, propertyLng, 10);
-  
+export default function MarketComparison({ nearbySold = [], stations = [] }: { nearbySold?: any[], stations?: any[] }) {
   if (!nearbySold || nearbySold.length === 0) {
     return (
       <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 text-center text-zinc-500 mt-8">
