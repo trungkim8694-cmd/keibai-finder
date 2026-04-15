@@ -34,17 +34,18 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   
   if (!property) return { title: '物件が見つかりません' };
 
-  const priceFormatted = property.reference_price ? `${(property.reference_price).toLocaleString()}円` : '価格非公開';
+  const priceNum = property.starting_price ? Number(property.starting_price) : 0;
+  const priceFormatted = priceNum > 0 ? `${priceNum.toLocaleString()}円` : '価格非公開';
   const typeStr = property.property_type || '競売物件';
   const address = property.address?.substring(0, 20) || '';
   
   const title = `【${priceFormatted}】${address}の${typeStr}｜${property.court_name} 競売物件情報`;
-  const description = `${property.address}の${typeStr}（競売/公売）。基準価格は${priceFormatted}です。市場価格より安い不動産をお探しならKeibai Finder。過去の落札相場やAIによる価格査定データを公開中。`;
+  const description = `${property.address}の${typeStr}（競売/公売）。基準価格は${priceFormatted}です。市場価格より安い不動産をお探しならKeibai Finder. 過去の落札相場やAIによる価格査定データを公開中。`;
   
   // Use first image as openGraph image
   let ogImage = undefined;
   if (property.images && Array.isArray(property.images) && property.images.length > 0) {
-     ogImage = property.images[0]?.url || undefined;
+     ogImage = property.images[0] || undefined;
   }
 
   return {
@@ -213,14 +214,9 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   const auctionRound = extractAuctionRoundFromData(property.raw_display_data);
   const endDateRaw = (property as any).bid_end_date ? new Date((property as any).bid_end_date) : null;
 
-  const extPropertyStr = {
-    ...property,
-    auctionSchedule,
-    auctionRound,
-    prefecture: (property as any).prefecture,
-    city: (property as any).city,
-    contact_url: ntaMapLink || undefined
-  } as any;
+  // Prepare coordinates for markers
+  const propertyLat = property.lat;
+  const propertyLng = property.lng;
 
   let nearestStations: any[] = [];
   let nearbyActive: any[] = [];
@@ -295,11 +291,10 @@ export default async function PropertyDetail({ params }: { params: { id: string 
            date: property.created_at
          });
       }
-    }
   }
 
-  const imagesList = Array.isArray(property.images) ? property.images as Array<any> : [];
-  const ogImageUrl = imagesList.length > 0 ? imagesList[0]?.url : undefined;
+  const imagesList = Array.isArray(property.images) ? property.images as string[] : [];
+  const ogImageUrl = imagesList.length > 0 ? imagesList[0] : undefined;
   // Metadata for SEO
   const jsonLd = {
     "@context": "https://schema.org",
