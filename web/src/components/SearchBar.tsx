@@ -157,36 +157,9 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
     getTypeStats().then(data => setTypeStats(data));
   }, []);
   
-  // Initial URL load & SessionStorage Hydration
   useEffect(() => {
      if (isMounted) {
         let initialOverrides: any = {};
-        
-        // Always try to restore from SessionStorage first so UI state is maintained
-        try {
-            const storedUIRaw = sessionStorage.getItem('kb_search_ui');
-            if (storedUIRaw) {
-                const storedUI = JSON.parse(storedUIRaw);
-                if (storedUI.keyword !== undefined) setKeyword(storedUI.keyword);
-                if (storedUI.types !== undefined) setTypes(storedUI.types);
-                if (storedUI.selectedRegions !== undefined) setSelectedRegions(storedUI.selectedRegions);
-                if (storedUI.selectedPrefectures !== undefined) setSelectedPrefectures(storedUI.selectedPrefectures);
-                if (storedUI.isNationwide !== undefined) setIsNationwide(storedUI.isNationwide);
-                if (storedUI.viewingRegion !== undefined) setViewingRegion(storedUI.viewingRegion);
-                if (storedUI.minPrice !== undefined) setMinPrice(storedUI.minPrice);
-                if (storedUI.maxPrice !== undefined) setMaxPrice(storedUI.maxPrice);
-                if (storedUI.isUrgent !== undefined) setIsUrgent(storedUI.isUrgent);
-                if (storedUI.provider !== undefined) setProvider(storedUI.provider);
-                if (storedUI.activeProviders !== undefined) setActiveProviders(storedUI.activeProviders);
-                if (storedUI.walkTime !== undefined) setWalkTime(storedUI.walkTime);
-                if (storedUI.minArea !== undefined) setMinArea(storedUI.minArea);
-                if (storedUI.sort !== undefined) setSort(storedUI.sort);
-                if (storedUI.selectedLine !== undefined) setSelectedLine(storedUI.selectedLine);
-                if (storedUI.selectedStation !== undefined) setSelectedStation(storedUI.selectedStation);
-                if (storedUI.selectedCourt !== undefined) setSelectedCourt(storedUI.selectedCourt);
-                if (storedUI.selectedNtaAuth !== undefined) setSelectedNtaAuth(storedUI.selectedNtaAuth);
-            }
-        } catch(e) { console.error('Failed to parse kb_search_ui', e); }
 
         const lineParam = searchParams.get('line');
         const prefsParam = searchParams.get('prefs');
@@ -244,12 +217,6 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
       filters.stationName = selectedStation !== 'ALL' ? selectedStation : undefined;
       filters.courtName = selectedCourt !== 'ALL' ? selectedCourt : undefined;
       filters.managingAuthority = selectedNtaAuth !== 'ALL' ? selectedNtaAuth : undefined;
-      const uiSnapshot = {
-          keyword, types, selectedRegions, selectedPrefectures, isNationwide, viewingRegion,
-          minPrice, maxPrice, isUrgent, provider, activeProviders, walkTime, minArea, sort,
-          selectedLine, selectedStation, selectedCourt, selectedNtaAuth
-      };
-      try { sessionStorage.setItem('kb_search_ui', JSON.stringify(uiSnapshot)); } catch(e){}
 
       onSearch({ ...filters, ...overrides });
     });

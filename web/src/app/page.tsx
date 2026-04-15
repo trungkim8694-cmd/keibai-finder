@@ -29,16 +29,6 @@ export default function DashboardPage() {
   const [mapMoved, setMapMoved] = useState(false);
 
   useEffect(() => {
-    try {
-      const storedFilters = sessionStorage.getItem('kb_currentFilters');
-      if (storedFilters) setCurrentFilters(JSON.parse(storedFilters));
-      
-      const storedBounds = sessionStorage.getItem('kb_bounds');
-      if (storedBounds) setBounds(JSON.parse(storedBounds));
-      
-      const storedViewMode = sessionStorage.getItem('kb_viewMode');
-      if (storedViewMode) setViewMode(storedViewMode as 'map'|'list');
-    } catch (e) { console.error('Failed to parse kb_ session storage', e); }
     setIsHydrated(true);
 
     getAreaStats().then(setAreaStats).catch(console.error);
@@ -139,10 +129,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleMapBoundsChange = (newBounds: any, centerLat: number, centerLng: number) => {
+    setBounds(newBounds);
+    setCurrentFilters(f => {
+       const newF = { ...f, bounds: newBounds }; // Lock in current box logic
+       delete newF.lat; delete newF.lng;
+       return newF;
+    });
+    setMapMoved(false);
+  };
+
   const handleMoveEnd = (newBounds: BoundingBox) => {
     setMapMoved(true);
     setBounds(newBounds);
-    try { sessionStorage.setItem('kb_bounds', JSON.stringify(newBounds)); } catch (e) {}
   };
 
   const handleSearchThisArea = () => {
@@ -161,17 +160,11 @@ export default function DashboardPage() {
       newFilters.lng = filters.station.lng;
     }
     
-    // Nếu màn hình bản đồ đã có Bounds, phải cõng theo Bounds đó khi filter mới ghi đè
-    if (bounds) {
-       newFilters.bounds = bounds;
-    }
-    
     // Support legacy properties mapped by SearchBar earlier
     if (filters.newOnly !== undefined) newFilters.isClosingSoon = filters.newOnly;
     
     const isNewLocation = filters.lat !== currentFilters.lat || filters.lng !== currentFilters.lng;
     setCurrentFilters(newFilters);
-    try { sessionStorage.setItem('kb_currentFilters', JSON.stringify(newFilters)); } catch (e) {}
     
     if (!mapMoved || isNewLocation) {
         setMapMoved(false);
