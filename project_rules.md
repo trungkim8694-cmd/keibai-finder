@@ -405,14 +405,16 @@ Theo như yêu cầu "Lọc bỏ toàn bộ sơ đồ/văn bản đen trắng, c
 - **Tối ưu Bulk Insert:** Thay vì `INSERT` từng dòng (mất 15-20 phút), sử dụng `cur.executemany()` với batch 500 dòng/lần. Tốc độ tăng gấp 10 lần (~1-2 phút).
 - **Xác nhận:** Query Haversine tìm ga trong bán kính 10km phản hồi trong **0.07s**.
 
-### 8. Tối ưu Hiệu năng Trang Chi Tiết (page.tsx & MarketComparison.tsx)
-- **Vấn đề:** Trang chi tiết tài sản load cực chậm (>3s) hoặc timeout.
-- **Nguyên nhân 1 (Sequential Awaits):** 3 lệnh `await` lấy Ga tàu, Tài sản lân cận, và Kết quả đấu giá chạy tuần tự, cộng dồn thời gian chờ.
-- **Fix 1 (Parallelization):** Dùng `Promise.all([fetch1, fetch2, fetch3])` để chạy song song. Giảm 70% thời gian chờ dữ liệu.
-- **Nguyên nhân 2 (Double Fetch):** Component `MarketComparison` tự gọi lại API trùng lặp với `page.tsx`.
-- **Fix 2 (Prop Drilling):** Truyền kết quả `nearbySold` từ `page.tsx` xuống `MarketComparison` qua props. Xóa bỏ fetch thừa.
-- **Nguyên nhân 3 (DB Spam):** Metadata và Page Render cùng gọi `findUnique` vào Database.
-- **Fix 3 (React Cache):** Gói query vào `React.cache(id => prisma.property.findUnique(...))` để Next.js tự động khử trùng lặp (deduplicate) trong cùng 1 request.
+### 8. Tối ưu Hiệu năng & Fix lỗi "Forever Loading" (page.tsx & serialization)
+- **Vấn đề:** Thanh tiến trình chạy mãi tại trang Danh sách/Bản đồ mà không chuyển sang trang Chi tiết.
+- **Nguyên nhân Gốc:** 
+    1. **BigInt Serialization Error:** Next.js Server Components không thể tự động chuyển đổi kiểu `BigInt` (từ Prisma) sang JSON để gửi xuống Client. Các nỗ lực "ép kiểu" bằng `JSON.stringify` ở cấp Component gây ra lỗi Hydration và treo luồng React Router.
+    2. **Sequential Fetches:** Một số query (như lịch sử đấu giá) vẫn chạy sau khi các query khác xong, cộng dồn thời gian phản hồi Server lên >2s.
+- **Giải pháp dứt điểm:**
+    *   **Full Parallelization:** Đưa tất cả 4 query (Ga tàu, Tài sản lân cận, Kết quả đã bán, Lịch sử tương tự) vào một khối `Promise.all` duy nhất.
+    *   **POJO Serialization:** Chuyển đổi thủ công tất cả các trường `BigInt` (như `starting_price`, `price`) thành `Number` hoặc `String` ngay sau khi lấy từ DB, tạo ra các đối tượng POJO sạch sẽ để truyền qua RSC.
+    *   **Fix Prop Type:** Loại bỏ việc truyền String vào `PropertyInfoTags`, thay bằng Object đã được chuẩn hóa.
+- **Kết quả:** Gói RSC Payload được gửi đi ngay lập tức (~300-500ms), trình duyệt nhận diện dữ liệu Object chuẩn và hiển thị trang chi tiết tức thì.
 
 ### 9. Fix lỗi "Click không ăn / Đơ trang" (PropertyCard.tsx & prefetch)
 - **Vấn đề:** Người dùng click "詳細を見る" nhưng trình duyệt không chuyển trang, cảm giác bị treo.
