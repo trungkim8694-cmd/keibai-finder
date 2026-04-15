@@ -1,5 +1,6 @@
 import { type SharedProperty, getPropertyTypeColor } from '../types';
 import { CourtContactLink } from './CourtContactLink';
+import { AsyncStationInfo } from './AsyncStationInfo';
 
 interface InfoTagsProps {
   property: SharedProperty;
@@ -71,9 +72,9 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
   const stationName = property.nearest_station;
   const walkTime = (property as any).walk_time_to_station;
   const lineName = (property as any).line_name;
-  let stationLabel = null;
+  let staticStationLabel = null;
   if (stationName) {
-    stationLabel = (lineName ? `${lineName} / ` : '') + (walkTime ? `${stationName} 徒歩${walkTime}分` : stationName);
+    staticStationLabel = (lineName ? `${lineName} / ` : '') + (walkTime ? `${stationName} 徒歩${walkTime}分` : stationName);
   }
 
   return (
@@ -118,9 +119,11 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
           {roundText}
         </span>
       )}
-      {stationLabel && (
+      {(staticStationLabel || (property.lat && property.lng)) && (
         <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none">
-          <span>{stationLabel}</span>
+          <span>
+             {staticStationLabel ? staticStationLabel : <AsyncStationInfo lat={property.lat} lng={property.lng} hideIfNoStation={true} />}
+          </span>
         </span>
       )}
       <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none ml-auto">

@@ -12,6 +12,7 @@ import { getNearestStationInfo } from '../actions/propertyActions';
 import type { BoundingBox } from '../actions/propertyActions';
 import type { KeibaiMapProps } from './KeibaiMap';
 import { getPropertyTypeColor } from '../types';
+import { AsyncStationInfo } from './AsyncStationInfo';
 
 const fixLeafletIcons = () => {
   delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -21,19 +22,6 @@ const fixLeafletIcons = () => {
     shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   });
 };
-
-function AsyncStationInfo({ lat, lng, initial }: { lat: number, lng: number, initial?: string }) {
-   const [station, setStation] = useState(initial || '計算中...');
-   useEffect(() => {
-      if (initial) return;
-      getNearestStationInfo(lat, lng).then(resp => {
-         if (resp) setStation(resp);
-         else setStation('駅情報なし');
-      }).catch(() => setStation('駅情報なし'));
-   }, [lat, lng, initial]);
-   
-   return <>{station}</>;
-}
 
 function MapEventHandler({ onBoundsChanged }: { onBoundsChanged?: (bounds: BoundingBox) => void }) {
   const map = useMapEvents({
