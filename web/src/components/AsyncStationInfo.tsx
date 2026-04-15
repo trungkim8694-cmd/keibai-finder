@@ -6,11 +6,12 @@ import { getNearestStationInfo } from '../actions/propertyActions';
 interface AsyncStationInfoProps {
   lat: number;
   lng: number;
+  sale_unit_id?: string;
   initial?: string;
   hideIfNoStation?: boolean; // Used to hide the tag entirely if no station is found
 }
 
-export function AsyncStationInfo({ lat, lng, initial, hideIfNoStation = false }: AsyncStationInfoProps) {
+export function AsyncStationInfo({ lat, lng, sale_unit_id, initial, hideIfNoStation = false }: AsyncStationInfoProps) {
   const [station, setStation] = useState<string | null>(initial || '計算中...');
   
   useEffect(() => {
@@ -20,7 +21,7 @@ export function AsyncStationInfo({ lat, lng, initial, hideIfNoStation = false }:
     }
     
     let isMounted = true;
-    getNearestStationInfo(lat, lng)
+    getNearestStationInfo(lat, lng, sale_unit_id)
       .then(resp => {
         if (!isMounted) return;
         if (resp) setStation(resp);
@@ -31,7 +32,7 @@ export function AsyncStationInfo({ lat, lng, initial, hideIfNoStation = false }:
       });
       
     return () => { isMounted = false; };
-  }, [lat, lng, initial, hideIfNoStation]);
+  }, [lat, lng, sale_unit_id, initial, hideIfNoStation]);
   
   if (!station && hideIfNoStation) return null;
   

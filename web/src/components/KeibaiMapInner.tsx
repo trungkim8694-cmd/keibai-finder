@@ -541,7 +541,7 @@ export default function KeibaiMapInner({
                     <div className="flex items-center">
                       <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none w-max">
                         <span className="text-emerald-700 dark:text-emerald-500 text-xs mr-0.5">🚉</span>
-                        <AsyncStationInfo lat={p.lat} lng={p.lng} initial={p.nearest_station} hideIfNoStation={true} />
+                        <AsyncStationInfo lat={p.lat} lng={p.lng} sale_unit_id={p.sale_unit_id} initial={p.nearest_station} hideIfNoStation={true} />
                       </span>
                     </div>
                  </div>

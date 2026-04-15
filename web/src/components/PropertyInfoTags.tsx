@@ -130,7 +130,7 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
           <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none w-max">
             <span className="text-emerald-700 dark:text-emerald-500 text-xs mr-0.5">🚉</span>
             <span>
-               {staticStationLabel ? staticStationLabel : <AsyncStationInfo lat={property.lat} lng={property.lng} hideIfNoStation={true} />}
+               {staticStationLabel ? staticStationLabel : <AsyncStationInfo lat={property.lat} lng={property.lng} sale_unit_id={property.sale_unit_id} hideIfNoStation={true} />}
             </span>
           </span>
         </div>

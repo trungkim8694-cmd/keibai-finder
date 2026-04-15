@@ -73,7 +73,6 @@ export async function getAreaStats() {
 }
 
 export async function getTypeStats() {
-  return unstable_cache(async () => {
     try {
       const stats = await prisma.property.groupBy({
         by: ['property_type'],
@@ -106,7 +105,6 @@ export async function getTypeStats() {
       console.error("Fetch type stats err", err);
       return {};
     }
-  }, ['type_stats_cache_v1'], { revalidate: 3600, tags: ['stats'] })();
 }
 
 
@@ -436,7 +434,7 @@ export async function getPropertiesByIds(ids: string[]) {
   }
 }
 
-export async function getNearestStationInfo(lat: number, lng: number): Promise<string | null> {
+export async function getNearestStationInfo(lat: number, lng: number, sale_unit_id?: string): Promise<string | null> {
   if (!lat || !lng) return null;
   try {
     const stations = await prisma.$queryRawUnsafe(`
@@ -454,6 +452,23 @@ export async function getNearestStationInfo(lat: number, lng: number): Promise<s
       const distKm = Number(row.distance);
       const walkMin = Math.ceil((distKm * 1000 * 1.25) / 80);
       const nameStr = row.line_name && row.line_name !== 'Unknown Railway' ? `${row.line_name} / ${row.name_ja}` : row.name_ja;
+      
+      if (sale_unit_id) {
+         try {
+            await prisma.property.update({
+               where: { sale_unit_id },
+               data: {
+                  nearest_station: row.name_ja,
+                  line_name: row.line_name && row.line_name !== 'Unknown Railway' ? row.line_name : null,
+                  distance_to_station: Math.round(distKm * 1000),
+                  walk_time_to_station: walkMin
+               }
+            });
+         } catch (updateErr) {
+            console.error("Failed to update property with station info", updateErr);
+         }
+      }
+      
       return `${nameStr} 徒歩${walkMin}分 (${distKm.toFixed(1)} km)`;
     }
   } catch (e) {
@@ -586,7 +601,6 @@ async function mapPropertiesWithStations(data: any[]) {
 }
 
 export async function getRailLinesAndStations() {
-  return unstable_cache(async () => {
     try {
       const data = await prisma.property.groupBy({
         by: ['line_name', 'nearest_station'],
@@ -632,7 +646,6 @@ export async function getRailLinesAndStations() {
       console.error("getRailLinesAndStations Error", e);
       return [];
     }
-  }, ['rail_stats_cache_v1'], { revalidate: 3600, tags: ['stats'] })();
 }
 
 
@@ -640,7 +653,6 @@ export async function getAuthorityStats(): Promise<{
   bit: { name: string; count: number }[];
   nta: { name: string; count: number }[];
 }> {
-  return unstable_cache(async () => {
     try {
       const [bitData, ntaData] = await Promise.all([
         prisma.property.groupBy({
@@ -669,5 +681,4 @@ export async function getAuthorityStats(): Promise<{
       console.error('getAuthorityStats Error', e);
       return { bit: [], nta: [] };
     }
-  }, ['authority_stats_cache_v1'], { revalidate: 3600, tags: ['stats'] })();
 }
