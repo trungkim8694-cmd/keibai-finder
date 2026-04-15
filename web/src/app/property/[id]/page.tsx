@@ -228,22 +228,35 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   let avgMargin = 0;
   let formattedWinningBid = '-';
 
-  if (property.lat && property.lng) {
-    // Run all 3 async fetches IN PARALLEL to avoid sequential blocking
-    const [stationsResult, nearbyResult, soldResult] = await Promise.all([
-      getNearestStations(property.lat, property.lng),
-      getProperties({ prefecture: property.prefecture || undefined, limit: 10 }),
-      getNearbyAuctionResults(property.lat, property.lng, 10),
-    ]);
+  // Define queries for parallel execution
+  const stationsPromise = property.lat && property.lng ? getNearestStations(property.lat, property.lng) : Promise.resolve([]);
+  const nearbyActivePromise = getProperties({ prefecture: property.prefecture || undefined, limit: 10 });
+  const nearbySoldPromise = property.lat && property.lng ? getNearbyAuctionResults(property.lat, property.lng, 10) : Promise.resolve([]);
+  
+  // Similar Properties (History) - Only fetch if address is valid
+  const historyPromise = (property.address && property.address !== 'Unknown') 
+    ? prisma.property.findMany({
+        where: { address: property.address, property_type: property.property_type },
+        orderBy: { created_at: 'asc' },
+        select: { sale_unit_id: true, starting_price: true, created_at: true, raw_display_data: true }
+      })
+    : Promise.resolve([]);
 
-    nearestStations = stationsResult;
-    nearbyActive = nearbyResult.filter((p: any) => p.sale_unit_id !== id).slice(0, 10);
-    nearbySold = soldResult;
+  // RUN ALL 4 IN PARALLEL
+  const [stationsResult, nearbyResult, soldResult, similarProps] = await Promise.all([
+    stationsPromise,
+    nearbyActivePromise,
+    nearbySoldPromise,
+    historyPromise
+  ]);
 
-    if (nearbySold && nearbySold.length > 0) {
-      const totalMargin = nearbySold.reduce((acc: number, curr: any) => acc + (curr.marginRate || 0), 0);
-      avgMargin = Math.round(totalMargin / nearbySold.length);
-    }
+  nearestStations = stationsResult;
+  nearbyActive = nearbyResult.filter((p: any) => p.sale_unit_id !== id).slice(0, 10);
+  nearbySold = soldResult;
+
+  if (nearbySold && nearbySold.length > 0) {
+    const totalMargin = nearbySold.reduce((acc: number, curr: any) => acc + (curr.marginRate || 0), 0);
+    avgMargin = Math.round(totalMargin / nearbySold.length);
   }
 
   // Calculate final winning bid recommendation
@@ -254,30 +267,13 @@ export default async function PropertyDetail({ params }: { params: { id: string 
     formattedWinningBid = new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(winningBid);
   }
 
-  // Fetch history properties
-  let historyItems: { isCurrent: boolean; round: number; price: number; result: string; date: Date }[] = [];
-  if (property.address && property.address !== 'Unknown') {
-    const similarProps = await prisma.property.findMany({
-      where: { 
-        address: property.address,
-        property_type: property.property_type
-      },
-      orderBy: { created_at: 'asc' },
-      select: {
-         sale_unit_id: true,
-         starting_price: true,
-         created_at: true,
-         raw_display_data: true,
-      }
-    });
-
-    if (similarProps.length > 0) {
-      historyItems = similarProps.map((p, idx) => {
-        let endDate = null;
-        if (p.raw_display_data) {
-           const str = typeof p.raw_display_data === 'string' ? p.raw_display_data : JSON.stringify(p.raw_display_data);
-           // Try to match "～令和6年...日"
-           const match = str.match(/([0-9０-９]+月[0-9０-９]+日)/g);
+  // Process history items
+  if (similarProps.length > 0) {
+    historyItems = similarProps.map((p, idx) => {
+      let endDate = null;
+      if (p.raw_display_data) {
+         const str = typeof p.raw_display_data === 'string' ? p.raw_display_data : JSON.stringify(p.raw_display_data);
+         const match = str.match(/([0-9０-９]+月[0-9０-９]+日)/); // Use non-global match for first instance
            if (match && match.length >= 2) endDate = match[match.length - 1];
         }
         
@@ -304,19 +300,38 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
   const imagesList = Array.isArray(property.images) ? property.images as Array<any> : [];
   const ogImageUrl = imagesList.length > 0 ? imagesList[0]?.url : undefined;
+  // Metadata for SEO
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": `${property.address}の${property.property_type || '競売物件'}`,
-    "description": `競売物件: ${property.address}にある${property.property_type || '不動産'}です。`,
+    "description": `競売物件: ${property.address}にある${property.property_type || '不動産'}です。基準価格: ${Number(property.starting_price || 0).toLocaleString()}円`,
     "image": ogImageUrl ? [ogImageUrl] : [],
     "offers": {
       "@type": "Offer",
       "priceCurrency": "JPY",
-      "price": property.reference_price || 0,
+      "price": Number(property.starting_price || 0),
       "availability": "https://schema.org/InStock"
     }
   };
+
+  // 5. PROCESS FINAL OBJECTS (SAFE SERIALIZATION FOR RSC)
+  const serializedProperty = {
+    ...property,
+    starting_price: property.starting_price ? Number(property.starting_price) : null,
+    auctionSchedule,
+    auctionRound,
+    prefecture: (property as any).prefecture || null,
+    city: (property as any).city || null,
+    contact_url: ntaMapLink || undefined,
+  } as any;
+
+  // Sanitize history items (BigInt to Number)
+  const serializedHistory = (historyItems || []).map(h => ({
+    ...h,
+    price: Number(h.price || 0)
+  }));
+
 
   return (
     <>
@@ -348,9 +363,9 @@ export default async function PropertyDetail({ params }: { params: { id: string 
               
               {/* Quick Stats Block (Single Row Layout) */}
               <div className="mb-3">
-                 <PropertyInfoTags property={extPropertyStr as any} displayArea={displayArea} showCourtTag={true}>
-                   {historyItems.length > 0 && (
-                     <AuctionHistoryBadge history={historyItems} />
+                 <PropertyInfoTags property={serializedProperty} displayArea={displayArea} showCourtTag={true}>
+                   {serializedHistory.length > 0 && (
+                     <AuctionHistoryBadge history={serializedHistory} />
                    )}
                  </PropertyInfoTags>
               </div>
