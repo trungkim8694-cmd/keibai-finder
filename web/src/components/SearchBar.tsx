@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Fragment, useEffect, useTransition } from 'react';
+import { useState, Fragment, useEffect, useTransition, useRef } from 'react';
 import { Combobox, Transition, Popover, Dialog, Portal } from '@headlessui/react';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { MagnifyingGlassIcon, ChevronDownIcon, CheckIcon, MapPinIcon, FunnelIcon, XMarkIcon, CurrencyYenIcon, MapIcon, ArrowPathIcon, StarIcon } from '@heroicons/react/20/solid';
@@ -83,17 +83,20 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
-  const [debouncedKeyword] = useDebounce(keyword, 300);
 
+  // Native debounce (replaces use-debounce package)
   useEffect(() => {
-    if (debouncedKeyword.length >= 2) {
-      getSearchSuggestions(debouncedKeyword).then(setSuggestions).catch(() => setSuggestions([]));
-      setIsSuggestionsOpen(true);
-    } else {
-      setSuggestions([]);
-      setIsSuggestionsOpen(false);
-    }
-  }, [debouncedKeyword]);
+    const timer = setTimeout(() => {
+      if (keyword.length >= 2) {
+        getSearchSuggestions(keyword).then(setSuggestions).catch(() => setSuggestions([]));
+        setIsSuggestionsOpen(true);
+      } else {
+        setSuggestions([]);
+        setIsSuggestionsOpen(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [keyword]);
 
   const handleSuggestionSelect = (sugg: SearchSuggestion) => {
     setKeyword(sugg.text);
