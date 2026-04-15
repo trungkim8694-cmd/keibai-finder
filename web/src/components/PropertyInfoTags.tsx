@@ -78,10 +78,11 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
   }
 
   return (
-    <div className="flex flex-row flex-nowrap items-center gap-1 overflow-x-auto scrollbar-hide whitespace-nowrap w-full pb-1">
-      <span className={`text-[9px] font-black border px-1 py-0.5 rounded-sm shrink-0 ${color.bg} ${color.text} ${color.border} inline-block dark:bg-opacity-20 leading-none`}>
-        {typeLabel}
-      </span>
+    <div className="flex flex-col gap-1.5 w-full pb-1">
+      <div className="flex flex-row flex-nowrap items-center gap-1 overflow-x-auto scrollbar-hide whitespace-nowrap w-full">
+        <span className={`text-[9px] font-black border px-1 py-0.5 rounded-sm shrink-0 ${color.bg} ${color.text} ${color.border} inline-block dark:bg-opacity-20 leading-none`}>
+          {typeLabel}
+        </span>
       {formattedArea && formattedArea !== '0m²' && (
         <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none">
           <span>📐</span>
@@ -119,17 +120,21 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
           {roundText}
         </span>
       )}
-      {(staticStationLabel || (property.lat && property.lng)) && (
-        <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none">
-          <span>
-             {staticStationLabel ? staticStationLabel : <AsyncStationInfo lat={property.lat} lng={property.lng} hideIfNoStation={true} />}
-          </span>
+        <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none ml-auto">
+          <span>👁️</span>
+          <span>{(property.views || 0).toLocaleString()}</span>
         </span>
+      </div>
+      {(staticStationLabel || (property.lat && property.lng)) && (
+        <div className="flex items-center">
+          <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none w-max">
+            <span className="text-emerald-700 dark:text-emerald-500 text-xs mr-0.5">🚉</span>
+            <span>
+               {staticStationLabel ? staticStationLabel : <AsyncStationInfo lat={property.lat} lng={property.lng} hideIfNoStation={true} />}
+            </span>
+          </span>
+        </div>
       )}
-      <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none ml-auto">
-        <span>👁️</span>
-        <span>{(property.views || 0).toLocaleString()}</span>
-      </span>
     </div>
   );
 }
