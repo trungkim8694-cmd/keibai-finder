@@ -453,19 +453,42 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
       {/* =========================================
           COLLAPSED SUMMARY PILL
           ========================================= */}
-      <div className={`flex absolute top-1 w-full justify-center transition-all duration-300 z-[70]
-         ${!isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}
+      <div className={`flex absolute top-1 w-full justify-center transition-all duration-300 z-[70] items-center gap-2
+         ${!isExpanded ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}
       `}>
-         <button 
-           onClick={() => setIsExpanded(true)}
-           className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-lg border border-gray-200 dark:border-zinc-700 rounded-full px-5 py-2.5 flex items-center gap-2.5 hover:shadow-xl hover:bg-white transition-all transform hover:scale-105 pointer-events-auto"
-         >
-            <MagnifyingGlassIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-            <span className="text-xs sm:text-sm font-bold text-zinc-700 dark:text-zinc-200 max-w-[200px] sm:max-w-xs truncate">
-               {getFilterSummary()}
-            </span>
-            <ChevronDownIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-         </button>
+         <div className="flex items-center gap-2 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-lg border border-gray-200 dark:border-zinc-700 rounded-full p-1 pl-4">
+           <button 
+             onClick={() => setIsExpanded(true)}
+             className="flex items-center gap-2.5 hover:text-blue-600 transition-colors"
+           >
+              <MagnifyingGlassIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+              <span className="text-xs sm:text-sm font-bold text-zinc-700 dark:text-zinc-200 max-w-[150px] sm:max-w-[200px] truncate">
+                 {getFilterSummary()}
+              </span>
+              <ChevronDownIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+           </button>
+           
+           <div className="w-px h-6 bg-gray-200 dark:bg-zinc-700 mx-1"></div>
+           
+           <button 
+             onClick={handleSaveFilter} 
+             title="この条件を保存"
+             className="flex items-center justify-center gap-1 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 text-yellow-500 hover:text-yellow-600 font-bold py-1.5 px-2 rounded-full transition-all text-[11px] sm:text-xs"
+           >
+             ⭐️
+           </button>
+           <button 
+             onClick={handleClear} 
+             title="条件をクリア"
+             className="flex items-center justify-center gap-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 font-bold py-1.5 px-2 rounded-full transition-all text-[11px] sm:text-xs"
+           >
+             🔄
+           </button>
+           
+           <button onClick={handleApply} className="bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center justify-center py-1.5 px-4 rounded-full shadow-sm text-[11px] sm:text-xs transition-colors ml-1">
+             検索
+           </button>
+         </div>
       </div>
 
       {/* =========================================
@@ -734,7 +757,6 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          className={`px-3 lg:px-2 py-1.5 lg:py-1 text-sm lg:text-[11px] font-bold rounded-full transition-colors border flex items-center gap-1 whitespace-nowrap ${types.includes(pt) ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900' : 'bg-transparent text-zinc-600 hover:bg-zinc-100 border-gray-200 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800'}`}
                        >
                          <span>{pt}</span>
-                         <span className={`text-[10px] font-normal leading-none ${types.includes(pt) ? 'opacity-80' : 'text-zinc-400 dark:text-zinc-500'}`}>({count})</span>
                        </button>
                      );
                    })}
@@ -783,14 +805,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                        >
                          <span>⚖️</span>
                          <span className="max-w-[80px] truncate">{selectedCourt !== 'ALL' ? selectedCourt : 'BIT 裁判所'}</span>
-                         <span className={`px-1.5 py-0.5 rounded text-[10px] leading-none ${
-                           activeProviders.includes('BIT')
-                             ? selectedCourt !== 'ALL' ? 'bg-blue-600 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                             : 'bg-zinc-200 dark:bg-zinc-700/50 text-zinc-400 dark:text-zinc-500'
-                         }`}>
-                           {bitActiveCount}
-                         </span>
-                       </button>
+                        </button>
                        <button
                          ref={bitRefs.setReference}
                          onClick={() => { setIsBitOpen(v => !v); setIsNtaOpen(false); }}
@@ -856,14 +871,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                        >
                          <span>🏛️</span>
                          <span className="max-w-[80px] truncate">{selectedNtaAuth !== 'ALL' ? selectedNtaAuth : 'NTA 税務署'}</span>
-                         <span className={`px-1.5 py-0.5 rounded text-[10px] leading-none ${
-                           activeProviders.includes('NTA')
-                             ? selectedNtaAuth !== 'ALL' ? 'bg-red-600 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                             : 'bg-zinc-200 dark:bg-zinc-700/50 text-zinc-400 dark:text-zinc-500'
-                         }`}>
-                           {ntaActiveCount}
-                         </span>
-                       </button>
+                        </button>
                        <button
                          ref={ntaRefs.setReference}
                          onClick={() => { setIsNtaOpen(v => !v); setIsBitOpen(false); }}

@@ -127,8 +127,8 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
       </div>
       {(staticStationLabel || (property.lat && property.lng)) && (
         <div className="flex items-center">
-          <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-0.5 rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none w-max">
-            <span className="text-emerald-700 dark:text-emerald-500 text-xs mr-0.5">🚉</span>
+          <span className="text-[8px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-[2px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none w-max max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
+            <span className="text-emerald-700 dark:text-emerald-500 text-[10px] mr-1">🚉</span>
             <span>
                {staticStationLabel ? staticStationLabel : <AsyncStationInfo lat={property.lat} lng={property.lng} sale_unit_id={property.sale_unit_id} hideIfNoStation={true} />}
             </span>

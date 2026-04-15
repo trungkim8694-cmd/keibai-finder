@@ -294,7 +294,13 @@ export async function getProperties(filters: SearchFilters = {}) {
         }
 
         if (filters.lineName && filters.lineName !== 'ALL') {
-          whereClause.line_name = { contains: filters.lineName, mode: 'insensitive' };
+          if (!whereClause.AND) whereClause.AND = [];
+          whereClause.AND.push({
+             OR: [
+                { line_name: { contains: filters.lineName, mode: 'insensitive' } },
+                { nearest_station: { contains: filters.lineName, mode: 'insensitive' } }
+             ]
+          });
         }
         
         if (filters.stationName && filters.stationName !== 'ALL') {
@@ -453,13 +459,14 @@ export async function getNearestStationInfo(lat: number, lng: number, sale_unit_
       const distKm = Number(row.distance);
       const walkMin = Math.ceil((distKm * 1000 * 1.25) / 80);
       const nameStr = row.line_name && row.line_name !== 'Unknown Railway' ? `${row.line_name} / ${row.name_ja}` : row.name_ja;
+      const formattedStation = `${nameStr} 徒歩${walkMin}分 (${distKm.toFixed(1)} km)`;
       
       if (sale_unit_id) {
          try {
             await prisma.property.update({
                where: { sale_unit_id },
                data: {
-                  nearest_station: row.name_ja,
+                  nearest_station: formattedStation,
                   line_name: row.line_name && row.line_name !== 'Unknown Railway' ? row.line_name : null,
                   distance_to_station: Math.round(distKm * 1000),
                   walk_time_to_station: walkMin
@@ -470,7 +477,7 @@ export async function getNearestStationInfo(lat: number, lng: number, sale_unit_
          }
       }
       
-      return `${nameStr} 徒歩${walkMin}分 (${distKm.toFixed(1)} km)`;
+      return formattedStation;
     }
   } catch (e) {
     console.error("Failed to get nearest station", e);

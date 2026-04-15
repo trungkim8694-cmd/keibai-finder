@@ -129,7 +129,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleMapBoundsChange = (newBounds: any, centerLat: number, centerLng: number) => {
+  const handleMapBoundsChange = useCallback((newBounds: any, centerLat: number, centerLng: number) => {
     setBounds(newBounds);
     setCurrentFilters(f => {
        const newF = { ...f, bounds: newBounds }; // Lock in current box logic
@@ -137,7 +137,7 @@ export default function DashboardPage() {
        return newF;
     });
     setMapMoved(false);
-  };
+  }, []);
 
   const handleMoveEnd = (newBounds: BoundingBox) => {
     setMapMoved(true);
