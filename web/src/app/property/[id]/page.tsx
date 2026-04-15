@@ -26,6 +26,24 @@ const getPropertyById = cache(async (id: string) => {
   return prisma.property.findUnique({ where: { sale_unit_id: id } });
 });
 
+/**
+ * Deeply serializes data to be JSON-safe for RSC/Client passage.
+ * Specifically converts BigInt to Number.
+ */
+function deepSerialize(data: any): any {
+  if (data === null || data === undefined) return data;
+  if (typeof data === 'bigint') return Number(data);
+  if (Array.isArray(data)) return data.map(deepSerialize);
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    const serialized: any = {};
+    for (const key in data) {
+      serialized[key] = deepSerialize(data[key]);
+    }
+    return serialized;
+  }
+  return data;
+}
+
 export const revalidate = 3600; // Cache property details for 1 hour
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
@@ -311,21 +329,23 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   };
 
   // 5. PROCESS FINAL OBJECTS (SAFE SERIALIZATION FOR RSC)
-  const serializedProperty = {
+  const serializedProperty = deepSerialize({
     ...property,
-    starting_price: property.starting_price ? Number(property.starting_price) : null,
     auctionSchedule,
     auctionRound,
     prefecture: (property as any).prefecture || null,
     city: (property as any).city || null,
     contact_url: ntaMapLink || undefined,
-  } as any;
+  });
 
   // Sanitize history items (BigInt to Number)
-  const serializedHistory = (historyItems || []).map(h => ({
-    ...h,
-    price: Number(h.price || 0)
-  }));
+  const serializedHistory = deepSerialize(historyItems || []);
+
+  // Sanitize all other props for Client Components
+  const safeNearestStations = deepSerialize(nearestStations);
+  const safeNearbyActive = deepSerialize(nearbyActive);
+  const safeNearbySold = deepSerialize(nearbySold);
+  const safeProperty = deepSerialize(property);
 
 
   return (
@@ -376,7 +396,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
             formattedStartPrice={formattedStartPrice} 
             endDate={endDateRaw}
             startDate={(property as any).bid_start_date ? new Date((property as any).bid_start_date) : null}
-            nearestStations={nearestStations}
+            nearestStations={safeNearestStations}
           />
 
           {/* Action Download Buttons */}
@@ -471,22 +491,24 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
         {/* Advanced Property Detail Map */}
         {property.lat && property.lng && (
-          <React.Suspense fallback={<div className="h-64 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-2xl mb-8" />}>
-            <DetailMapComponent 
-              property={property} 
-              nearestStations={nearestStations} 
-              nearbyActive={nearbyActive} 
-              nearbySold={nearbySold}
-            />
-          </React.Suspense>
+          <div className="mb-20">
+            <React.Suspense fallback={<div className="h-64 bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded-2xl" />}>
+              <DetailMapComponent 
+                property={safeProperty}
+                nearestStations={safeNearestStations}
+                nearbyActive={safeNearbyActive}
+                nearbySold={safeNearbySold}
+              />
+            </React.Suspense>
+          </div>
         )}
 
         {/* Market Analysis / Near by Phase 3 */}
-        {property.lat && property.lng ? (
+        {property.lat && property.lng && (
           <React.Suspense fallback={<div className="h-48 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-2xl mt-8" />}>
-            <MarketComparison nearbySold={nearbySold} stations={nearestStations} />
+            <MarketComparison nearbySold={safeNearbySold} stations={safeNearestStations} />
           </React.Suspense>
-        ) : null}
+        )}
 
         {/* MLIT API Real Estate Market Analytics */}
         {property.prefecture && property.city && property.property_type && ['戸建て', 'マンション', '土地'].includes(property.property_type) && (

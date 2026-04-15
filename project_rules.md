@@ -405,16 +405,14 @@ Theo như yêu cầu "Lọc bỏ toàn bộ sơ đồ/văn bản đen trắng, c
 - **Tối ưu Bulk Insert:** Thay vì `INSERT` từng dòng (mất 15-20 phút), sử dụng `cur.executemany()` với batch 500 dòng/lần. Tốc độ tăng gấp 10 lần (~1-2 phút).
 - **Xác nhận:** Query Haversine tìm ga trong bán kính 10km phản hồi trong **0.07s**.
 
-### 8. Tối ưu Hiệu năng & Fix lỗi "Forever Loading" (page.tsx & serialization)
-- **Vấn đề:** Thanh tiến trình chạy mãi tại trang Danh sách/Bản đồ mà không chuyển sang trang Chi tiết.
-- **Nguyên nhân Gốc:** 
-    1. **BigInt Serialization Error:** Next.js Server Components không thể tự động chuyển đổi kiểu `BigInt` (từ Prisma) sang JSON để gửi xuống Client. Các nỗ lực "ép kiểu" bằng `JSON.stringify` ở cấp Component gây ra lỗi Hydration và treo luồng React Router.
-    2. **Sequential Fetches:** Một số query (như lịch sử đấu giá) vẫn chạy sau khi các query khác xong, cộng dồn thời gian phản hồi Server lên >2s.
+### 8. Tối ưu Hiệu năng & Fix lỗi "Forever Loading" (page.tsx & deepSerialize)
+- **Vấn đề:** Thanh tiến trình chạy mãi tại trang Danh sách/Bản đồ mà không chuyển sang trang Chi tiết (RSC Hang).
+- **Nguyên nhân Gốc:** Tiếp tục là lỗi `BigInt` serialization. Dù đã sửa cho đối tượng chính, các mảng dữ liệu phụ như `nearbyActive`, `nearbySold` (lấy từ Prisma) vẫn chứa các trường BigInt chưa được xử lý. Khi Next.js cố gắng đóng gói các mảng này để gửi xuống Client Component, luồng dữ liệu bị treo.
 - **Giải pháp dứt điểm:**
-    *   **Full Parallelization:** Đưa tất cả 4 query (Ga tàu, Tài sản lân cận, Kết quả đã bán, Lịch sử tương tự) vào một khối `Promise.all` duy nhất.
-    *   **POJO Serialization:** Chuyển đổi thủ công tất cả các trường `BigInt` (như `starting_price`, `price`) thành `Number` hoặc `String` ngay sau khi lấy từ DB, tạo ra các đối tượng POJO sạch sẽ để truyền qua RSC.
-    *   **Fix Prop Type:** Loại bỏ việc truyền String vào `PropertyInfoTags`, thay bằng Object đã được chuẩn hóa.
-- **Kết quả:** Gói RSC Payload được gửi đi ngay lập tức (~300-500ms), trình duyệt nhận diện dữ liệu Object chuẩn và hiển thị trang chi tiết tức thì.
+    *   **deepSerialize Utility:** Viết hàm đệ quy `deepSerialize(data)` để tự động tìm và chuyển đổi tất cả `BigInt` thành `Number` trong mọi cấp độ của Object/Array.
+    *   **Sanitize All Props:** Áp dụng hàm này cho toàn bộ dữ liệu trước khi truyền vào: `ViewTracker`, `StickyActionBar`, `DetailMapComponent`, và `MarketComparison`.
+    *   **Full Parallelization:** Đảm bảo 4 query chính vẫn chạy song song qua `Promise.all`.
+- **Kết quả:** Gói RSC Payload được đóng gói an toàn và gửi đi ngay lập tức. Tính năng chuyển trang mượt mà không còn hiện tượng treo.
 
 ### 9. Fix lỗi "Click không ăn / Đơ trang" (PropertyCard.tsx & prefetch)
 - **Vấn đề:** Người dùng click "詳細を見る" nhưng trình duyệt không chuyển trang, cảm giác bị treo.
