@@ -52,7 +52,7 @@ export interface SavedFilter {
     provider: string;
     activeProviders: string[];
     walkTime?: number;
-    sort: 'newest' | 'views';
+    sort: 'newest' | 'views' | 'ending' | 'priceAsc' | 'areaDesc' | 'gap_desc';
     selectedLine: string;
     selectedStation: string;
     selectedCourt: string;
@@ -130,7 +130,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
   
   const [walkTime, setWalkTime] = useState<number | undefined>();
   const [minArea, setMinArea] = useState<number | undefined>();
-  const [sort, setSort] = useState<'newest' | 'views'>('newest');
+  const [sort, setSort] = useState<'newest' | 'views' | 'ending' | 'priceAsc' | 'areaDesc' | 'gap_desc'>('newest');
   
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true); // Search collapse state
@@ -164,7 +164,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
         const lineParam = searchParams.get('line');
         const prefsParam = searchParams.get('prefs');
         const prefParam = searchParams.get('pref');
-        const sortParam = searchParams.get('sort') as 'newest' | 'views' | null;
+        const sortParam = searchParams.get('sort') as 'newest' | 'views' | 'ending' | 'priceAsc' | 'areaDesc' | 'gap_desc' | null;
         if (lineParam) {
            setSelectedLine(lineParam);
            initialOverrides.lineName = lineParam;
@@ -1048,6 +1048,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                      params.set('sort', v);
                      router.replace(`/?${params.toString()}`, { scroll: false });
                    }} className="text-sm lg:text-[11px] font-bold border-none bg-transparent outline-none text-blue-600 dark:text-blue-400 cursor-pointer appearance-none">
+                     <option value="gap_desc">💎 割安順 (Gap)</option>
                      <option value="newest">✨ 新着順</option>
                      <option value="views">🔥 人気順</option>
                      <option value="ending">⏳ 入札間近</option>

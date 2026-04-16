@@ -170,9 +170,10 @@ export default function PropertyCard({
               )}
             </span>
           </div>
-          {(property as any).mlitInvestmentGap !== null && (property as any).mlitInvestmentGap !== undefined && (property as any).mlitInvestmentGap > 0 && (
+
+          {property.mlit_investment_gap !== null && property.mlit_investment_gap !== undefined && property.mlit_investment_gap > 0 && (
             <span className="shrink-0 inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50 shadow-sm whitespace-nowrap transition-transform hover:scale-105">
-              <span className="text-[10px] sm:text-[11px]">📈</span> 投資ギャップ +{(property as any).mlitInvestmentGap.toFixed(1)}%
+              <span className="text-[10px] sm:text-[11px]">📈</span> 投資ギャップ +{property.mlit_investment_gap.toFixed(1)}%
             </span>
           )}
         </div>

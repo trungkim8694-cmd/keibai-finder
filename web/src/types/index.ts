@@ -77,4 +77,6 @@ export interface SharedProperty {
   contact_url?: string | null;
   ai_analysis?: AiAnalysisData | null;
   ai_status?: string | null;
+  mlit_estimated_price?: number | null;
+  mlit_investment_gap?: number | null;
 }

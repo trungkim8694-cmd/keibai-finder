@@ -347,7 +347,6 @@ export async function getProperties(filters: SearchFilters = {}) {
     console.log(">>> [DEBUG getProperties FINAL WHERE]", JSON.stringify(whereClause, null, 2));
 
 
-
         let effectiveSort = filters.sort === 'views' ? 'viewsDesc' : (filters.sort || filters.sortBy);
         
         let defaultOrderBy: any = { created_at: 'desc' };
@@ -359,6 +358,7 @@ export async function getProperties(filters: SearchFilters = {}) {
            else if (effectiveSort === 'bid_start_asc') defaultOrderBy = { bid_start_date: 'asc' };
            else if (effectiveSort === 'bid_start_desc') defaultOrderBy = { bid_start_date: 'desc' };
            else if (effectiveSort === 'ending') defaultOrderBy = { bid_end_date: 'asc' };
+           else if (effectiveSort === 'gap_desc') defaultOrderBy = { mlit_investment_gap: 'desc' };
         }
 
         if (filters.isMapPayload) {
@@ -538,35 +538,6 @@ async function mapPropertiesWithStations(data: any[]) {
           ? mappedImages[0]
           : p.thumbnailUrl ? p.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp') : null;
 
-        let mlitInvestmentGap: number | null = null;
-        if (['戸建て', 'マンション', '土地'].includes(p.property_type) && p.prefecture && p.city && startPrice > 0) {
-            try {
-                const cityCode = await resolveCityCode(p.prefecture, p.city);
-                if (cityCode) {
-                    const mlitTypes = [];
-                    if (p.property_type === '戸建て') mlitTypes.push('宅地(土地と建物)');
-                    else if (p.property_type === 'マンション') mlitTypes.push('中古マンション等');
-                    else if (p.property_type === '土地') mlitTypes.push('宅地(土地)');
-
-                    const cached = await prisma.mlitMarketCache.findFirst({
-                        where: { municipalityCode: cityCode, year: '2023', propertyType: { in: mlitTypes } }
-                    });
-                    if (cached && cached.avgPricePerSqm) {
-                        const dbArea = p.area && p.area > 0 ? Number(p.area) : null;
-                        const parsedArea = dbArea || extractTotalArea(p.raw_display_data);
-                        const validArea = parsedArea || cached.avgArea;
-                        if (validArea && validArea > 0) {
-                            const estMarket = Number(cached.avgPricePerSqm) * validArea;
-                            const margin = estMarket - startPrice;
-                            mlitInvestmentGap = (margin / estMarket) * 100;
-                        }
-                    }
-                }
-            } catch (e) {
-                // Ignore DB/Resolution errors to not break list
-            }
-        }
-
         return {
           sale_unit_id: p.sale_unit_id,
           court_name: p.court_name,
@@ -605,7 +576,8 @@ async function mapPropertiesWithStations(data: any[]) {
             const summary = arr.find((s: any) => s?.asset_title === 'Summary');
             return summary?.contact_url || null;
           })(),
-          mlitInvestmentGap: mlitInvestmentGap
+          mlit_investment_gap: p.mlit_investment_gap !== null && p.mlit_investment_gap !== undefined ? Number(p.mlit_investment_gap) : null,
+          mlit_estimated_price: p.mlit_estimated_price !== null && p.mlit_estimated_price !== undefined ? Number(p.mlit_estimated_price) : null
       };
     }));
 

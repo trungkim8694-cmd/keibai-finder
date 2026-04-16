@@ -40,6 +40,11 @@ echo "--------------------------------------------------"
 echo "3. Cào kết quả đấu giá (crawl_all_japan_results.py)"
 python3 crawl_all_japan_results.py || handle_error "crawl_all_japan_results.py"
 
+# 4. Phân tích Giá MLIT Đồng Bộ Khối
+echo "--------------------------------------------------"
+echo "4. Phân tích MLIT Gap Toàn diện (mlit_calculator.py)"
+python3 mlit_calculator.py || handle_error "mlit_calculator.py"
+
 echo "=================================================="
 echo "✅ HOÀN THÀNH CRAWLER HÀNG NGÀY LÚC $(date)"
 python3 /app/crawler/telegram_notify.py "🏠 <b>Keibai Finder - Daily Report</b>\n📅 $(date +'%Y-%m-%d %H:%M JST')\nToàn bộ dữ liệu BIT/NTA và Kết quả đấu giá đã được cập nhật thành công lên hệ thống."

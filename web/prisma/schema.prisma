@@ -35,6 +35,10 @@ model Property {
   build_year_western Int?
   images         String[]
   
+  mlit_estimated_price BigInt?
+  mlit_investment_gap  Float?
+
+  
   area                 Float?
   bid_start_date       DateTime?
   bid_end_date         DateTime?
@@ -59,6 +63,7 @@ model Property {
   @@index([nearest_station])
   @@index([walk_time_to_station])
   @@index([managing_authority])
+  @@index([mlit_investment_gap])
   @@index([views])
   @@index([created_at])
 }
