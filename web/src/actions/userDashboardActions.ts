@@ -27,9 +27,40 @@ export async function getUserFavorites(userId: string) {
   return propertyIds.map(id => {
     const p = properties.find(prop => prop.sale_unit_id === id) || null;
     const fav = favorites.find(f => f.sale_unit_id === id);
+    // Sanitize BigInt to Number for Next.js Client Component serialization
+    let sanitizedProperty = p as any;
+    if (p) {
+      sanitizedProperty = JSON.parse(JSON.stringify(p, (k, v) => typeof v === 'bigint' ? Number(v) : v));
+      
+      // Fix image URLs for PropertyCard rendering
+      const rawImages = sanitizedProperty.images || [];
+      const mappedImages = rawImages.map((img: string) => 
+          img.startsWith('./') ? `https://www.koubai.nta.go.jp/auctionx/public${img.substring(1)}` : img
+      );
+      sanitizedProperty.images = mappedImages;
+
+      const mappedThumbnail = sanitizedProperty.source_provider === 'NTA' && mappedImages.length > 0
+        ? mappedImages[0]
+        : sanitizedProperty.thumbnailUrl ? sanitizedProperty.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp') : null;
+      sanitizedProperty.thumbnailUrl = mappedThumbnail;
+
+      // Extract contact_url if needed
+      if (!sanitizedProperty.contact_url && sanitizedProperty.raw_display_data) {
+        if (sanitizedProperty.source_provider === 'NTA') {
+            sanitizedProperty.contact_url = sanitizedProperty.raw_display_data.nta_map_link || null;
+        } else {
+            const arr = Array.isArray(sanitizedProperty.raw_display_data) ? sanitizedProperty.raw_display_data : null;
+            if (arr) {
+               const summary = arr.find((s: any) => s?.asset_title === 'Summary');
+               sanitizedProperty.contact_url = summary?.contact_url || null;
+            }
+        }
+      }
+    }
+
     return {
       propertyId: id,
-      property: p,
+      property: sanitizedProperty,
       favoritedAt: fav?.created_at
     };
   });
