@@ -11,7 +11,6 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function HeaderFavLink() {
   const { data: session, status } = useSession();
-  const [localFavs, setLocalFavs] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
 
@@ -50,29 +49,8 @@ export default function HeaderFavLink() {
     }
   }, [status, mutate, router]);
 
-  // Handle Guest Storage count mechanism
-  useEffect(() => {
-    if (status !== 'authenticated') {
-      const updateCount = () => {
-        try {
-          const favs = JSON.parse(localStorage.getItem('keibai_favorites') || '[]');
-          setLocalFavs(favs);
-        } catch(e) {}
-      };
-  
-      updateCount();
-      window.addEventListener('storage', updateCount);
-      window.addEventListener('favorites_updated', updateCount);
-  
-      return () => {
-        window.removeEventListener('storage', updateCount);
-        window.removeEventListener('favorites_updated', updateCount);
-      };
-    }
-  }, [status]);
-
   // Actual display count calculation
-  const currentFavs = status === 'authenticated' ? (serverFavs?.favorites || []) : localFavs;
+  const currentFavs = status === 'authenticated' ? (serverFavs?.favorites || []) : [];
   const favCount = currentFavs.length;
   const hasFavs = favCount > 0;
 

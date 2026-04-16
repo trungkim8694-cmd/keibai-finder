@@ -43,7 +43,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
             お気に入りを保存しましょう
           </h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            5件以上のお気に入りを登録するには、無料会員登録が必要です。登録すると、別のデバイスからもお気に入りを確認できます。
+            お気に入りを登録するには、無料会員登録が必要です。登録すると、別のデバイスからもお気に入りを確認できます。
           </p>
         </div>
 

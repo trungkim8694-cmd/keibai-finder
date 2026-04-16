@@ -62,26 +62,8 @@ export default function FavoriteButton({ id }: { id: string }) {
            await removeFavorite(userId, id);
         }
       } else {
-        // LocalStorage for Guest
-        try {
-           let favs = JSON.parse(localStorage.getItem('keibai_favorites') || '[]');
-           if (newFavState) {
-              if (!favs.includes(id)) {
-                 if (favs.length >= 5) {
-                   setShowModal(true);
-                   return;
-                 }
-                 favs.push(id);
-              }
-              setIsAnimating(true);
-              setTimeout(() => setIsAnimating(false), 300);
-           } else {
-              favs = favs.filter((f: string) => f !== id);
-           }
-           localStorage.setItem('keibai_favorites', JSON.stringify(favs));
-           setIsFavLocal(newFavState);
-           window.dispatchEvent(new Event('favorites_updated'));
-        } catch(e) {}
+        // Guest User - Directly show Auth Modal instead of using LocalStorage
+        setShowModal(true);
       }
    };
 
