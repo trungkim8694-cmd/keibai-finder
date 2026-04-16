@@ -824,7 +824,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          }`}
                        >
                          <span>⚖️</span>
-                         <span className="max-w-[80px] truncate">{selectedCourt !== 'ALL' ? selectedCourt : `BIT 裁判所(${authorityData.bit.reduce((acc, curr) => acc + curr.count, 0)})`}</span>
+                         <span className="max-w-[120px] sm:max-w-[160px] truncate">{selectedCourt !== 'ALL' ? selectedCourt : `BIT 裁判所(${authorityData.bit.reduce((acc, curr) => acc + curr.count, 0)})`}</span>
                         </button>
                        <button
                          ref={bitRefs.setReference}
@@ -890,7 +890,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          }`}
                        >
                          <span>🏛️</span>
-                         <span className="max-w-[80px] truncate">{selectedNtaAuth !== 'ALL' ? selectedNtaAuth : `NTA 税務署(${authorityData.nta.reduce((acc, curr) => acc + curr.count, 0)})`}</span>
+                         <span className="max-w-[120px] sm:max-w-[160px] truncate">{selectedNtaAuth !== 'ALL' ? selectedNtaAuth : `NTA 税務署(${authorityData.nta.reduce((acc, curr) => acc + curr.count, 0)})`}</span>
                         </button>
                        <button
                          ref={ntaRefs.setReference}
