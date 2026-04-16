@@ -527,13 +527,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         )}
 
         {/* AI Analysis Component (Moved to bottom) */}
-        <AiAnalysisPanel 
-          data={(property as any).ai_analysis} 
-          aiStatus={(property as any).ai_status} 
-          propertyType={property.property_type || undefined}
-          prefecture={(property as any).prefecture || undefined}
-          city={(property as any).city || undefined}
-        />
+        <AiAnalysisPanel />
       </main>
     </div>
     </>

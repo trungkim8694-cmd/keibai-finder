@@ -23,7 +23,11 @@ def send_telegram_message(message):
         res = requests.post(url, json=payload, timeout=10)
         res.raise_for_status()
     except Exception as e:
-        print(f"Failed to send Telegram message: {e}")
+        error_details = e.response.text if hasattr(e, 'response') and e.response else str(e)
+        print(f"Failed to send Telegram message: {error_details}")
+
+import sys
 
 if __name__ == "__main__":
-    send_telegram_message("🤖 <b>Test Message:</b> Keibai crawler notification system is online.")
+    msg = sys.argv[1] if len(sys.argv) > 1 else "🤖 <b>Test Message:</b> Keibai crawler notification system is online."
+    send_telegram_message(msg)

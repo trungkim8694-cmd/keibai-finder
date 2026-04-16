@@ -72,8 +72,8 @@ def scrape_nta(limit=20):
     cur = conn.cursor()
     
     upsert_query = """
-    INSERT INTO "Property" (sale_unit_id, source_provider, source_url, court_name, property_type, address, starting_price, lat, lng, pdf_url, "thumbnailUrl", images, raw_display_data, area, bid_start_date, bid_end_date, managing_authority, line_name, nearest_station, distance_to_station, walk_time_to_station, ai_analysis, prefecture, city, ai_status, raw_text, updated_at)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s, NOW())
+    INSERT INTO "Property" (sale_unit_id, source_provider, source_url, court_name, property_type, address, starting_price, lat, lng, pdf_url, "thumbnailUrl", images, raw_display_data, area, bid_start_date, bid_end_date, managing_authority, line_name, nearest_station, distance_to_station, walk_time_to_station, ai_analysis, prefecture, city, ai_status, updated_at)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, NOW())
     ON CONFLICT (sale_unit_id) DO UPDATE SET
         source_provider = EXCLUDED.source_provider,
         source_url = EXCLUDED.source_url,
@@ -98,7 +98,6 @@ def scrape_nta(limit=20):
         prefecture = COALESCE(EXCLUDED.prefecture, "Property".prefecture),
         city = COALESCE(EXCLUDED.city, "Property".city),
         ai_status = COALESCE(EXCLUDED.ai_status, "Property".ai_status),
-        raw_text = COALESCE(EXCLUDED.raw_text, "Property".raw_text),
         updated_at = NOW();
     """
     
@@ -262,29 +261,8 @@ def scrape_nta(limit=20):
             ai_status = "SKIPPED_AI"
             
             if pdfs:
-                local_pdf_paths = []
-                for pdf_url in pdfs:
-                    try:
-                        filename = f"nta_{sale_unit_id}_{os.path.basename(pdf_url)}"
-                        fpath = os.path.join("/tmp/", filename)
-                        print(f"  Downloading NTA PDF for analysis: {pdf_url}")
-                        resp = requests.get(pdf_url, timeout=15)
-                        with open(fpath, "wb") as f:
-                            f.write(resp.content)
-                        local_pdf_paths.append(fpath)
-                    except: pass
-                
-                if local_pdf_paths:
-                    if property_type in ["戸建て", "マンション"]:
-                        print("[AI] Extracting text for NTA property...")
-                        raw_text_val = extract_text_and_purge(local_pdf_paths)
-                        ai_status = "PENDING_AI"
-                    else:
-                        print(f"[AI] Skipping AI analysis for type: {property_type}. Purging...")
-                        for fpath in local_pdf_paths:
-                            try: os.remove(fpath)
-                            except: pass
-                        ai_status = "SKIPPED_AI"
+                # PDF text extraction disabled for now
+                ai_status = "SKIPPED_AI"
 
             pdf_json = json.dumps(pdfs, ensure_ascii=False) if pdfs else None
             ai_analysis_db = Json(ai_analysis_res) if ai_analysis_res else None
@@ -329,7 +307,7 @@ def scrape_nta(limit=20):
                 cur.execute(upsert_query, (
                     sale_unit_id, 'NTA', detail_url, court_name, property_type, address, price_val, lat, lng, 
                     pdf_json, main_thumbnail, img_urls, raw_data_json, db_area, db_start_date, db_end_date, 
-                    m_auth, line_name, st_name, st_dist, st_time, ai_analysis_db, prefecture_val, city_val, ai_status, raw_text_val
+                    m_auth, line_name, st_name, st_dist, st_time, ai_analysis_db, prefecture_val, city_val, ai_status
                 ))
                 conn.commit()
                 count_success += 1

@@ -40,13 +40,7 @@ echo "--------------------------------------------------"
 echo "3. Cào kết quả đấu giá (crawl_all_japan_results.py)"
 python3 crawl_all_japan_results.py || handle_error "crawl_all_japan_results.py"
 
-# 4. Process AI Queue (Chạy max 30 phút rồi tự tắt)
-echo "--------------------------------------------------"
-echo "4. Phân tích AI Queue (timeout 30m)"
-# Using timeout 30m allows it to safely terminate and release resources
-timeout 30m python3 process_ai_queue.py || true 
-
 echo "=================================================="
 echo "✅ HOÀN THÀNH CRAWLER HÀNG NGÀY LÚC $(date)"
-python3 /app/crawler/telegram_notify.py "🏠 <b>Keibai Finder - Daily Report</b>\n📅 $(date +'%Y-%m-%d %H:%M JST')\nToàn bộ dữ liệu BIT/NTA và Kết quả đấu giá đã được cập nhật thành công lên hệ thống.\nTiến trình AI đã được xử lý xong."
+python3 /app/crawler/telegram_notify.py "🏠 <b>Keibai Finder - Daily Report</b>\n📅 $(date +'%Y-%m-%d %H:%M JST')\nToàn bộ dữ liệu BIT/NTA và Kết quả đấu giá đã được cập nhật thành công lên hệ thống."
 echo "=================================================="

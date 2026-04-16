@@ -90,9 +90,9 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
     
     if not existing:
         # Insert new
-        query = """INSERT INTO "Property" (sale_unit_id, court_name, property_type, address, prefecture, city, starting_price, lat, lng, pdf_url, raw_display_data, raw_text, images, "thumbnailUrl", status, area, bid_end_date, managing_authority, line_name, nearest_station, distance_to_station, walk_time_to_station, updated_at) 
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, 'ACTIVE', %s, %s, %s, %s, %s, %s, %s, NOW())"""
-        cur.execute(query, (sale_unit_id, court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, raw_text, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time))
+        query = """INSERT INTO "Property" (sale_unit_id, court_name, property_type, address, prefecture, city, starting_price, lat, lng, pdf_url, raw_display_data, images, "thumbnailUrl", status, area, bid_end_date, managing_authority, line_name, nearest_station, distance_to_station, walk_time_to_station, updated_at) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, 'ACTIVE', %s, %s, %s, %s, %s, %s, %s, NOW())"""
+        cur.execute(query, (sale_unit_id, court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time))
         
         # Insert initial History
         if start_price:
@@ -109,11 +109,11 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
                     court_name=COALESCE(%s, court_name), property_type=COALESCE(%s, property_type), 
                     address=COALESCE(%s, address), prefecture=COALESCE(%s, prefecture), city=COALESCE(%s, city), 
                     starting_price=COALESCE(%s, starting_price), lat=COALESCE(%s, lat), lng=COALESCE(%s, lng), 
-                    pdf_url=%s, raw_display_data=%s::jsonb, raw_text=COALESCE(%s, raw_text), images=%s, "thumbnailUrl"=%s, status='ACTIVE',
+                    pdf_url=%s, raw_display_data=%s::jsonb, images=%s, "thumbnailUrl"=%s, status='ACTIVE',
                     area=%s, bid_end_date=%s, managing_authority=%s, line_name=%s, nearest_station=%s, distance_to_station=%s, walk_time_to_station=%s,
                     updated_at=NOW() 
                    WHERE sale_unit_id = %s"""
-        cur.execute(query, (court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, raw_text, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time, sale_unit_id))
+        cur.execute(query, (court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time, sale_unit_id))
         
         if price_changed:
             drop_percent = 0
@@ -329,13 +329,6 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                         doc = fitz.open(pdf_tmp_path)
                         from PIL import Image, ImageStat
                         import io
-                        # Extract text logic for AI
-                        pdf_full_text = ""
-                        for page_idx in range(len(doc)):
-                            try:
-                                pdf_full_text += doc[page_idx].get_text("text") + "\n"
-                            except: pass
-                            
                         # Image Extraction Logic (From END to START)
                         for page_idx in range(len(doc) - 1, -1, -1):
                             pdf_page = doc[page_idx]
@@ -471,7 +464,7 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                 lat, lng = geocode_address(address_raw, gemini_key)
                 
             city_str = extract_city(address_raw, prefecture)
-            check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail_url, address_raw, start_price, court_name, prop_type_raw, lat, lng, prefecture, city_str, raw_text=pdf_full_text)
+            check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail_url, address_raw, start_price, court_name, prop_type_raw, lat, lng, prefecture, city_str, raw_text=None)
             print(f"    [INFO] Đã thêm/cập nhật thành công vào Database ({prop_type_raw}) - {city_str}")
             
             await new_page.close()
