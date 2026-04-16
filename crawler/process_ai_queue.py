@@ -34,18 +34,10 @@ Return raw JSON ONLY. No markdown wrapping.
 """
 
 def process_queue():
+    print("[AI] AI processing is temporarily disabled by admin. Keeping PENDING_AI statuses intact.")
+    return
+
     if not db_url: return
-    conn = psycopg2.connect(db_url)
-    cur = conn.cursor()
-    
-    # Kéo 50 records đang kẹt PENDING_AI
-    cur.execute("SELECT sale_unit_id, raw_text, starting_price, property_type FROM \"Property\" WHERE ai_status = 'PENDING_AI' AND raw_text IS NOT NULL LIMIT 50")
-    rows = cur.fetchall()
-    
-    if not rows:
-        cur.close()
-        conn.close()
-        return
 
     print(f"[Queue] Picked up {len(rows)} properties for AI inference...")
 

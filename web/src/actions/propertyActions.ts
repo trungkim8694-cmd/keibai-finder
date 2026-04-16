@@ -389,7 +389,7 @@ export async function getProperties(filters: SearchFilters = {}) {
                 ai_analysis: true,
                 ai_status: true,
               },
-              take: 200,
+              take: 2000,
               orderBy: defaultOrderBy
             });
             

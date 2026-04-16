@@ -64,6 +64,8 @@ async def scrape_results():
             
             try:
                 await page.goto("https://www.bit.courts.go.jp/app/top/pt001/h01")
+                await page.wait_for_load_state('domcontentloaded')
+                await page.wait_for_function('typeof tranArea !== "undefined"', timeout=15000)
                 # Step 1: Click Sold Results globally
                 async with page.expect_navigation(timeout=30000):
                     await page.evaluate("tranArea('result','');")
@@ -114,6 +116,8 @@ async def scrape_results():
                     try:
                         # Repetitive safe start
                         await page.goto("https://www.bit.courts.go.jp/app/top/pt001/h01")
+                        await page.wait_for_load_state('domcontentloaded')
+                        await page.wait_for_function('typeof tranArea !== "undefined"', timeout=15000)
                         async with page.expect_navigation():
                             await page.evaluate("tranArea('result','');")
                         async with page.expect_navigation():
@@ -148,7 +152,7 @@ async def scrape_results():
                                 address_icon = item.select_one('.bit__icon_access')
                                 address_raw = address_icon.parent.get_text(strip=True) if address_icon and address_icon.parent else "Unknown"
                                 
-                                if not address_raw or address_raw in {"Unknown", "不明", "", "所在地不明"}:
+                                if not address_raw or address_raw in {"Unknown", "不明", "", "所在地不明", "-"}:
                                     print(f"    Skipping (No address): {case_num}")
                                     continue
                                     
@@ -229,10 +233,7 @@ async def scrape_results():
                             await page.wait_for_load_state('networkidle')
                             await page.wait_for_timeout(1000)
                             
-                            # Limit to first 2 pages per court to quickly gather items
-                            if page_num > 2: 
-                                 print("    Reached 2 pages limit for test, moving to next court.")
-                                 break
+                            # Removed page limit to gather all results
                             
                         success = True
                     except Exception as e:

@@ -63,26 +63,28 @@ async def scrape_results():
         await page.goto("https://www.bit.courts.go.jp/app/top/pt001/h01")
         
         # Click Result Search tab
-        await page.locator("a.nav-link:has-text('売却結果')").first.click()
+        async with page.expect_navigation(timeout=30000):
+            await page.evaluate("tranArea('result','');")
         await page.wait_for_timeout(2000)
         
         # Click Hokkaido
-        hokkaido_btn = page.locator("a.bit__btn_primary:has-text('北海道')").first
-        if await hokkaido_btn.count() > 0:
-            await hokkaido_btn.click()
+        async with page.expect_navigation(timeout=30000):
+            await page.evaluate("transProperty('01');")
         await page.locator("h1:has-text('北海道の売却結果を検索する')").wait_for(timeout=15000)
         
         print("Selecting Sapporo...")
-        await page.locator(".bit__clickablemap_map_sapporo").first.click()
+        await page.evaluate("showSearchCondition('91', '1', 'sapporo');")
         await page.wait_for_timeout(2000)
         
         # Click All properties inside Sapporo
-        await page.locator("#btnAllPlaceOn1").first.click()
+        try:
+             await page.evaluate("if(document.getElementById('btnAllPlaceOn1')) document.getElementById('btnAllPlaceOn1').click();")
+        except: pass
         await page.wait_for_timeout(1000)
         
         async with page.expect_navigation():
             # There might be multiple search buttons, pick the first
-            await page.locator("button.bit__btn_primary:has-text('検索')").first.click()
+            await page.evaluate("submitAllPeroidForm();")
             
         await page.wait_for_timeout(2000)
         
@@ -112,7 +114,7 @@ async def scrape_results():
                     address_raw = address_tag.get_text(strip=True).replace("所在", "").replace("所在地", "").strip() if address_tag else "Unknown"
                     if address_raw.startswith("："): address_raw = address_raw[1:].strip()
                     
-                    if not address_raw or address_raw in {"Unknown", "不明", "", "所在地不明"}:
+                    if not address_raw or address_raw in {"Unknown", "不明", "", "所在地不明", "-"}:
                         print(f"Skipping (No address): {case_num}")
                         continue
                     

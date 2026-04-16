@@ -594,7 +594,7 @@ async def main():
                         total_loc = page.locator('span.bit__numberOfResult_totalNumber')
                         if await total_loc.count() > 0:
                             total_text = await total_loc.first.inner_text()
-                            total_items = min(20, int(total_text.replace(',', '').strip()))
+                            total_items = int(total_text.replace(',', '').strip())
                     except Exception:
                         pass
                         
