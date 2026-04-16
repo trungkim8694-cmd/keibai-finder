@@ -1,7 +1,4 @@
 import React from 'react';
-
-export const revalidate = 3600; // ISR for 1 hour
-
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 // PRESERVE: PDF & Image Logic - DO NOT REMOVE.
