@@ -1,4 +1,7 @@
 import React from 'react';
+
+export const revalidate = 86400; // ISR for 24 hours
+
 import { resolveCityCode, fetchMlitApiData, MlitTransaction, mapPropertyTypeToMlit, getMarketValuation } from '@/lib/mlitApi';
 import TradeSearchForm from '@/components/Trade/TradeSearchForm';
 import TradeList from '@/components/Trade/TradeList';

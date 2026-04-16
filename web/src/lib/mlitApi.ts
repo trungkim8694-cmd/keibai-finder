@@ -38,7 +38,7 @@ export async function fetchMlitApiData(cityCode: string, year: string): Promise<
       headers: {
          "Ocp-Apim-Subscription-Key": MLIT_API_KEY,
       },
-      next: { revalidate: 3600 } // Cache API response internally for 1 hour if Next.js caching is on
+      next: { revalidate: 604800 } // Cache API response internally for 7 days
     });
     
     if (!response.ok) {
