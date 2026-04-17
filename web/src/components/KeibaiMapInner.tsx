@@ -13,6 +13,8 @@ import type { BoundingBox } from '../actions/propertyActions';
 import type { KeibaiMapProps } from './KeibaiMap';
 import { getPropertyTypeColor } from '../types';
 import { AsyncStationInfo } from './AsyncStationInfo';
+import { PropertyInfoTags } from './PropertyInfoTags';
+import { CourtContactLink } from './CourtContactLink';
 
 const fixLeafletIcons = () => {
   delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -509,50 +511,51 @@ export default function KeibaiMapInner({
              }}
           >
            <Popup autoPan={false}>
-             <a 
-               href={`/property/${p.sale_unit_id}`}
-               target="_blank"
-               rel="noopener noreferrer"
-               className="p-0 w-[240px] sm:w-[260px] cursor-pointer hover:opacity-90 transition-opacity block group outline-none focus:outline-none"
+             <div 
+               onClick={() => window.open(`/property/${p.sale_unit_id}`, '_blank')}
+               className="p-0 w-[240px] sm:w-[260px] cursor-pointer hover:opacity-90 transition-opacity block group outline-none focus:outline-none bg-white dark:bg-zinc-900 rounded-lg overflow-hidden"
              >
-               <div className="w-full h-[100px] bg-zinc-100 dark:bg-zinc-800 rounded-t-lg mb-2 overflow-hidden border-b border-zinc-200 dark:border-zinc-700 relative">
+               <div className="w-full h-[120px] bg-zinc-100 dark:bg-zinc-800 rounded-t-lg mb-2 overflow-hidden border-b border-zinc-200 dark:border-zinc-700 relative">
                   {p.thumbnailUrl ? <img src={p.thumbnailUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Thumbnail" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🏠</div>}
                   <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">
                      {p.status === 'ACTIVE' ? '公開中' : p.status}
                   </div>
                </div>
-               <div className="p-2 pt-0">
-                 <h4 className="font-bold text-xs mb-1 truncate block text-zinc-800 group-hover:text-blue-600 transition-colors" title={`${p.prefecture || ''}${p.address}`}>{p.prefecture || ''}{p.address}</h4>
-                 <div className="font-black text-blue-600 dark:text-blue-500 text-[16px] mb-1">
-                   ¥{p.starting_price ? Number(p.starting_price).toLocaleString() : '未定'}
-                 </div>
-                 <div className="mb-1.5 flex flex-col gap-1 w-full pb-1">
-                    <div className="flex flex-row flex-nowrap items-center gap-1 overflow-x-auto scrollbar-hide whitespace-nowrap w-full">
-                      {(() => {
-                         const typeLabel = !p.property_type || p.property_type === 'Unknown' ? '種類不明' : p.property_type;
-                         const color = getPropertyTypeColor(typeLabel);
-                         return (
-                            <span className={`text-[9px] font-black border px-1 py-0.5 rounded-sm shrink-0 ${color.bg} ${color.text} ${color.border} inline-block dark:bg-opacity-20 leading-none`}>
-                               {typeLabel}
-                            </span>
-                         )
-                      })()}
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-[8px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-[2px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none w-max max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
-                        <span className="text-emerald-700 dark:text-emerald-500 text-[10px] mr-1">🚉</span>
-                        <AsyncStationInfo lat={p.lat} lng={p.lng} sale_unit_id={p.sale_unit_id} initial={p.nearest_station} hideIfNoStation={true} />
-                      </span>
-                    </div>
-                 </div>
-                 <div className="text-[10px] text-zinc-500 flex flex-col gap-1.5 border-t border-zinc-100 dark:border-zinc-200 pt-1.5 mt-1.5">
+               
+               <div className="p-3 pt-1 flex flex-col gap-1.5">
+                  <div className="text-[10px] text-zinc-500" onClick={(e) => e.stopPropagation()}>
+                    {p.source_provider === 'NTA' ? (
+                      <CourtContactLink 
+                        courtName={p.managing_authority ? p.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : 'NTA 税務署'} 
+                        contactUrl={p.contact_url || p.source_url} 
+                        theme="red"
+                      />
+                    ) : (
+                      <CourtContactLink courtName={p.court_name} contactUrl={p.contact_url} />
+                    )}
+                  </div>
 
-                   <div className="text-blue-600 font-bold group-hover:underline text-right w-full flex items-center justify-end gap-1">
-                     詳細を見る <span className="text-lg leading-none">→</span>
+                 <h4 className="font-bold text-xs mb-1 truncate block text-zinc-800 dark:text-zinc-300 group-hover:text-blue-600 transition-colors" title={`${p.prefecture || ''}${p.address}`}>
+                   {p.prefecture || ''}{p.address}
+                 </h4>
+                 
+                 <div className="mb-2 w-full">
+                    <PropertyInfoTags property={p} displayArea={(p as any).area ? `${Math.round((p as any).area).toLocaleString('en-US')}m²` : null} showCourtTag={false} />
+                 </div>
+                 
+                 <div className="border-t border-zinc-100 dark:border-zinc-800 pt-2 flex items-end justify-between pr-1">
+                   <div>
+                     <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mb-0 leading-tight">売却基準価額</p>
+                     <p className="font-semibold text-sm text-zinc-900 dark:text-white leading-tight">
+                        {p.starting_price ? (p.starting_price >= 10000 ? `${(p.starting_price / 10000).toLocaleString('en-US')}万円` : `¥${p.starting_price.toLocaleString('en-US')}`) : '未定'}
+                     </p>
+                   </div>
+                   <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold py-1 px-2 rounded-md text-[10px] flex items-center gap-1 group-hover:bg-blue-600 group-hover:text-white transition-colors border border-blue-100 dark:border-blue-800">
+                      詳細を見る <span className="group-hover:translate-x-1 transition-transform">→</span>
                    </div>
                  </div>
                </div>
-             </a>
+             </div>
            </Popup>
         </Marker>
     ));
