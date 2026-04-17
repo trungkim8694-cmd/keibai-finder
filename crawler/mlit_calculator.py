@@ -4,6 +4,42 @@ import requests
 import psycopg2
 from psycopg2.extras import Json
 import re
+import json
+
+def extract_total_area(raw_display_data_json):
+    if not raw_display_data_json:
+        return None
+    try:
+        if isinstance(raw_display_data_json, str):
+            parsed = json.loads(raw_display_data_json)
+        else:
+            parsed = raw_display_data_json
+            
+        total_area = 0.0
+        
+        def check_val(k, v):
+            nonlocal total_area
+            if "面積" in k and "現況" not in k:
+                hw = v.translate(str.maketrans('０１２３４５６７８９．', '0123456789.'))
+                m = re.search(r'([\d\.]+)', hw)
+                if m:
+                    try:
+                        total_area += float(m.group(1))
+                    except ValueError:
+                        pass
+                        
+        if isinstance(parsed, list):
+            for item in parsed:
+                if isinstance(item, dict):
+                    if "data" in item and isinstance(item["data"], dict):
+                        for k, v in item["data"].items():
+                            check_val(str(k), str(v))
+                    elif "key" in item and "value" in item:
+                        check_val(str(item["key"]), str(item["value"]))
+                        
+        return total_area if total_area > 0 else None
+    except Exception:
+        return None
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
@@ -62,10 +98,15 @@ def get_market_valuation(city_code, property_type, year="2023"):
     if cache_key in valuation_cache:
         return valuation_cache[cache_key]
         
-    mlit_types = ["中古マンション等"] if property_type == "マンション" else ["宅地(建物付)", "中古戸建", "宅地(土地と建物)"]
+    if property_type == "マンション":
+        mlit_types = ["中古マンション等"]
+    elif property_type == "土地":
+        mlit_types = ["宅地(土地)"]
+    else:
+        mlit_types = ["宅地(土地と建物)", "宅地(建物付)", "中古戸建"]
     search_type = mlit_types[0]
     
-    url = f"{BASE_URL}/XIT001?year={year}&area={city_code}"
+    url = f"{BASE_URL}/XIT001?year={year}&city={city_code}"
     
     try:
         res = requests.get(url, headers=HEADERS, timeout=20)
@@ -117,11 +158,11 @@ def process_mlit_gap():
     cur = conn.cursor()
     
     cur.execute("""
-        SELECT sale_unit_id, property_type, prefecture, city, starting_price, area 
+        SELECT sale_unit_id, property_type, prefecture, city, starting_price, area, raw_display_data 
         FROM "Property" 
         WHERE status = 'ACTIVE' 
           AND mlit_investment_gap IS NULL 
-          AND property_type IN ('戸建て', 'マンション')
+          AND property_type IN ('戸建て', 'マンション', '土地')
     """)
     rows = cur.fetchall()
     m_print(f"Found {len(rows)} properties need MLIT Gap calculation.")
@@ -129,7 +170,9 @@ def process_mlit_gap():
     success_count = 0
     
     for row in rows:
-        sale_unit_id, prop_type, pref, city, start_price, area = row
+        sale_unit_id, prop_type, pref, city, start_price, db_area, raw_data = row
+        
+        area = db_area if db_area and db_area > 0 else extract_total_area(raw_data)
         
         if not pref or not city:
             cur.execute('UPDATE "Property" SET mlit_investment_gap = -999 WHERE sale_unit_id = %s', (sale_unit_id,))
