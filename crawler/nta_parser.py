@@ -41,9 +41,9 @@ def parse_price(price_str):
 def normalize_category(raw_val):
     if not raw_val: return "その他"
     val_lower = raw_val.lower()
-    if "建物" in val_lower or "家屋" in val_lower or "戸建" in val_lower: return "戸建て"
+    if any(x in val_lower for x in ["建物", "家屋", "戸建", "居宅", "店舗", "事務所", "診療所", "工場", "倉庫", "旅館"]): return "戸建て"
     if "区分所有" in val_lower or "マンション" in val_lower: return "マンション"
-    if "宅地" in val_lower: return "土地"
+    if "宅地" in val_lower or "山林" in val_lower or "原野" in val_lower or "雑種地" in val_lower or "土地" in val_lower: return "土地"
     if "田" in val_lower or "畑" in val_lower or "農地" in val_lower: return "農地"
     return "その他"
 
@@ -216,9 +216,17 @@ def scrape_nta(limit=20):
             elif "所在" in overview: address = overview["所在"]
             elif "住居表示等" in overview: address = overview["住居表示等"]
             
-            if "財産種別" in overview: raw_category = overview["財産種別"]
-            elif "主たる地目" in overview: raw_category = overview["主たる地目"]
-            else: raw_category = None
+            if "財産種別" in overview: 
+                raw_category = overview["財産種別"]
+            elif "主たる種類" in overview: 
+                raw_category = overview["主たる種類"]
+            elif "主たる地目" in overview: 
+                if "床面積合計" in overview or "床面積合計" in raw_display_data_dict.get("details", {}):
+                    raw_category = "建物"
+                else:
+                    raw_category = overview["主たる地目"]
+            else: 
+                raw_category = None
             property_type = normalize_category(raw_category)
             
             raw_area = None
