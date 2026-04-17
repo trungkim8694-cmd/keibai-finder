@@ -42,14 +42,7 @@ nta_parser.scrape_nta(limit=20)
     except Exception as e:
         print(f"Lỗi NTA: {e}")
 
-    print("\n>>>>> BẬT TIẾN TRÌNH AI (Chạy 3 phút rồi tự tắt)...")
-    try:
-        # We start the queue and give it a timeout of 180 seconds
-        subprocess.run(["/Users/kimtrung/keibai-finder/crawler/venv/bin/python", "process_ai_queue.py"], timeout=180)
-    except subprocess.TimeoutExpired:
-        print("Đã hết 3 phút, tiến trình AI tự động tắt an toàn.")
-    except Exception as e:
-        print(f"Lỗi AI Queue: {e}")
+        # Bỏ qua thử nghiệm tiến trình AI theo yêu cầu của phiên bản hiện tại
         
     print("=== HOÀN TẤT QUÁ TRÌNH DRY RUN! ===")
 
