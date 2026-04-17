@@ -56,7 +56,7 @@ export default function UserMenu() {
           <button 
             onClick={() => {
               setShowDropdown(false);
-              router.push('/dashboard');
+              window.location.href = '/dashboard';
             }}
             className="w-full text-left px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >

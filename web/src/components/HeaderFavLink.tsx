@@ -60,7 +60,7 @@ export default function HeaderFavLink() {
     if (status !== 'authenticated') {
       setShowModal(true);
     } else {
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     }
   };
 
