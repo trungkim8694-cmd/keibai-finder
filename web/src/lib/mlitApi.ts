@@ -24,8 +24,8 @@ export type MlitTransaction = {
 export function mapPropertyTypeToMlit(keibaiType: string): string[] {
   if (keibaiType === '戸建て') return ['宅地(土地と建物)'];
   if (keibaiType === 'マンション') return ['中古マンション等'];
-  if (keibaiType === '土地') return ['宅地(土地)'];
-  return ['宅地(土地と建物)', '中古マンション等', '宅地(土地)'];
+  if (keibaiType === '土地' || keibaiType === '農地' || keibaiType === 'その他') return ['宅地(土地)', '林地', '農地'];
+  return ['宅地(土地)']; // Default to land for unknown types, never fallback to houses
 }
 
 /**
