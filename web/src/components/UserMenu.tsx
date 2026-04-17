@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import SignupModal from './SignupModal';
 
 export default function UserMenu() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
@@ -51,13 +53,15 @@ export default function UserMenu() {
 
       {showDropdown && (
         <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden py-1">
-          <Link 
-            href="/dashboard"
-            onClick={() => setShowDropdown(false)}
-            className="block px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          <button 
+            onClick={() => {
+              setShowDropdown(false);
+              router.push('/dashboard');
+            }}
+            className="w-full text-left px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             👤 マイページ
-          </Link>
+          </button>
           <div className="border-t border-zinc-100 dark:border-zinc-800 my-1"></div>
           <button 
             onClick={() => {

@@ -56,17 +56,17 @@ export default function HeaderFavLink() {
 
   // Auth gate: intercept click for unauthenticated users
   const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     if (status !== 'authenticated') {
-      e.preventDefault();
       setShowModal(true);
+    } else {
+      router.push('/dashboard');
     }
-    // If authenticated, let Link handle normal navigation to /dashboard
   };
 
   return (
     <>
-      <Link 
-        href="/dashboard" 
+      <button 
         onClick={handleClick}
         className={`flex items-center justify-center relative w-[36px] h-[36px] sm:w-auto sm:h-auto sm:gap-1.5 sm:px-3 sm:py-1.5 rounded-full transition-colors ${
           hasFavs 
@@ -89,7 +89,7 @@ export default function HeaderFavLink() {
         <span className="hidden sm:inline">{hasFavs ? '❤️' : '🤍'}</span> 
         <span className="hidden sm:inline text-sm font-bold">お気に入り</span>
         {hasFavs && <span className="hidden sm:inline bg-white/20 px-1.5 rounded text-xs ml-1">{favCount}</span>}
-      </Link>
+      </button>
 
       {/* Auth-gate modal for unauthenticated users */}
       {showModal && (
