@@ -388,6 +388,8 @@ export async function getProperties(filters: SearchFilters = {}) {
                 managing_authority: true,
                 ai_analysis: true,
                 ai_status: true,
+                mlit_investment_gap: true,
+                mlit_estimated_price: true,
               },
               take: 2000,
               orderBy: defaultOrderBy
