@@ -523,15 +523,22 @@ export default function KeibaiMapInner({
                </div>
                
                <div className="p-3 pt-1 flex flex-col gap-1.5">
-                  <div className="text-[10px] text-zinc-500" onClick={(e) => e.stopPropagation()}>
-                    {p.source_provider === 'NTA' ? (
-                      <CourtContactLink 
-                        courtName={p.managing_authority ? p.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : 'NTA 税務署'} 
-                        contactUrl={p.contact_url || p.source_url} 
-                        theme="red"
-                      />
-                    ) : (
-                      <CourtContactLink courtName={p.court_name} contactUrl={p.contact_url} />
+                  <div className="flex justify-between items-start gap-1">
+                    <div className="text-[10px] text-zinc-500 min-w-0" onClick={(e) => e.stopPropagation()}>
+                      {p.source_provider === 'NTA' ? (
+                        <CourtContactLink 
+                          courtName={p.managing_authority ? p.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : 'NTA 税務署'} 
+                          contactUrl={p.contact_url || p.source_url} 
+                          theme="red"
+                        />
+                      ) : (
+                        <CourtContactLink courtName={p.court_name} contactUrl={p.contact_url} />
+                      )}
+                    </div>
+                    {p.mlit_investment_gap !== null && p.mlit_investment_gap !== undefined && p.mlit_investment_gap > 0 && (
+                      <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50 shadow-sm whitespace-nowrap">
+                        <span className="text-[9px] sm:text-[10px]">📈</span> ギャップ +{p.mlit_investment_gap.toFixed(1)}%
+                      </span>
                     )}
                   </div>
 

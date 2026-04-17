@@ -372,6 +372,7 @@ export async function getProperties(filters: SearchFilters = {}) {
                 lng: true,
                 property_type: true,
                 starting_price: true,
+                raw_display_data: true,
                 status: true,
                 court_name: true,
                 address: true,
