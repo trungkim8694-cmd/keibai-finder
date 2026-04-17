@@ -550,15 +550,15 @@ export default function KeibaiMapInner({
                     <PropertyInfoTags property={p} displayArea={(p as any).area ? `${Math.round((p as any).area).toLocaleString('en-US')}m²` : null} showCourtTag={false} />
                  </div>
                  
-                 <div className="border-t border-zinc-100 dark:border-zinc-800 pt-2 flex items-end justify-between pr-1">
-                   <div>
-                     <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mb-0 leading-tight">売却基準価額</p>
-                     <p className="font-semibold text-sm text-zinc-900 dark:text-white leading-tight">
+                 <div className="border-t border-zinc-100 dark:border-zinc-800 pt-1.5 pb-0.5 flex items-center justify-between pr-1">
+                   <div className="flex items-baseline gap-1.5">
+                     <span className="text-[9px] text-zinc-500 dark:text-zinc-400">売却基準価</span>
+                     <span className="font-bold text-[13px] text-zinc-900 dark:text-white">
                         {p.starting_price ? (p.starting_price >= 10000 ? `${(p.starting_price / 10000).toLocaleString('en-US')}万円` : `¥${p.starting_price.toLocaleString('en-US')}`) : '未定'}
-                     </p>
+                     </span>
                    </div>
-                   <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold py-1 px-2 rounded-md text-[10px] flex items-center gap-1 group-hover:bg-blue-600 group-hover:text-white transition-colors border border-blue-100 dark:border-blue-800">
-                      詳細を見る <span className="group-hover:translate-x-1 transition-transform">→</span>
+                   <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold py-[3px] px-1.5 rounded hover:bg-blue-600 hover:text-white transition-colors border border-blue-100 dark:border-blue-800 text-[9px] cursor-pointer inline-flex items-center gap-0.5">
+                      詳細 <span className="group-hover:translate-x-0.5 transition-transform">→</span>
                    </div>
                  </div>
                </div>
