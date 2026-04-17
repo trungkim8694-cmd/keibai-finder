@@ -77,10 +77,14 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
             if db_area: break
             
     db_date = None
-    if raw_data and "売却スケジュール" in raw_data:
-         # e.g., 入札期間: 令和08年04月07日 ～ 令和08年04月14日
-         bid_period = raw_data["売却スケジュール"].get("入札期間")
-         db_date = convert_reiwa_to_datetime(bid_period)
+    if raw_data and isinstance(raw_data, list):
+        for section in raw_data:
+            data_dict = section.get("data", {})
+            for key in data_dict.keys():
+                if "期間入札" in key or "入札期間" in key or "期間" in key or "特別売却期間" in key or "特別売却" in key:
+                    db_date = convert_reiwa_to_datetime(data_dict[key])
+                    if db_date: break
+            if db_date: break
          
     st_name, line_name, st_dist, st_time = get_nearest_station_from_db(lat, lng, cur)
     

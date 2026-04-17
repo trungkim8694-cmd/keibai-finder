@@ -79,8 +79,9 @@ export function extractAuctionSchedule(rawDisplayData: any): string | null {
 
      if (parsed && !Array.isArray(parsed) && typeof parsed === 'object') {
         const overview = parsed.overview || {};
-        if (overview['入札期間']) {
-           const val = String(overview['入札期間']).replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+        const periodStr = overview['入札期間'] || overview['特別売却期間'];
+        if (periodStr) {
+           const val = String(periodStr).replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
            const matches = val.match(/令和(\d+)年(\d+)月(\d+)日/g);
            if (matches && matches.length >= 2) {
               const m1 = matches[0].match(/令和(\d+)年(\d+)月(\d+)日/);
@@ -102,9 +103,9 @@ export function extractAuctionSchedule(rawDisplayData: any): string | null {
        parsed.forEach((item: any) => {
           if (item.data) {
              Object.entries(item.data).forEach(([k, v]) => {
-                if (k.includes('入札期間') || k === '期間入札') findSchedule(String(v));
+                if (k.includes('入札期間') || k === '期間入札' || k.includes('特別売却期間') || k === '特別売却') findSchedule(String(v));
              });
-          } else if (item.key && (item.key.includes('入札期間') || item.key === '期間入札')) {
+          } else if (item.key && (item.key.includes('入札期間') || item.key === '期間入札' || item.key.includes('特別売却期間') || item.key === '特別売却')) {
              findSchedule(String(item.value));
           }
        });
@@ -137,8 +138,9 @@ export function extractAuctionEndDate(rawDisplayData: any): Date | null {
 
      if (parsed && !Array.isArray(parsed) && typeof parsed === 'object') {
         const overview = parsed.overview || {};
-        if (overview['入札期間']) {
-           findEndDate(String(overview['入札期間']).replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)));
+        const periodStr = overview['入札期間'] || overview['特別売却期間'];
+        if (periodStr) {
+           findEndDate(String(periodStr).replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)));
         }
         return endDate;
      }
@@ -147,9 +149,9 @@ export function extractAuctionEndDate(rawDisplayData: any): Date | null {
        parsed.forEach((item: any) => {
           if (item.data) {
              Object.entries(item.data).forEach(([k, v]) => {
-                if (k.includes('入札期間') || k === '期間入札') findEndDate(String(v));
+                if (k.includes('入札期間') || k === '期間入札' || k.includes('特別売却期間') || k === '特別売却') findEndDate(String(v));
              });
-          } else if (item.key && (item.key.includes('入札期間') || item.key === '期間入札')) {
+          } else if (item.key && (item.key.includes('入札期間') || item.key === '期間入札' || item.key.includes('特別売却期間') || item.key === '特別売却')) {
              findEndDate(String(item.value));
           }
        });
