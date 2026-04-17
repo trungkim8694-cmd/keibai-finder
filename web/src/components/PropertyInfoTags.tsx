@@ -14,7 +14,7 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
   let formattedArea = displayArea;
 
   let formattedSchedule = property.auctionSchedule || (property as any).extractedSchedule;
-  if (!formattedSchedule && (property as any).bid_start_date && (property as any).bid_end_date) {
+  if (!formattedSchedule && ((property as any).bid_start_date || (property as any).bid_end_date)) {
      formattedSchedule = formatBidPeriod((property as any).bid_start_date, (property as any).bid_end_date);
   }
   const rawData = (property as any).raw_display_data;
