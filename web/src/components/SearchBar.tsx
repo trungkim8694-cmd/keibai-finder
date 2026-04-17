@@ -468,7 +468,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
     : authorityData?.nta.find(x => x.name === selectedNtaAuth)?.count || 0;
 
   return (
-    <div className={`w-full sticky top-0 z-[60] lg:relative lg:z-auto pointer-events-auto transition-all duration-500 ${isExpanded ? 'bg-white/95 dark:bg-zinc-950/95 lg:bg-transparent dark:lg:bg-transparent shadow-sm lg:shadow-none backdrop-blur-md lg:backdrop-blur-none border-b border-zinc-200 dark:border-zinc-800 lg:border-none' : 'bg-transparent border-transparent shadow-none pointer-events-none'}`}>
+    <div className={`w-full sticky top-0 z-[60] lg:relative lg:z-auto pointer-events-auto transition-all duration-500 ${isExpanded ? 'bg-white/95 dark:bg-zinc-950/95 lg:bg-transparent dark:lg:bg-transparent shadow-sm lg:shadow-none backdrop-blur-md lg:backdrop-blur-none border-b border-zinc-200 dark:border-zinc-800 lg:border-none' : 'bg-transparent border-transparent shadow-none pointer-events-none pb-14 lg:pb-0'}`}>
       
       {/* =========================================
           COLLAPSED SUMMARY PILL
