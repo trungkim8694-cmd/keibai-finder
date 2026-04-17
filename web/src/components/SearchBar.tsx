@@ -63,18 +63,18 @@ export interface SavedFilter {
 export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: SearchFilters) => void, areaStats?: Record<string, number> }) {
   const {refs, floatingStyles} = useFloating({
     placement: 'bottom-end',
-    middleware: [offset(10), flip(), shift()],
+    middleware: [offset(10), flip(), shift({ padding: 16 })],
   });
 
   const {refs: bitRefs, floatingStyles: bitStyles} = useFloating({
     placement: 'bottom-start',
-    middleware: [offset(4), flip(), shift()],
+    middleware: [offset(4), flip(), shift({ padding: 16 })],
     whileElementsMounted: autoUpdate,
   });
 
   const {refs: ntaRefs, floatingStyles: ntaStyles} = useFloating({
     placement: 'bottom-start',
-    middleware: [offset(4), flip(), shift()],
+    middleware: [offset(4), flip(), shift({ padding: 16 })],
     whileElementsMounted: autoUpdate,
   });
 
@@ -602,7 +602,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                   {isMounted && (
                     <Portal>
                       <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-75" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
-                        <Popover.Panel ref={refs.setFloating} style={floatingStyles} className="w-[450px] bg-white dark:bg-zinc-900 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] ring-1 ring-black/5 z-[9999] border border-zinc-100 dark:border-zinc-800 overflow-hidden flex flex-col">
+                        <Popover.Panel ref={refs.setFloating} style={floatingStyles} className="w-[calc(100vw-32px)] sm:w-[450px] max-w-[450px] bg-white dark:bg-zinc-900 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] ring-1 ring-black/5 z-[9999] border border-zinc-100 dark:border-zinc-800 overflow-hidden flex flex-col">
                         <div className="flex w-full">
                           {/* Left Column: Regions */}
                           <div className="w-5/12 bg-zinc-50 dark:bg-zinc-800/50 p-2 border-r border-zinc-100 dark:border-zinc-800 h-[300px] overflow-y-auto">
