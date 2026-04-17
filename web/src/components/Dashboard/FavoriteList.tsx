@@ -76,7 +76,7 @@ export function FavoriteList({ initialFavorites, userId }: { initialFavorites: F
               登録日: {dayjs(item.favoritedAt).format('YYYY/MM/DD')}
             </div>
 
-            <PropertyCard property={p} />
+            <PropertyCard property={p} layout="vertical" />
           </div>
         );
       })}

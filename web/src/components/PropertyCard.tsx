@@ -17,6 +17,7 @@ export default function PropertyCard({
   isHovered,
   isActive,
   distanceFromTarget,
+  layout = 'horizontal',
   onClick,
   onMouseEnter,
   onMouseLeave
@@ -25,6 +26,7 @@ export default function PropertyCard({
   isHovered?: boolean;
   isActive?: boolean;
   distanceFromTarget?: number;
+  layout?: 'horizontal' | 'vertical';
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -102,7 +104,7 @@ export default function PropertyCard({
         if (onMouseEnter) onMouseEnter();
       }}
       onMouseLeave={onMouseLeave}
-      className={`block bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 mb-4 mt-2 group relative flex flex-col sm:flex-row hover:z-10 cursor-pointer ${
+      className={`block bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 mb-4 mt-2 group relative flex ${layout === 'horizontal' ? 'flex-col sm:flex-row' : 'flex-col'} hover:z-10 cursor-pointer ${
         isActive
           ? 'border-blue-600 dark:border-blue-500 ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
           : isHovered 
@@ -112,7 +114,7 @@ export default function PropertyCard({
     >
       {/* Remove the absolute Link overlay so the whole card is just a click target handling onClick without navigating away */}
       {/* Thumbnail */}
-      <div className="relative w-full sm:w-1/3 lg:w-1/4 h-48 sm:h-auto shrink-0 bg-zinc-100 dark:bg-zinc-800 pointer-events-none">
+      <div className={`relative w-full ${layout === 'horizontal' ? 'sm:w-1/3 lg:w-1/4 h-48 sm:h-auto' : 'h-48'} shrink-0 bg-zinc-100 dark:bg-zinc-800 pointer-events-none`}>
         <Image
           src={property.thumbnailUrl || (property.images && property.images.length > 0 ? property.images[0] : '/no-image.png')}
           alt="物件の写真"
