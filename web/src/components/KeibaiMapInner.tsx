@@ -15,6 +15,7 @@ import { getPropertyTypeColor } from '../types';
 import { AsyncStationInfo } from './AsyncStationInfo';
 import { PropertyInfoTags } from './PropertyInfoTags';
 import { CourtContactLink } from './CourtContactLink';
+import { extractTotalArea } from '../lib/utils';
 
 const fixLeafletIcons = () => {
   delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -547,7 +548,12 @@ export default function KeibaiMapInner({
                  </h4>
                  
                  <div className="mb-2 w-full">
-                    <PropertyInfoTags property={p} displayArea={(p as any).area ? `${Math.round((p as any).area).toLocaleString('en-US')}m²` : null} showCourtTag={false} />
+                   {(() => {
+                     const dbArea = (p as any).area && (p as any).area > 0 ? (p as any).area : null;
+                     const parsedArea = dbArea || extractTotalArea(p.raw_display_data);
+                     const displayArea = parsedArea ? `${Math.round(parsedArea).toLocaleString('en-US')}m²` : null;
+                     return <PropertyInfoTags property={p} displayArea={displayArea} showCourtTag={false} />;
+                   })()}
                  </div>
                  
                  <div className="border-t border-zinc-100 dark:border-zinc-800 pt-1.5 pb-0.5 flex items-center justify-between pr-1">

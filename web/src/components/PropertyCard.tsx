@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { type SharedProperty } from '../types';
 import { PropertyInfoTags } from './PropertyInfoTags';
 import FavoriteButton from './FavoriteButton';
-import { extractAuctionEndDate } from '../lib/utils';
+import { extractAuctionEndDate, extractTotalArea } from '../lib/utils';
 import { formatDateJapan } from '../utils/dateFormatter';
 import { CourtContactLink } from './CourtContactLink';
 import dayjs from 'dayjs';
@@ -184,7 +184,13 @@ export default function PropertyCard({
           {!property.address || property.address === 'Unknown' ? '住所不明' : property.address}
         </h3>
          <div className="mb-4 lg:mb-3">
-           <PropertyInfoTags property={property} displayArea={(property as any).area ? `${Math.round((property as any).area).toLocaleString('en-US')}m²` : null} />
+           {(() => {
+             const dbArea = (property as any).area && (property as any).area > 0 ? (property as any).area : null;
+             const parsedArea = dbArea || extractTotalArea(property.raw_display_data);
+             const displayArea = parsedArea ? `${Math.round(parsedArea).toLocaleString('en-US')}m²` : null;
+             
+             return <PropertyInfoTags property={property} displayArea={displayArea} />;
+           })()}
          </div>
         
 

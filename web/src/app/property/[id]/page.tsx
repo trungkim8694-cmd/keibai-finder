@@ -11,6 +11,7 @@ import { getNearestStations, getNearbyAuctionResults } from './actions';
 import { getProperties } from '@/actions/propertyActions';
 import DetailMapComponent from './DetailMapComponent';
 import { PdfLinks } from '@/components/Detail/PdfLinks';
+import { CourtContactLink } from '@/components/CourtContactLink';
 import { CourtValuation } from '@/components/Detail/CourtValuation';
 import { MarketValuation } from '@/components/Detail/MarketValuation';
 import { AuctionHistoryBadge } from '@/components/Detail/AuctionHistoryBadge';
@@ -375,11 +376,31 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         <section className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 mb-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-lg md:text-xl font-black mb-3">{!(property as any).prefecture && !(property as any).city ? '詳細情報' : `${(property as any).prefecture || ''} ${(property as any).city || ''}${(property as any).address}`}</h1>
+              <div className="mb-2 flex justify-start items-center gap-2">
+                <div className="min-w-0">
+                  <span className="text-[13px] font-bold block truncate">
+                    {property.source_provider === 'NTA' ? (
+                      <CourtContactLink 
+                        courtName={property.managing_authority ? property.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : 'NTA 税務署'} 
+                        contactUrl={property.contact_url || property.source_url} 
+                        theme="red"
+                      />
+                    ) : (
+                      <CourtContactLink courtName={property.court_name} contactUrl={bitContactUrl} />
+                    )}
+                  </span>
+                </div>
+                {property.mlit_investment_gap !== null && property.mlit_investment_gap !== undefined && property.mlit_investment_gap > 0 && (
+                  <span className="shrink-0 inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50 shadow-sm whitespace-nowrap transition-transform hover:scale-105">
+                    <span className="text-[11px] sm:text-[12px]">📈</span> ギャップ +{property.mlit_investment_gap.toFixed(1)}%
+                  </span>
+                )}
+              </div>
+              <h1 className="text-lg md:text-xl font-black mb-2">{!(property as any).prefecture && !(property as any).city ? '詳細情報' : `${(property as any).prefecture || ''} ${(property as any).city || ''}${(property as any).address}`}</h1>
               
               {/* Quick Stats Block (Single Row Layout) */}
               <div className="mb-3">
-                 <PropertyInfoTags property={serializedProperty} displayArea={displayArea} showCourtTag={true}>
+                 <PropertyInfoTags property={serializedProperty} displayArea={displayArea} showCourtTag={false}>
                    {serializedHistory.length > 0 && (
                      <AuctionHistoryBadge history={serializedHistory} />
                    )}
