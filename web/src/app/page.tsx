@@ -107,15 +107,12 @@ export default function DashboardPage() {
                const dist = getDistance(target.lat, target.lng, p.lat, p.lng);
                return { ...p, sortDist: dist };
             }).sort((a, b) => {
-               if (a.sale_unit_id === clickedPropertyId) return -1;
-               if (b.sale_unit_id === clickedPropertyId) return 1;
                return (a.sortDist || 0) - (b.sortDist || 0);
             });
-            // Auto-scroll removed from here to prevent continuous re-locking.
         }
      }
      return baseList;
-  }, [rawListProperties, clickedPropertyId, mapProperties]);
+  }, [rawListProperties, mapProperties]);
 
   const isLoading = isListLoading || isMapLoading;
   const isReachingEnd = listDataArray && listDataArray[listDataArray.length - 1]?.length < 20;
@@ -124,6 +121,18 @@ export default function DashboardPage() {
     // Notify Header via CustomEvent using the map total count
     window.dispatchEvent(new CustomEvent('update_property_count', { detail: mapProperties.length }));
   }, [mapProperties.length]);
+
+  // Airbnb UX: Smooth scroll to the clicked card in the list
+  useEffect(() => {
+    if (clickedPropertyId) {
+      setTimeout(() => {
+        const el = document.getElementById(`card-${clickedPropertyId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 50);
+    }
+  }, [clickedPropertyId]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -211,9 +220,9 @@ export default function DashboardPage() {
             ) : (
               <>
                 {listProperties.map((item: any) => (
-                  <PropertyCard 
-                    key={item.sale_unit_id} 
-                    property={item as SharedProperty} 
+                  <div key={item.sale_unit_id} id={`card-${item.sale_unit_id}`}>
+                    <PropertyCard 
+                      property={item as SharedProperty} 
                     distanceFromTarget={item.sortDist}
                     isActive={clickedPropertyId === item.sale_unit_id}
                     isHovered={hoveredPropertyId === item.sale_unit_id}
@@ -221,6 +230,7 @@ export default function DashboardPage() {
                     onMouseEnter={() => setHoveredPropertyId(item.sale_unit_id)}
                     onMouseLeave={() => setHoveredPropertyId(null)}
                   />
+                  </div>
                 ))}
                 
                 {isValidating && listProperties.length > 0 && (

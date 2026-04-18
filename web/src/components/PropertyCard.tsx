@@ -104,9 +104,9 @@ export default function PropertyCard({
         if (onMouseEnter) onMouseEnter();
       }}
       onMouseLeave={onMouseLeave}
-      className={`block bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 mb-4 mt-2 group relative flex ${layout === 'horizontal' ? 'flex-col sm:flex-row' : 'flex-col'} hover:z-10 cursor-pointer ${
+      className={`block bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-500 mb-4 mt-2 group relative flex ${layout === 'horizontal' ? 'flex-col sm:flex-row' : 'flex-col'} hover:z-10 cursor-pointer ${
         isActive
-          ? 'border-blue-600 dark:border-blue-500 ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
+          ? 'border-blue-500 dark:border-blue-400 ring-4 ring-blue-500/30 bg-blue-50/80 dark:bg-blue-900/40 shadow-[0_0_20px_rgba(59,130,246,0.35)] scale-[1.02] transform'
           : isHovered 
             ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-400/30' 
             : 'border-zinc-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-700'
