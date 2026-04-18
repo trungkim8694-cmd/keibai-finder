@@ -557,7 +557,10 @@ async function mapPropertiesWithStations(data: any[]) {
           nearest_station: p.nearest_station,
           line_name: p.line_name,
           walk_time_to_station: p.walk_time_to_station,
-          area: p.area != null ? Math.round(Number(p.area)) : null,
+          area: p.area != null ? Math.round(Number(p.area)) : (() => {
+            const ea = extractTotalArea(p.raw_display_data);
+            return ea ? Math.round(ea) : null;
+          })(),
           bid_end_date: p.bid_end_date,
           bid_start_date: p.bid_start_date,
           views: p.views || 0,
