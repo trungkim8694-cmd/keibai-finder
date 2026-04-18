@@ -85,34 +85,10 @@ export default function DashboardPage() {
   // 3. Dynamic Re-Sorting Logic based on Clicked Property
   const listProperties = useMemo(() => {
      let baseList = [...rawListProperties];
-     if (clickedPropertyId) {
-        // Find the target in baseList or mapProperties (map has lat/lng locally cached)
-        const target = baseList.find(p => p.sale_unit_id === clickedPropertyId) || mapProperties.find((p: any) => p.sale_unit_id === clickedPropertyId);
-        if (target && target.lat && target.lng) {
-            // Function Haversine
-            const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-                if (!lat1 || !lon1 || !lat2 || !lon2) return 9999;
-                const R = 6371; 
-                const dLat = (lat2 - lat1) * Math.PI / 180;
-                const dLon = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                          Math.sin(dLon/2) * Math.sin(dLon/2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-                return R * c; 
-            };
-
-            // Calculate distance and Sort
-            baseList = baseList.map(p => {
-               const dist = getDistance(target.lat, target.lng, p.lat, p.lng);
-               return { ...p, sortDist: dist };
-            }).sort((a, b) => {
-               return (a.sortDist || 0) - (b.sortDist || 0);
-            });
-        }
-     }
+     // List is no longer dynamically reordered when a card is clicked. 
+     // Natural sorting preserves the user's scroll context exactly.
      return baseList;
-  }, [rawListProperties, mapProperties]);
+  }, [rawListProperties]);
 
   const isLoading = isListLoading || isMapLoading;
   const isReachingEnd = listDataArray && listDataArray[listDataArray.length - 1]?.length < 20;
