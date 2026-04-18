@@ -52,6 +52,7 @@ export default function MarketComparison({ nearbySold = [], stations = [] }: { n
                 <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap">落札価額</th>
                 <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap text-center">乖離率</th>
                 <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap text-center">入札件数</th>
+                <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap text-center">落札者</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
@@ -77,6 +78,19 @@ export default function MarketComparison({ nearbySold = [], stations = [] }: { n
                     <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold border border-zinc-200 dark:border-zinc-700">
                       {sold.bidderCount !== null ? sold.bidderCount : '-'}
                     </span>
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    {sold.winnerType === '法人' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 whitespace-nowrap">
+                        🏢 法人
+                      </span>
+                    ) : sold.winnerType === '個人' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 whitespace-nowrap">
+                        👤 個人
+                      </span>
+                    ) : (
+                      <span className="text-zinc-400 dark:text-zinc-500">-</span>
+                    )}
                   </td>
                 </tr>
               ))}

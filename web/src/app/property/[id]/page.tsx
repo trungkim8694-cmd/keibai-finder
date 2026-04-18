@@ -523,6 +523,8 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                 propertyType={property.property_type}
                 basePriceNum={basePriceNum}
                 propertyArea={parsedArea}
+                dbMlitEstimatedPrice={property.mlit_estimated_price ? Number(property.mlit_estimated_price) : null}
+                dbMlitInvestmentGap={property.mlit_investment_gap ? Number(property.mlit_investment_gap) : null}
               />
             </React.Suspense>
           </div>

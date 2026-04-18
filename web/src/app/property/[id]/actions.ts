@@ -18,7 +18,7 @@ export async function getNearbyAuctionResults(lat: number, lng: number, initialR
         SELECT * FROM (
           SELECT 
             "id", "caseNumber", "address", "lat", "lng", 
-            "basePrice", "winningPrice", "bidderCount", "marginRate", "completionDate",
+            "basePrice", "winningPrice", "bidderCount", "marginRate", "completionDate", "winnerType",
             ( 6371 * acos( cos( radians(${lat}) ) * cos( radians( "lat" ) ) * cos( radians( "lng" ) - radians(${lng}) ) + sin( radians(${lat}) ) * sin( radians( "lat" ) ) ) ) AS distance
           FROM "AuctionResult"
           WHERE "lat" IS NOT NULL AND "lng" IS NOT NULL
@@ -39,6 +39,7 @@ export async function getNearbyAuctionResults(lat: number, lng: number, initialR
         bidderCount: row.bidderCount,
         marginRate: row.marginRate,
         completionDate: row.completionDate,
+        winnerType: row.winnerType,
         distance: Number(row.distance)
       }));
 
@@ -51,36 +52,7 @@ export async function getNearbyAuctionResults(lat: number, lng: number, initialR
       }
     }
 
-    // Fallback: If still no data or less than 3, generate MOCK DUMMY DATA around the exact location
-    if (finalResults.length === 0) {
-      console.log(`[getNearbyAuctionResults] No local data within 50km! Generating dummy data for UI testing...`);
-      finalResults = [];
-      const mockCount = Math.floor(Math.random() * 3) + 3; // 3 to 5 mock items
-      for (let i = 0; i < mockCount; i++) {
-        // Pseudo-random offset: 1 deg lat = 111km -> 0.01 deg = 1.1km
-        const offsetLat = (Math.random() - 0.5) * 0.04;
-        const offsetLng = (Math.random() - 0.5) * 0.04;
-        const distanceKm = Math.sqrt(Math.pow(offsetLat * 111, 2) + Math.pow(offsetLng * 90, 2));
-        
-        const basePriceMock = 5000000 + Math.floor(Math.random() * 15000000);
-        const margin = 5 + Math.floor(Math.random() * 45); // 5% to 50% margin
-        const winPriceMock = basePriceMock * (1 + margin / 100);
-        
-        finalResults.push({
-          id: `mock-${i}`,
-          caseNumber: `2024(k)999${i}`,
-          address: `(MOCK) テスト疑似データ ${i + 1}丁目`,
-          lat: lat + offsetLat,
-          lng: lng + offsetLng,
-          basePrice: basePriceMock,
-          winningPrice: winPriceMock,
-          bidderCount: Math.floor(Math.random() * 12) + 1,
-          marginRate: margin,
-          completionDate: new Date(Date.now() - Math.random() * 10000000000), // Sometime in past
-          distance: distanceKm
-        });
-      }
-    }
+
 
     return finalResults;
   } catch (error) {

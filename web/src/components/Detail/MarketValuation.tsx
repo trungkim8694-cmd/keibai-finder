@@ -10,9 +10,11 @@ interface MarketValuationProps {
   propertyType: string;
   basePriceNum: number;
   propertyArea?: number | null;
+  dbMlitEstimatedPrice?: number | null;
+  dbMlitInvestmentGap?: number | null;
 }
 
-export async function MarketValuation({ prefecture, city, propertyType, basePriceNum, propertyArea }: MarketValuationProps) {
+export async function MarketValuation({ prefecture, city, propertyType, basePriceNum, propertyArea, dbMlitEstimatedPrice, dbMlitInvestmentGap }: MarketValuationProps) {
   // Resolve Area Code
   const cityCode = await resolveCityCode(prefecture, city);
   if (!cityCode) return null;
@@ -34,21 +36,16 @@ export async function MarketValuation({ prefecture, city, propertyType, basePric
 
   // Determine the reference value based on area
   const avgPricePerSqm = marketData.avgPricePerSqm || null;
-  const avgArea = marketData.avgArea || 0;
   
-  const referenceArea = propertyArea || avgArea; // Fallback to avgArea if property doesn't have area
-  let estimatedMarketPrice = marketData.avgTradePrice;
-  let calculationMethod = "平均取引価格";
+  // Use Database Values as the SINGLE SOURCE OF TRUTH
+  // If DB hasn't calculated it yet, DO NOT auto-gen on UI, show "Waiting for System" instead
+  const hasDbCalculation = !!dbMlitEstimatedPrice && dbMlitEstimatedPrice > 0;
+  
+  const estimatedMarketPrice = hasDbCalculation ? dbMlitEstimatedPrice : null;
+  const calculationMethod = hasDbCalculation ? "AI/システム 査定結果" : "更新待ち";
 
-  if (avgPricePerSqm && avgPricePerSqm > 0 && referenceArea > 0) {
-      estimatedMarketPrice = avgPricePerSqm * referenceArea;
-      calculationMethod = propertyArea ? `市場単価 × 物件面積(${Math.round(propertyArea)}㎡)` : `市場単価 × 平均面積`;
-  }
-
-  const investmentGapPercent = (basePriceNum > 0 && estimatedMarketPrice > 0) 
-    ? ((estimatedMarketPrice - basePriceNum) / estimatedMarketPrice) * 100 
-    : 0;
-  const isHighPotential = investmentGapPercent > 30;
+  const investmentGapPercent = hasDbCalculation ? (dbMlitInvestmentGap ?? 0) : null;
+  const isHighPotential = hasDbCalculation && investmentGapPercent && investmentGapPercent > 30;
 
   const manYenFormat = (val: number) => {
     // Round to nearest Man
@@ -84,30 +81,36 @@ export async function MarketValuation({ prefecture, city, propertyType, basePric
                  <TrendingUp className="w-3 h-3" />
                  想定市場価格推定
               </div>
-              <div className="text-2xl font-black text-blue-700 dark:text-blue-400">{estimatedMarketPrice ? manYenFormat(estimatedMarketPrice) : '-'}</div>
+              <div className="text-2xl font-black text-blue-700 dark:text-blue-400">{estimatedMarketPrice ? manYenFormat(estimatedMarketPrice) : '更新待ち'}</div>
               <div className="text-[10px] text-blue-600/70 dark:text-blue-400/70 mt-1 font-medium">{calculationMethod}</div>
               <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none transform translate-x-2 translate-y-2">
                  <TrendingUp className="w-16 h-16 text-blue-500" />
               </div>
            </div>
            
-           <div className={`col-span-2 md:col-span-1 rounded-xl p-4 border ${isHighPotential ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900/30' : 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/30'}`}>
+           <div className={`col-span-2 md:col-span-1 rounded-xl p-4 border ${isHighPotential ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900/30' : (investmentGapPercent === null ? 'bg-zinc-50 border-zinc-200 dark:bg-zinc-800/50 dark:border-zinc-800/50' : 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/30')}`}>
               <div className="text-xs font-bold mb-1 opacity-70">投資ギャップ (利益率目安)</div>
-              <div className={`text-3xl font-black ${isHighPotential ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                 {investmentGapPercent > 0 ? `+${investmentGapPercent.toFixed(1)}%` : '-'}
+              <div className={`text-3xl font-black ${isHighPotential ? 'text-orange-600 dark:text-orange-400' : (investmentGapPercent === null ? 'text-zinc-500 dark:text-zinc-400' : 'text-emerald-600 dark:text-emerald-400')}`}>
+                 {investmentGapPercent !== null ? (investmentGapPercent > 0 ? `+${investmentGapPercent.toFixed(1)}%` : `${investmentGapPercent.toFixed(1)}%`) : '更新待ち'}
               </div>
            </div>
         </div>
 
         {/* AI Smart Comment injected directly from data */}
-        {basePriceNum > 0 && estimatedMarketPrice > 0 && (
+        {basePriceNum > 0 && estimatedMarketPrice && investmentGapPercent !== null ? (
           <div className="mt-4 p-4 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30">
             <p className="text-sm font-medium text-violet-800 dark:text-violet-300">
               💡 <span className="font-bold">分析コメント:</span> この{propertyType}の売却基準価額は、
-              {avgPricePerSqm && referenceArea ? `地域平均単価（${sqmPriceFormat(avgPricePerSqm)}）と物件面積を掛け合わせた想定市場価値` : `地域の平均取引相場`}
+              AIシステムによる想定市場価値
               （{manYenFormat(estimatedMarketPrice)}）を
               <span className="font-bold mx-1">{investmentGapPercent > 0 ? `${investmentGapPercent.toFixed(1)}%下回って` : `${Math.abs(investmentGapPercent).toFixed(1)}%上回って`}</span>います。
               {isHighPotential ? "市場価格との差額が大きいため、非常に高いポテンシャルを秘めています。" : "市場価格に近い、または上回る価格設定です。"}
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+            <p className="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">
+              💡 <span className="font-bold">分析コメント:</span> 現在、AIシステムがこの物件の想定市場価格を演算・分析中です。データが揃い次第更新されます。（更新待ち）
             </p>
           </div>
         )}
