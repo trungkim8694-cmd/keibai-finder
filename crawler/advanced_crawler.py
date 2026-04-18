@@ -11,7 +11,7 @@ import time
 import random
 load_dotenv("../web/.env")
 
-from crawler_utils import clean_area_string, convert_reiwa_to_datetime, get_nearest_station_from_db, get_random_user_agent, geocode_address
+from crawler_utils import clean_area_string, convert_reiwa_range_to_datetimes, get_nearest_station_from_db, get_random_user_agent, geocode_address
 from supabase import create_client, Client
 import io
 
@@ -76,15 +76,17 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
                         if db_area: break
             if db_area: break
             
-    db_date = None
+    db_start_date, db_end_date = None, None
     if raw_data and isinstance(raw_data, list):
         for section in raw_data:
             data_dict = section.get("data", {})
             for key in data_dict.keys():
                 if "期間入札" in key or "入札期間" in key or "期間" in key or "特別売却期間" in key or "特別売却" in key:
-                    db_date = convert_reiwa_to_datetime(data_dict[key])
-                    if db_date: break
-            if db_date: break
+                    s_d, e_d = convert_reiwa_range_to_datetimes(data_dict[key])
+                    if s_d or e_d:
+                        db_start_date, db_end_date = s_d, e_d
+                        break
+            if db_end_date: break
          
     st_name, line_name, st_dist, st_time = get_nearest_station_from_db(lat, lng, cur)
     
@@ -94,9 +96,9 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
     
     if not existing:
         # Insert new
-        query = """INSERT INTO "Property" (sale_unit_id, court_name, property_type, address, prefecture, city, starting_price, lat, lng, pdf_url, raw_display_data, images, "thumbnailUrl", status, area, bid_end_date, managing_authority, line_name, nearest_station, distance_to_station, walk_time_to_station, updated_at) 
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, 'ACTIVE', %s, %s, %s, %s, %s, %s, %s, NOW())"""
-        cur.execute(query, (sale_unit_id, court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time))
+        query = """INSERT INTO "Property" (sale_unit_id, court_name, property_type, address, prefecture, city, starting_price, lat, lng, pdf_url, raw_display_data, images, "thumbnailUrl", status, area, bid_start_date, bid_end_date, managing_authority, line_name, nearest_station, distance_to_station, walk_time_to_station, updated_at) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, 'ACTIVE', %s, %s, %s, %s, %s, %s, %s, %s, NOW())"""
+        cur.execute(query, (sale_unit_id, court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, final_images, thumbnail_url, db_area, db_start_date, db_end_date, court_name, line_name, st_name, st_dist, st_time))
         
         # Insert initial History
         if start_price:
@@ -114,10 +116,10 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
                     address=COALESCE(%s, address), prefecture=COALESCE(%s, prefecture), city=COALESCE(%s, city), 
                     starting_price=COALESCE(%s, starting_price), lat=COALESCE(%s, lat), lng=COALESCE(%s, lng), 
                     pdf_url=%s, raw_display_data=%s::jsonb, images=%s, "thumbnailUrl"=%s, status='ACTIVE',
-                    area=%s, bid_end_date=%s, managing_authority=%s, line_name=%s, nearest_station=%s, distance_to_station=%s, walk_time_to_station=%s,
+                    area=%s, bid_start_date=%s, bid_end_date=%s, managing_authority=%s, line_name=%s, nearest_station=%s, distance_to_station=%s, walk_time_to_station=%s,
                     updated_at=NOW() 
                    WHERE sale_unit_id = %s"""
-        cur.execute(query, (court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, final_images, thumbnail_url, db_area, db_date, court_name, line_name, st_name, st_dist, st_time, sale_unit_id))
+        cur.execute(query, (court_name, prop_type, address, prefecture, city, start_price, lat, lng, pdf_url, raw_data_json, final_images, thumbnail_url, db_area, db_start_date, db_end_date, court_name, line_name, st_name, st_dist, st_time, sale_unit_id))
         
         if price_changed:
             drop_percent = 0
