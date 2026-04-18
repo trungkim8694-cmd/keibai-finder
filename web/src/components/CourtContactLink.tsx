@@ -16,8 +16,8 @@ export function CourtContactLink({ courtName, contactUrl, className = '', theme 
   const displayName = !courtName || courtName === 'Unknown' ? '裁判所不明' : courtName;
 
   const colorClass = theme === 'red' 
-    ? 'text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300'
-    : 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300';
+    ? '!text-red-700 dark:!text-red-400 hover:!text-red-800 dark:hover:!text-red-300'
+    : '!text-blue-600 dark:!text-blue-400 hover:!text-blue-800 dark:hover:!text-blue-300';
     
   const staticColorClass = theme === 'red' ? 'text-red-700 dark:text-red-400' : 'text-blue-600 dark:text-blue-400';
 
