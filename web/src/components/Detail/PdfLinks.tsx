@@ -113,10 +113,10 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                       target="_blank" 
                       rel="nofollow noopener noreferrer"
                       download=""
-                      className="flex-1 inline-flex items-center justify-center px-4 py-3 sm:py-0 min-h-[56px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.4)] border border-blue-500 transition-all active:scale-95"
+                      className="flex-1 inline-flex items-center justify-center px-2 sm:px-4 py-2 sm:py-0 min-h-[44px] sm:min-h-[56px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.4)] border border-blue-500 transition-all active:scale-95"
                     >
-                      <span className="text-xl shrink-0">📥</span> 
-                      <span className="ml-2 whitespace-nowrap">物件資料PDF</span>
+                      <span className="text-lg sm:text-xl shrink-0">📥</span> 
+                      <span className="ml-1.5 sm:ml-2 whitespace-nowrap text-[13px] sm:text-base">物件資料PDF</span>
                     </a>
                  );
                } else if (pdfFiles.length > 0) {
@@ -128,10 +128,10 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                           href={pdfStr} 
                           target="_blank" 
                           rel="noreferrer"
-                          className="flex-1 inline-flex items-center justify-center px-4 py-3 sm:py-0 min-h-[56px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.4)] border border-blue-500 transition-all active:scale-95"
+                          className="flex-1 inline-flex items-center justify-center px-2 sm:px-4 py-2 sm:py-0 min-h-[44px] sm:min-h-[56px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.4)] border border-blue-500 transition-all active:scale-95"
                         >
-                          <span className="text-xl shrink-0">📥</span> 
-                          <span className="ml-2 whitespace-nowrap">3点セット {index > 0 ? index + 1 : ''}</span>
+                          <span className="text-lg sm:text-xl shrink-0">📥</span> 
+                          <span className="ml-1.5 sm:ml-2 whitespace-nowrap text-[13px] sm:text-base">3点セット {index > 0 ? index + 1 : ''}</span>
                         </a>
                      ))}
                    </>
@@ -142,10 +142,10 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                       href={pdfUrl} 
                       target="_blank" 
                       rel="noreferrer"
-                      className="flex-1 inline-flex items-center justify-center px-4 py-3 sm:py-0 min-h-[56px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.4)] border border-blue-500 transition-all active:scale-95"
+                      className="flex-1 inline-flex items-center justify-center px-2 sm:px-4 py-2 sm:py-0 min-h-[44px] sm:min-h-[56px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.4)] border border-blue-500 transition-all active:scale-95"
                     >
-                      <span className="text-xl shrink-0">📥</span> 
-                      <span className="ml-2 whitespace-nowrap">3点セット</span>
+                      <span className="text-lg sm:text-xl shrink-0">📥</span> 
+                      <span className="ml-1.5 sm:ml-2 whitespace-nowrap text-[13px] sm:text-base">3点セット</span>
                     </a>
                  );
                } else {
