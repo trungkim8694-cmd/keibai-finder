@@ -81,10 +81,11 @@ def get_city_code(prefecture, city):
                 cities = res.json().get("data", [])
                 city_map_cache[pref_code] = cities
             else:
-                return None
+                print(f"[ERROR] MLIT API Error in XIT002 (City Code): Status {res.status_code}")
+                return "HTTP_ERROR"
         except Exception as e:
             print(f"[ERROR] Failed to fetch cities: {e}")
-            return None
+            return "HTTP_ERROR"
 
     clean_city = re.sub(r'[市区町村郡]$', '', city)
     for c in cities:
@@ -142,11 +143,13 @@ def get_market_valuation(city_code, property_type, year="2023"):
             }
             valuation_cache[cache_key] = res_dict
             return res_dict
+        else:
+            print(f"[ERROR] MLIT API Error in XIT001 (Market Valuation): Status {res.status_code}")
+            return "HTTP_ERROR"
             
     except Exception as e:
         print(f"[ERROR] Failed to fetch valuation: {e}")
-        
-    return None
+        return "HTTP_ERROR"
 
 def m_print(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}")
@@ -179,12 +182,23 @@ def process_mlit_gap():
             continue
             
         city_code = get_city_code(pref, city)
-        if not city_code:
+        if city_code == "HTTP_ERROR":
+            cur.execute('UPDATE "Property" SET mlit_investment_gap = NULL WHERE sale_unit_id = %s', (sale_unit_id,))
+            m_print(f"  [ERROR] MLIT API Rate Limit/Maintenance when getting city code. Sleeping 3s. Property {sale_unit_id} will be retried next time.")
+            time.sleep(3)
+            continue
+        elif not city_code:
             cur.execute('UPDATE "Property" SET mlit_investment_gap = -999 WHERE sale_unit_id = %s', (sale_unit_id,))
             continue
             
         val = get_market_valuation(city_code, prop_type)
-        if val and val.get("avgTradePrice"):
+        if val == "HTTP_ERROR":
+            cur.execute('UPDATE "Property" SET mlit_investment_gap = NULL WHERE sale_unit_id = %s', (sale_unit_id,))
+            m_print(f"  [ERROR] MLIT API Rate Limit/Maintenance when getting valuation. Sleeping 3s. Property {sale_unit_id} will be retried next time.")
+            time.sleep(3)
+            continue
+            
+        if val and isinstance(val, dict) and val.get("avgTradePrice"):
             avgPricePerSqm = val.get("avgPricePerSqm")
             avgArea = val.get("avgArea", 0)
             
