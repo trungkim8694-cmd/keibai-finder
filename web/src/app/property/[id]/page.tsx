@@ -492,7 +492,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
         {/* Advanced Property Detail Map */}
         {property.lat && property.lng && (
-          <div className="mb-20">
+          <div className="mb-8">
             <React.Suspense fallback={<div className="h-64 bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded-2xl" />}>
               <DetailMapComponent 
                 property={safeProperty}
@@ -506,9 +506,11 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
         {/* Market Analysis / Near by Phase 3 */}
         {property.lat && property.lng && (
-          <React.Suspense fallback={<div className="h-48 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-2xl mt-8" />}>
-            <MarketComparison nearbySold={safeNearbySold} stations={safeNearestStations} />
-          </React.Suspense>
+          <div className="mb-8">
+            <React.Suspense fallback={<div className="h-48 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-2xl" />}>
+              <MarketComparison nearbySold={safeNearbySold} stations={safeNearestStations} />
+            </React.Suspense>
+          </div>
         )}
 
         {/* MLIT API Real Estate Market Analytics */}

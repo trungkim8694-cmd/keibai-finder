@@ -11,6 +11,7 @@ import ViewHistoryBar from '../components/ViewHistoryBar';
 import HeaderFavLink from '../components/HeaderFavLink';
 import UserMenu from '../components/UserMenu';
 import Link from 'next/link';
+import { MapIcon, ListBulletIcon } from '@heroicons/react/20/solid';
 
 import KeibaiMap from '../components/KeibaiMap';
 
@@ -295,9 +296,13 @@ export default function DashboardPage() {
                 setViewMode(nextMode);
                 try { sessionStorage.setItem('kb_viewMode', nextMode); } catch (e) {}
              }}
-             className="bg-zinc-900/90 backdrop-blur-md dark:bg-zinc-100/90 text-white dark:text-zinc-900 font-bold px-6 py-3.5 rounded-full shadow-lg flex items-center justify-center gap-2 border border-zinc-700 dark:border-zinc-200 transition-transform active:scale-95"
+             className="bg-zinc-900/85 backdrop-blur-xl dark:bg-zinc-100/90 text-white dark:text-zinc-900 text-[13px] font-bold px-5 py-2.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-center gap-2 border border-white/10 dark:border-zinc-200 transition-all hover:bg-zinc-800 active:scale-95 tracking-wide"
            >
-             {viewMode === 'map' ? '📋 リストで見る' : '🗺️ 地図で見る'}
+             {viewMode === 'map' ? (
+               <><ListBulletIcon className="w-4 h-4" /> リストで見る</>
+             ) : (
+               <><MapIcon className="w-4 h-4" /> 地図で見る</>
+             )}
            </button>
         </div>
 
