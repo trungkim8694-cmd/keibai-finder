@@ -375,8 +375,8 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         {/* Short Summary Section */}
         <section className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 mb-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <div className="mb-2 flex justify-start items-center gap-2">
+            <div className="w-full">
+              <div className="mb-2 flex justify-between items-center w-full gap-2">
                 <div className="min-w-0">
                   <span className="text-[13px] font-bold block truncate">
                     {property.source_provider === 'NTA' ? (
