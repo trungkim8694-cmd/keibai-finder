@@ -180,7 +180,7 @@ export default function PropertyCard({
           )}
         </div>
         
-        <h3 className="text-sm lg:text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2 lg:mb-1 line-clamp-2 leading-snug group-hover:text-blue-500 transition-colors">
+        <h3 className="text-[11px] lg:text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 mb-2 lg:mb-1 line-clamp-2 leading-snug group-hover:text-blue-500 transition-colors">
           {!property.address || property.address === 'Unknown' ? '住所不明' : property.address}
         </h3>
          <div className="mb-4 lg:mb-3">

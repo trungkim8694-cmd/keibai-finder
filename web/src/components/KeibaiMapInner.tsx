@@ -542,7 +542,7 @@ export default function KeibaiMapInner({
                     )}
                   </div>
 
-                 <h4 className="font-bold text-xs mb-1 truncate block text-zinc-800 dark:text-zinc-300 group-hover:text-blue-600 transition-colors" title={`${p.prefecture || ''}${p.address}`}>
+                 <h4 className="font-bold text-[11px] lg:text-[10px] mb-1 truncate block text-zinc-800 dark:text-zinc-300 group-hover:text-blue-600 transition-colors" title={`${p.prefecture || ''}${p.address}`}>
                    {p.prefecture || ''}{p.address}
                  </h4>
                  
