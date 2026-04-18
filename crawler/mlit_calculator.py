@@ -80,6 +80,8 @@ def get_city_code(prefecture, city):
             if res.status_code == 200:
                 cities = res.json().get("data", [])
                 city_map_cache[pref_code] = cities
+            elif res.status_code == 404:
+                return None
             else:
                 print(f"[ERROR] MLIT API Error in XIT002 (City Code): Status {res.status_code}")
                 return "HTTP_ERROR"
@@ -143,6 +145,8 @@ def get_market_valuation(city_code, property_type, year="2023"):
             }
             valuation_cache[cache_key] = res_dict
             return res_dict
+        elif res.status_code == 404:
+            return None
         else:
             print(f"[ERROR] MLIT API Error in XIT001 (Market Valuation): Status {res.status_code}")
             return "HTTP_ERROR"
