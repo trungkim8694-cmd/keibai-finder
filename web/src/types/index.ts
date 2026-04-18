@@ -79,4 +79,5 @@ export interface SharedProperty {
   ai_status?: string | null;
   mlit_estimated_price?: number | null;
   mlit_investment_gap?: number | null;
+  raw_display_data?: any;
 }
