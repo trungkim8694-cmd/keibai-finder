@@ -535,7 +535,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
               <div className="relative w-full overflow-visible bg-transparent text-left sm:text-sm lg:text-xs">
                 <input
                   type="text"
-                  className="w-full border-none py-2.5 lg:py-1.5 text-sm lg:text-xs bg-transparent text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:ring-0 outline-none font-bold relative z-10"
+                  className="w-full border-none py-1.5 lg:py-1.5 text-xs lg:text-xs bg-transparent text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:ring-0 outline-none font-bold relative z-10"
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
                   onFocus={() => { if (suggestions.length > 0) setIsSuggestionsOpen(true); }}
@@ -595,8 +595,8 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
             <Popover className="relative shrink-0 flex items-center">
               {({ open, close }) => (
                 <>
-                  <Popover.Button ref={refs.setReference} className={`flex items-center text-sm lg:text-xs font-bold px-4 lg:px-2 py-2.5 lg:py-1.5 rounded-md transition-colors ${open || !isNationwide ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white'} outline-none`}>
-                    <MapIcon className="w-5 h-5 lg:w-4 lg:h-4 mr-2 lg:mr-1 text-zinc-400" />
+                  <Popover.Button ref={refs.setReference} className={`flex items-center text-xs lg:text-xs font-bold px-2 lg:px-2 py-1.5 lg:py-1.5 rounded-md transition-colors ${open || !isNationwide ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white'} outline-none`}>
+                    <MapIcon className="w-4 h-4 mr-1 text-zinc-400" />
                     {isNationwide ? '全国' : selectedPrefectures.length > 2 ? `${selectedPrefectures[0]}... +${selectedPrefectures.length - 1}` : selectedPrefectures.length > 0 ? selectedPrefectures.join('/') : '都道府県'}
                   </Popover.Button>
                   {isMounted && (
@@ -736,20 +736,20 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                    <button 
                      onClick={handleSaveFilter} 
                      title="この条件を保存 (Save Filter)"
-                     className="flex items-center justify-center gap-1 bg-transparent hover:bg-yellow-50 dark:hover:bg-yellow-900/30 text-yellow-500 hover:text-yellow-600 font-bold py-2.5 lg:py-1 px-3 lg:px-2 rounded-md transition-all text-sm lg:text-xs"
+                     className="flex items-center justify-center gap-1 bg-transparent hover:bg-yellow-50 dark:hover:bg-yellow-900/30 text-yellow-500 hover:text-yellow-600 font-bold py-1.5 px-2 rounded-md transition-all text-xs"
                    >
                      ⭐️ <span className="hidden sm:inline">保存</span>
                    </button>
                    <button 
                      onClick={handleClear} 
                      title="条件をクリア (Clear All)"
-                     className="flex items-center gap-1 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 font-bold py-2.5 lg:py-1.5 px-3 lg:px-2 rounded-md transition-all text-sm lg:text-xs"
+                     className="flex items-center gap-1 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 font-bold py-1.5 px-2 rounded-md transition-all text-xs"
                    >
                      🔄 <span className="hidden sm:inline">クリア</span>
                    </button>
                  </div>
-               <button onClick={handleApply} className="bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center justify-center gap-1.5 py-3 lg:py-1.5 px-5 lg:px-6 rounded-md shadow-sm text-sm lg:text-xs transition-colors tracking-widest">
-                 <MagnifyingGlassIcon className="w-5 h-5 sm:hidden" />
+               <button onClick={handleApply} className="bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center justify-center gap-1.5 py-1.5 lg:py-1.5 px-4 lg:px-6 rounded-md shadow-sm text-xs transition-colors tracking-widest">
+                 <MagnifyingGlassIcon className="w-4 h-4 sm:hidden" />
                  <span className="hidden sm:inline">検索</span>
                </button>
             </div>
@@ -774,7 +774,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          onClick={() => {
                            setTypes(types.includes(pt) ? types.filter(t => t !== pt) : [...types, pt]);
                          }}
-                         className={`px-3 lg:px-2 py-1.5 lg:py-1 text-sm lg:text-[11px] font-bold rounded-full transition-colors border flex items-center gap-1 whitespace-nowrap ${types.includes(pt) ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900' : 'bg-transparent text-zinc-600 hover:bg-zinc-100 border-gray-200 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800'}`}
+                         className={`px-2.5 lg:px-2 py-1 lg:py-1 text-xs lg:text-[11px] font-bold rounded-full transition-colors border flex items-center gap-1 whitespace-nowrap ${types.includes(pt) ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900' : 'bg-transparent text-zinc-600 hover:bg-zinc-100 border-gray-200 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800'}`}
                        >
                          <span>{pt}({count})</span>
                        </button>
@@ -786,15 +786,15 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
 
                  {/* Price Dropdowns */}
                  <div className="flex items-center gap-2 lg:gap-1 shrink-0">
-                   <span className="text-lg lg:text-sm leading-none mr-1 lg:mr-0">💰</span>
-                   <select value={minPrice || ''} onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : undefined)} className="text-sm lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none">
+                   <span className="text-sm lg:text-sm leading-none mr-1 lg:mr-0">💰</span>
+                   <select value={minPrice || ''} onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : undefined)} className="text-[11px] lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none">
                      <option value="">下限なし</option>
                      <option value="5000000">500万円</option>
                      <option value="10000000">1000万円</option>
                      <option value="20000000">2000万円</option>
                    </select>
-                   <span className="text-zinc-400 text-sm lg:text-xs">~</span>
-                   <select value={maxPrice || ''} onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : undefined)} className="text-sm lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none pl-1">
+                   <span className="text-zinc-400 text-[11px] lg:text-xs">~</span>
+                   <select value={maxPrice || ''} onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : undefined)} className="text-[11px] lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none pl-1">
                      <option value="">上限なし</option>
                      <option value="5000000">500万円</option>
                      <option value="10000000">1000万円</option>
