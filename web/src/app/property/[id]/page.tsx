@@ -355,7 +355,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans pb-20">
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans pb-20 overflow-x-hidden w-full overflow-y-auto">
         {property && (
           <ViewTracker 
             id={id} 
@@ -370,12 +370,12 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         pdfUrl={property.pdf_url} 
       />
 
-      <main className="max-w-4xl mx-auto mt-6 px-4">
+      <main className="w-full max-w-4xl mx-auto mt-6 px-4 overflow-x-hidden">
         {/* Short Summary Section */}
         <section className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 mb-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-xl md:text-2xl font-black mb-3">{!(property as any).prefecture && !(property as any).city ? '詳細情報' : `${(property as any).prefecture || ''} ${(property as any).city || ''}${(property as any).address}`}</h1>
+              <h1 className="text-lg md:text-xl font-black mb-3">{!(property as any).prefecture && !(property as any).city ? '詳細情報' : `${(property as any).prefecture || ''} ${(property as any).city || ''}${(property as any).address}`}</h1>
               
               {/* Quick Stats Block (Single Row Layout) */}
               <div className="mb-3">
@@ -444,8 +444,8 @@ export default async function PropertyDetail({ params }: { params: { id: string 
 
               return (
               <section key={idx} className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-sm border border-zinc-200 dark:border-zinc-800">
-                <div className="bg-zinc-200 dark:bg-zinc-800 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
-                  <h2 className="font-bold text-xl text-zinc-800 dark:text-zinc-200 flex flex-wrap items-center gap-3">
+                <div className="bg-zinc-200 dark:bg-zinc-800 px-4 py-3 md:px-6 md:py-4 border-b border-zinc-200 dark:border-zinc-800">
+                  <h2 className="font-bold text-lg md:text-xl text-zinc-800 dark:text-zinc-200 flex flex-wrap items-center gap-3">
                     {displayTitle}
                     {section.asset_type && section.asset_type !== 'Unknown' && section.asset_type !== 'Summary' && (
                       <span className="text-xs font-semibold px-2 py-1 bg-zinc-300 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md">
@@ -457,17 +457,17 @@ export default async function PropertyDetail({ params }: { params: { id: string 
                 {mergedImages && mergedImages.length > 0 && !isSummary && (
                   <PropertyImageGallery images={mergedImages} assetTitle={displayTitle} />
                 )}
-                <div className="p-4 sm:p-6 overflow-x-auto">
-                  <table className="w-full text-sm text-left">
+                <div className="sm:p-2 overflow-x-auto">
+                  <table className="w-full text-[13px] md:text-sm text-left">
                     <tbody className="divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
                       {Object.entries(section.data).map(([key, value], vIdx) => {
                         const isMissing = !value || value === '-' || value.trim() === '-';
                         return (
                         <tr key={vIdx} className="flex flex-col sm:table-row even:bg-zinc-50/80 odd:bg-white dark:even:bg-zinc-800/30 dark:odd:bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors">
-                          <th scope="row" className="px-6 py-4 font-semibold text-zinc-600 dark:text-zinc-400 bg-transparent sm:bg-transparent sm:w-1/3 border-b sm:border-b-0 border-zinc-100 dark:border-zinc-800">
+                          <th scope="row" className="px-4 py-3 md:px-6 md:py-4 font-semibold text-zinc-600 dark:text-zinc-400 bg-transparent sm:bg-transparent sm:w-1/3 border-b sm:border-b-0 border-zinc-100 dark:border-zinc-800 min-w-[35%]">
                             {key}
                           </th>
-                          <td className={`px-6 py-4 whitespace-pre-wrap ${isMissing ? 'text-zinc-400 dark:text-zinc-600 italic' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                          <td className={`px-4 py-3 md:px-6 md:py-4 whitespace-pre-wrap break-words ${isMissing ? 'text-zinc-400 dark:text-zinc-600 italic' : 'text-zinc-900 dark:text-zinc-100'}`}>
                             {key === '公法上の規制' || key === '接道状況' || (value && value.length > 200) ? (
                                 <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar border-l-4 border-zinc-200 dark:border-zinc-700 pl-3">
                                     {value || '-'}
