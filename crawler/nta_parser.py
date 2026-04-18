@@ -105,38 +105,43 @@ def scrape_nta(limit=20):
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         
-        # Step 1
-        page.goto(f"{NTA_BASE_URL}/hp001.php")
-        page.click('a.icon01_text[href="hp001_01.php?doc=3"]')
-        page.wait_for_load_state('networkidle')
-        
-        # Step 2
-        print("[NAV] Đang click Tìm kiếm...")
-        page.click('a#do_search_submit')
-        page.wait_for_load_state('networkidle')
-        print("[NAV] Đã vào trang danh sách kết quả.")
-        
-        # Loop list
         detail_links = []
-        pageid = 1
-        has_next = True
-        while has_next and len(detail_links) < limit:
-            soup = BeautifulSoup(page.content(), "html.parser")
-            anchors = soup.find_all("a", href=re.compile(r"hp0201\.php.*baikyaku_no", re.IGNORECASE))
-            for a in anchors:
-                href = a["href"]
-                if href not in detail_links:
-                    detail_links.append(href)
-            if len(detail_links) >= limit: break
-            
-            # Click next page
-            next_a = page.locator(f"a[href^='hp0241.php'][href*='pageid={pageid+1}']")
-            if next_a.count() > 0:
-                pageid += 1
-                next_a.first.click()
+        for doc_id in [1, 2, 3]:
+            try:
+                # Step 1
+                page.goto(f"{NTA_BASE_URL}/hp001.php")
+                page.click(f'a.icon01_text[href="hp001_01.php?doc={doc_id}"]')
                 page.wait_for_load_state('networkidle')
-            else:
-                has_next = False
+                
+                # Step 2
+                print(f"[NAV] Đang click Tìm kiếm danh mục doc={doc_id}...")
+                page.click('a#do_search_submit')
+                page.wait_for_load_state('networkidle')
+                print(f"[NAV] Đã vào trang danh sách kết quả (doc={doc_id}).")
+                
+                # Loop list
+                pageid = 1
+                has_next = True
+                while has_next and len(detail_links) < limit:
+                    soup = BeautifulSoup(page.content(), "html.parser")
+                    anchors = soup.find_all("a", href=re.compile(r"hp0201\.php.*baikyaku_no", re.IGNORECASE))
+                    for a in anchors:
+                        href = a["href"]
+                        if href not in detail_links:
+                            detail_links.append(href)
+                    if len(detail_links) >= limit: break
+                    
+                    # Click next page
+                    next_a = page.locator(f"a[href^='hp0241.php'][href*='pageid={pageid+1}']")
+                    if next_a.count() > 0:
+                        pageid += 1
+                        next_a.first.click()
+                        page.wait_for_load_state('networkidle')
+                    else:
+                        has_next = False
+            except Exception as e:
+                print(f"[NAV] Bỏ qua danh mục doc={doc_id} do lỗi hoặc không có tài sản: {e}")
+                continue
                 
         # Khởi tạo Memory Cache (Load toàn bộ tài sản đang Active)
         print("[Memory Cache] Đang tải toàn bộ dữ liệu từ CSDL vào RAM...")

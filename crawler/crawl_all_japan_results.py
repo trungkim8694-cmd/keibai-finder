@@ -12,7 +12,7 @@ load_dotenv("../web/.env")
 db_url = os.environ.get("DATABASE_URL").replace("?schema=public", "")
 gemini_key = os.environ.get("GEMINI_API_KEY")
 
-from crawler_utils import geocode_address
+from crawler_utils import geocode_address, prepend_prefecture
 
 def update_db(data):
     conn = psycopg2.connect(db_url)
@@ -195,6 +195,7 @@ async def scrape_results():
                                     elif bidder_count > 3: comp_level = "中競争"
                                     else: comp_level = "低競争"
 
+                                address_raw = prepend_prefecture(address_raw, court_name)
                                 lat, lng = geocode_address(address_raw)
                                 if not lat: lat, lng = 42.5, 141.0 # fallback
                                 

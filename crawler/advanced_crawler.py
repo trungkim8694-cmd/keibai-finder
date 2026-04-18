@@ -490,8 +490,8 @@ async def main():
 
     async with async_playwright() as p:
         all_court_args = []
-        # Loop through region 1 ONLY (Hokkaido) for testing
-        for region_idx in range(1, 2):
+        # Loop through all 8 regions of Japan
+        for region_idx in range(1, 9):
             region_code = f"{region_idx:02d}"
             
             browser = await p.chromium.launch(headless=True)

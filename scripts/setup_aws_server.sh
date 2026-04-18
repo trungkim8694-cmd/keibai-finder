@@ -94,8 +94,8 @@ ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$SERVER_IP" << 'EOF'
     # Make script executable
     chmod +x run_daily.sh
     
-    # Setup Crontab for 2:00 AM daily
-    CRON_CMD="0 2 * * * cd /app/crawler && /bin/bash ./run_daily.sh >> /app/logs/cron.log 2>&1"
+    # Setup Crontab for 4:00 AM daily
+    CRON_CMD="0 4 * * * cd /app/crawler && /bin/bash ./run_daily.sh >> /app/logs/cron.log 2>&1"
     (crontab -l 2>/dev/null | grep -v "run_daily.sh"; echo "$CRON_CMD") | crontab -
     
     echo "----------------------------------------------------------"

@@ -25,6 +25,11 @@ handle_error() {
 source /app/venv/bin/activate
 cd /app/crawler
 
+# Xóa bỏ lịch sử cào của ngày hôm trước để tránh lỗi Ghost Sweep
+rm -f advanced_crawler_state.json
+rm -f crawler_checkpoints.json
+rm -f mlit_progress.json
+
 # 1. Advanced Crawler (BIT)
 echo "--------------------------------------------------"
 echo "1. Chạy BIT Crawler (advanced_crawler.py)"

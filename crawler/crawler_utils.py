@@ -5,6 +5,11 @@ import datetime
 import urllib.parse
 import requests
 import random
+import os
+import json
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), '../web/.env'))
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -16,6 +21,34 @@ USER_AGENTS = [
 
 def get_random_user_agent():
     return random.choice(USER_AGENTS)
+
+COURT_PREFIX_MAPPING = {
+    "札幌": "北海道", "函館": "北海道", "旭川": "北海道", "釧路": "北海道",
+    "青森": "青森県", "盛岡": "岩手県", "仙台": "宮城県", "秋田": "秋田県",
+    "山形": "山形県", "福島": "福島県", "水戸": "茨城県", "宇都宮": "栃木県",
+    "前橋": "群馬県", "さいたま": "埼玉県", "千葉": "千葉県", "東京": "東京都", "立川": "東京都",
+    "横浜": "神奈川県", "新潟": "新潟県", "富山": "富山県", "金沢": "石川県",
+    "福井": "福井県", "甲府": "山梨県", "長野": "長野県", "岐阜": "岐阜県",
+    "静岡": "静岡県", "名古屋": "愛知県", "津": "三重県", "大津": "滋賀県",
+    "京都": "京都府", "大阪": "大阪府", "神戸": "兵庫県", "奈良": "奈良県",
+    "和歌山": "和歌山県", "鳥取": "鳥取県", "松江": "島根県", "岡山": "岡山県",
+    "広島": "広島県", "山口": "山口県", "徳島": "徳島県", "高松": "香川県",
+    "松山": "愛媛県", "高知": "高知県", "福岡": "福岡県", "佐賀": "佐賀県",
+    "長崎": "長崎県", "熊本": "熊本県", "大分": "大分県", "宮崎": "宮崎県",
+    "鹿児島": "鹿児島県", "那覇": "沖縄県"
+}
+
+def prepend_prefecture(address, court_name):
+    if not address or address == "Unknown":
+        return address
+    matched_pref = None
+    for court_key, pref in COURT_PREFIX_MAPPING.items():
+        if court_name.startswith(court_key):
+            matched_pref = pref
+            break
+    if matched_pref and not address.startswith(matched_pref):
+        return f"{matched_pref}{address}"
+    return address
 
 def get_gsi_coords(address):
     """
@@ -175,9 +208,9 @@ def reverse_validate_coords(lat, lng, original_address):
             addr_parts.get('subprovince', ''),
         ])
         
-        m_city = re.search(r'(?:都|道|府|県)([^\s\u0021-\u00ff]+?(?:市|区|郡|町|村))', original_address)
-        m_pref = re.search(r'([\u3040-\u9fff]+(?:都|道|府|県))', original_address)
-        m_city_bare = re.search(r'^([\u3040-\u9fff]+(?:市|区|郡|町|村))', original_address)
+        m_pref = re.search(r'^(.{2,3}?(?:都|道|府|県))', original_address)
+        m_city = re.search(r'(?:都|道|府|県|^)([^都道府県\s\u0021-\u00ff]+?(?:市|区|郡|町|村))', original_address)
+        m_city_bare = re.search(r'^([^都道府県\s\u0021-\u00ff]+?(?:市|区|郡|町|村))', original_address)
         m_town = re.search(r'郡([\u3040-\u9fff]+?(?:町|村))', original_address)
         m_county = re.search(r'([\u3040-\u9fff]+郡)', original_address)
         
@@ -219,6 +252,27 @@ def get_osm_coords(addr, original_address=None):
         pass
     return None, None
 
+def get_gemini_coords(address, api_key):
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        headers = {'Content-Type': 'application/json'}
+        prompt = f"Convert this Japanese real estate address to latitude and longitude. Return ONLY a valid JSON object with keys 'lat' and 'lng' as float numbers. Do not include any markdown formatting, backticks, or other text. Address: {address}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"responseMimeType": "application/json"}
+        }
+        res = requests.post(url, headers=headers, json=payload, timeout=15)
+        data = res.json()
+        if "candidates" in data and len(data["candidates"]) > 0:
+            text_response = data["candidates"][0]["content"]["parts"][0]["text"]
+            location = json.loads(text_response)
+            lat, lng = location.get("lat"), location.get("lng")
+            if lat and lng:
+                return float(lat), float(lng)
+    except Exception as e:
+        print(f"      [Gemini-Error] Lỗi khi gọi Gemini: {e}")
+    return None, None
+
 def geocode_address(address, api_key=None):
     if not address or address == "Unknown":
         return None, None
@@ -232,6 +286,17 @@ def geocode_address(address, api_key=None):
             return lat_gsi, lng_gsi
         else:
             print(f"      [GSI-Rejected] Tọa độ không khớp địa chỉ: {lat_gsi},{lng_gsi} cho '{address}'")
+
+    # Layer 0.5: AI Gemini API
+    actual_api_key = api_key or os.environ.get("GEMINI_API_KEY")
+    if actual_api_key:
+        lat_ai, lng_ai = get_gemini_coords(address, actual_api_key)
+        if lat_ai and lng_ai:
+            if reverse_validate_coords(lat_ai, lng_ai, address):
+                print(f"      [Gemini-Success] Đã dùng AI lấy tọa độ: {lat_ai},{lng_ai} cho '{address}'")
+                return lat_ai, lng_ai
+            else:
+                print(f"      [Gemini-Rejected] AI trả về tọa độ không khớp địa chỉ: {lat_ai},{lng_ai} cho '{address}'")
 
     # Layer 0: Full OSM
     lat, lng = get_osm_coords(clean_addr, address)
