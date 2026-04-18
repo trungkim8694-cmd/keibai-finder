@@ -15,7 +15,7 @@ load_dotenv("../web/.env")
 NTA_BASE_URL = "https://www.koubai.nta.go.jp/auctionx/public"
 
 from crawler_utils import clean_area_string, convert_reiwa_to_datetime, convert_reiwa_range_to_datetimes, get_nearest_station_from_db, get_gsi_coords, geocode_address
-from ai_analyzer import extract_text_and_purge
+
 
 def extract_table_data(soup_div):
     data = {}
