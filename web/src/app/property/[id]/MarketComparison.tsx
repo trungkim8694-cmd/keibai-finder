@@ -48,7 +48,7 @@ export default function MarketComparison({ nearbySold = [], stations = [] }: { n
             <thead className="bg-zinc-100 dark:bg-zinc-800/80 uppercase text-xs font-semibold text-zinc-600 dark:text-zinc-400">
               <tr>
                 <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap">距離</th>
-                <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap">落札日 (最近)</th>
+                <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap">売却基準価額</th>
                 <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap">落札価額</th>
                 <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap text-center">乖離率</th>
                 <th className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-700 whitespace-nowrap text-center">入札件数</th>
@@ -61,11 +61,11 @@ export default function MarketComparison({ nearbySold = [], stations = [] }: { n
                   <td className="px-5 py-4 text-zinc-600 dark:text-zinc-400 font-medium font-mono text-xs">
                     {sold.distance.toFixed(1)}km
                   </td>
-                  <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">
-                    {sold.completionDate ? new Date(sold.completionDate).toLocaleDateString('ja-JP') : '-'}
+                  <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300 font-medium">
+                    {sold.basePrice ? `${Math.round(sold.basePrice / 10000).toLocaleString('ja-JP')}万円` : '-'}
                   </td>
                   <td className="px-5 py-4 font-black text-green-600 dark:text-green-400 tracking-tight text-base w-32">
-                    {sold.winningPrice ? new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(sold.winningPrice) : '-'}
+                    {sold.winningPrice ? `${Math.round(sold.winningPrice / 10000).toLocaleString('ja-JP')}万円` : '-'}
                   </td>
                   <td className="px-5 py-4 text-center">
                     {sold.marginRate !== null && sold.marginRate !== undefined ? (
