@@ -84,7 +84,7 @@ export default function PropertyCard({
       const formattedDate = formatDateJapan(endDate);
       
       ntaCountdownUI = (
-        <div className="mb-3 lg:mb-2 flex flex-col gap-0.5 mt-auto">
+        <div className="mb-3 lg:mb-2 flex flex-col gap-0.5">
            <div className="flex items-center gap-1.5 text-[13px] lg:text-[11px]">
              <span className="text-zinc-500 dark:text-zinc-400 font-medium">入札締切:</span>
              <span className="font-bold text-zinc-800 dark:text-zinc-200">{formattedDate}</span>
@@ -174,8 +174,8 @@ export default function PropertyCard({
           </div>
 
           {property.mlit_investment_gap !== null && property.mlit_investment_gap !== undefined && property.mlit_investment_gap > 0 && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50 shadow-sm whitespace-nowrap transition-transform hover:scale-105">
-              <span className="text-[10px] sm:text-[11px]">📈</span> 投資ギャップ +{property.mlit_investment_gap.toFixed(1)}%
+            <span className="shrink-0 inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50 shadow-sm whitespace-nowrap transition-transform hover:scale-105">
+              <span className="text-[9px] sm:text-[10px]">📈</span> ギャップ +{property.mlit_investment_gap.toFixed(1)}%
             </span>
           )}
         </div>

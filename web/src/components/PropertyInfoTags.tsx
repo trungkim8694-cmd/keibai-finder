@@ -82,55 +82,64 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
   }
 
   return (
-    <div className="flex flex-col gap-1.5 w-full pb-1">
-      <div className="flex flex-row flex-nowrap items-center gap-1 overflow-x-auto scrollbar-hide whitespace-nowrap w-full">
+    <div className="flex flex-col gap-1 w-full pb-1">
+      {/* Line 1: Type, Area, Round, Views */}
+      <div className="flex flex-row flex-wrap items-center gap-1 w-full">
         <span className={`text-[10px] font-black border px-1 py-[1px] rounded-sm shrink-0 ${color.bg} ${color.text} ${color.border} inline-block dark:bg-opacity-20 leading-none`}>
           {typeLabel}
         </span>
-      {formattedArea && formattedArea !== '0m²' && (
-        <span className="text-[10px] font-bold border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none">
-          <span className="text-[9px]">📐</span>
-          <span>{formattedArea}</span>
-        </span>
-      )}
-      {formattedSchedule && (
-        <span className="relative text-[10px] font-bold border border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none overflow-hidden">
-          <span className="relative z-10 flex items-center gap-0.5">
-            <span>{formattedSchedule}</span>
+        {formattedArea && formattedArea !== '0m²' && (
+          <span className="text-[10px] font-bold border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none">
+            <span className="text-[9px]">📐</span>
+            <span>{formattedArea}</span>
           </span>
-          <span className={`absolute bottom-0 left-0 h-[2px] ${progressColor} transition-all duration-1000 z-0`} style={{ width: progressWidth }} />
-        </span>
-      )}
-      {showCourtTag && property.source_provider === 'NTA' ? (
-        <span className="text-[10px] font-bold border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center leading-none">
-          <CourtContactLink
-            courtName={property.managing_authority ? property.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : 'NTA 税務署'}
-            contactUrl={property.contact_url || property.source_url}
-            theme="red"
-            className="text-[10px] font-bold"
-          />
-        </span>
-      ) : showCourtTag && property.court_name && property.court_name !== 'Unknown' ? (
-        <span className="text-[10px] font-bold border border-blue-100 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center leading-none">
-          <CourtContactLink
-            courtName={property.court_name}
-            contactUrl={courtContactUrl}
-            className="text-[10px] font-bold text-blue-700 dark:text-blue-400"
-          />
-        </span>
-      ) : null}
-      {children || (
-        <span className={`text-[10px] font-bold border px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center justify-center ${roundColor} dark:bg-opacity-20 leading-none`}>
-          {roundText}
-        </span>
-      )}
+        )}
+        {children || (
+          <span className={`text-[10px] font-bold border px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center justify-center ${roundColor} dark:bg-opacity-20 leading-none`}>
+            {roundText}
+          </span>
+        )}
         <span className="text-[10px] font-bold border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none ml-auto">
           <span className="text-[9px]">👁️</span>
           <span>{(property.views || 0).toLocaleString()}</span>
         </span>
       </div>
+
+      {/* Line 2: Schedule & CourtTag */}
+      {(formattedSchedule || showCourtTag) && (
+        <div className="flex flex-row flex-wrap items-center gap-1 w-full">
+          {formattedSchedule && (
+            <span className="relative text-[10px] font-bold border border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none overflow-hidden">
+              <span className="relative z-10 flex items-center gap-0.5">
+                <span>{formattedSchedule}</span>
+              </span>
+              <span className={`absolute bottom-0 left-0 h-[2px] ${progressColor} transition-all duration-1000 z-0`} style={{ width: progressWidth }} />
+            </span>
+          )}
+          {showCourtTag && property.source_provider === 'NTA' ? (
+            <span className="text-[10px] font-bold border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center leading-none">
+              <CourtContactLink
+                courtName={property.managing_authority ? property.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : 'NTA 税務署'}
+                contactUrl={property.contact_url || property.source_url}
+                theme="red"
+                className="text-[10px] font-bold"
+              />
+            </span>
+          ) : showCourtTag && property.court_name && property.court_name !== 'Unknown' ? (
+            <span className="text-[10px] font-bold border border-blue-100 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center leading-none">
+              <CourtContactLink
+                courtName={property.court_name}
+                contactUrl={courtContactUrl}
+                className="text-[10px] font-bold text-blue-700 dark:text-blue-400"
+              />
+            </span>
+          ) : null}
+        </div>
+      )}
+
+      {/* Line 3: Station */}
       {(staticStationLabel || (property.lat && property.lng)) && (
-        <div className="flex items-center">
+        <div className="flex flex-row items-center w-full mt-0.5">
           <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none w-max max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
             <span className="text-emerald-700 dark:text-emerald-500 text-[9px] mr-1">🚉</span>
             <span>
