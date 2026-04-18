@@ -191,29 +191,29 @@ export default function PropertyCard({
         
         {ntaCountdownUI}
         
-        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 lg:pt-2 mt-auto flex items-end justify-between pr-2">
-          <div>
-            <p className="text-[10px] lg:text-[9px] text-zinc-500 dark:text-zinc-400 mb-0.5 lg:mb-0">売却基準価額</p>
-            <p className="font-semibold text-base lg:text-sm text-zinc-900 dark:text-white">{formattedPrice}</p>
+        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 lg:pt-2 mt-auto flex items-end justify-between pr-1 gap-1">
+          <div className="shrink-0 overflow-hidden">
+            <p className="text-[9px] text-zinc-500 dark:text-zinc-400 mb-0.5 whitespace-nowrap">売却基準価額</p>
+            <p className="font-bold text-[12px] lg:text-[11px] tracking-tight text-zinc-900 dark:text-white whitespace-nowrap">{formattedPrice}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 shrink-0">
             <button 
               onClick={(e) => { e.stopPropagation(); if (onClick) onClick(); }} 
-              className="group/btn bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-all duration-300 text-[10px] font-bold py-1 px-2 rounded-lg flex items-center gap-1 shadow-sm border border-emerald-100"
+              className="group/btn bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-all duration-300 text-[10px] font-bold py-1 px-1.5 rounded-lg flex items-center gap-0.5 shadow-sm border border-emerald-100"
               title="地図で位置を見る"
             >
                <span>🎯</span>
-               <span className="hidden sm:inline">地図へ</span>
+               <span>地図</span>
             </button>
             <a 
               href={`/property/${property.sale_unit_id}`} 
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()} 
-              className="group/btn bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all duration-300 text-[10px] font-bold py-1 px-2 rounded-lg flex items-center gap-1 shadow-sm border border-blue-100"
+              className="group/btn bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all duration-300 text-[10px] font-bold py-1 px-1.5 rounded-lg flex items-center gap-0.5 shadow-sm border border-blue-100"
             >
-               <span>詳細を見る</span>
-               <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
+               <span>詳細</span>
+               <span className="group-hover/btn:translate-x-0.5 transition-transform">→</span>
             </a>
           </div>
         </div>
