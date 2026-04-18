@@ -194,7 +194,7 @@ export default function DashboardPage() {
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* List Panel */}
-        <aside className={`w-full md:w-[480px] shrink-0 flex-col bg-zinc-50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 relative z-10 transition-all ${viewMode === 'map' ? 'hidden md:flex' : 'flex'}`}>
+        <aside className={`w-full md:w-[350px] shrink-0 flex-col bg-zinc-50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 relative z-10 transition-all ${viewMode === 'map' ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 md:hidden flex justify-between items-center shadow-sm">
              <span className="font-bold text-sm">検索結果: <span className="text-blue-600">{mapProperties.length}件</span></span>
              {(isLoading || isValidating) && <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>}

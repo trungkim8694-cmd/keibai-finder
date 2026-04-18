@@ -114,7 +114,7 @@ export default function PropertyCard({
     >
       {/* Remove the absolute Link overlay so the whole card is just a click target handling onClick without navigating away */}
       {/* Thumbnail */}
-      <div className={`relative w-full ${layout === 'horizontal' ? 'sm:w-1/3 lg:w-1/4 h-48 sm:h-auto' : 'h-48'} shrink-0 bg-zinc-100 dark:bg-zinc-800 pointer-events-none`}>
+      <div className={`relative w-full ${layout === 'horizontal' ? 'sm:w-1/3 lg:w-1/4 h-32 sm:h-auto' : 'h-32'} shrink-0 bg-zinc-100 dark:bg-zinc-800 pointer-events-none`}>
         <Image
           src={property.thumbnailUrl || (property.images && property.images.length > 0 ? property.images[0] : '/no-image.png')}
           alt="物件の写真"
@@ -156,11 +156,11 @@ export default function PropertyCard({
       </div>
       
       {/* Content */}
-      <div className="p-4 lg:p-3 flex-1 flex flex-col justify-between z-10 bg-white dark:bg-zinc-900 rounded-r-xl">
+      <div className="p-3 lg:p-2.5 flex-1 flex flex-col justify-between z-10 bg-white dark:bg-zinc-900 rounded-r-xl">
         
         <div className="mb-2 lg:mb-1 flex justify-between items-start gap-2">
           <div className="min-w-0">
-            <span className="text-sm lg:text-xs font-medium block truncate">
+            <span className="text-[11px] lg:text-[10px] font-medium block truncate">
               {property.source_provider === 'NTA' ? (
                 <CourtContactLink 
                   courtName={property.managing_authority ? property.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : 'NTA 税務署'} 
@@ -180,7 +180,7 @@ export default function PropertyCard({
           )}
         </div>
         
-        <h3 className="text-base lg:text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2 lg:mb-2 line-clamp-2 leading-snug group-hover:text-blue-500 transition-colors">
+        <h3 className="text-sm lg:text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2 lg:mb-1 line-clamp-2 leading-snug group-hover:text-blue-500 transition-colors">
           {!property.address || property.address === 'Unknown' ? '住所不明' : property.address}
         </h3>
          <div className="mb-4 lg:mb-3">
@@ -193,13 +193,13 @@ export default function PropertyCard({
         
         <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 lg:pt-2 mt-auto flex items-end justify-between pr-2">
           <div>
-            <p className="text-xs lg:text-[10px] text-zinc-500 dark:text-zinc-400 mb-1 lg:mb-0">売却基準価額</p>
-            <p className="font-semibold text-lg lg:text-sm text-zinc-900 dark:text-white">{formattedPrice}</p>
+            <p className="text-[10px] lg:text-[9px] text-zinc-500 dark:text-zinc-400 mb-0.5 lg:mb-0">売却基準価額</p>
+            <p className="font-semibold text-base lg:text-sm text-zinc-900 dark:text-white">{formattedPrice}</p>
           </div>
           <div className="flex gap-2">
             <button 
               onClick={(e) => { e.stopPropagation(); if (onClick) onClick(); }} 
-              className="group/btn bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-all duration-300 text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 shadow-sm border border-emerald-100"
+              className="group/btn bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-all duration-300 text-[10px] font-bold py-1 px-2 rounded-lg flex items-center gap-1 shadow-sm border border-emerald-100"
               title="地図で位置を見る"
             >
                <span>🎯</span>
@@ -210,7 +210,7 @@ export default function PropertyCard({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()} 
-              className="group/btn bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all duration-300 text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 shadow-sm border border-blue-100"
+              className="group/btn bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all duration-300 text-[10px] font-bold py-1 px-2 rounded-lg flex items-center gap-1 shadow-sm border border-blue-100"
             >
                <span>詳細を見る</span>
                <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
