@@ -37,7 +37,7 @@ export async function getNearbyAuctionResults(lat: number, lng: number, initialR
         basePrice: row.basePrice ? Number(row.basePrice) : null,
         winningPrice: row.winningPrice ? Number(row.winningPrice) : null,
         bidderCount: row.bidderCount,
-        marginRate: row.marginRate,
+        marginRate: row.marginRate !== null ? Number(row.marginRate) * 100 : null,
         completionDate: row.completionDate,
         winnerType: row.winnerType,
         distance: Number(row.distance)
