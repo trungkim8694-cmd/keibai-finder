@@ -156,7 +156,7 @@ export default function PropertyCard({
       </div>
       
       {/* Content */}
-      <div className="p-3 lg:p-2.5 flex-1 flex flex-col justify-between z-10 bg-white dark:bg-zinc-900 rounded-r-xl">
+      <div className="p-3 lg:p-2.5 flex-1 flex flex-col justify-between z-10 bg-white dark:bg-zinc-900 rounded-r-xl min-w-0">
         
         <div className="mb-2 lg:mb-1 flex justify-between items-start gap-2">
           <div className="min-w-0">

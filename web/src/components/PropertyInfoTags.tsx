@@ -139,10 +139,10 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
 
       {/* Line 3: Station */}
       {(staticStationLabel || (property.lat && property.lng)) && (
-        <div className="flex flex-row items-center w-full mt-0.5">
-          <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none w-max max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
-            <span className="text-emerald-700 dark:text-emerald-500 text-[9px] mr-1">🚉</span>
-            <span>
+        <div className="flex flex-row items-center w-full mt-0.5 min-w-0">
+          <span className="text-[9px] font-bold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1 py-[1px] rounded-sm shrink-0 inline-flex items-center gap-0.5 leading-none w-full max-w-max overflow-hidden text-ellipsis whitespace-nowrap">
+            <span className="text-emerald-700 dark:text-emerald-500 text-[9px] mr-1 shrink-0">🚉</span>
+            <span className="truncate min-w-0">
                {staticStationLabel ? staticStationLabel : <AsyncStationInfo lat={property.lat} lng={property.lng} sale_unit_id={property.sale_unit_id} hideIfNoStation={true} />}
             </span>
           </span>
