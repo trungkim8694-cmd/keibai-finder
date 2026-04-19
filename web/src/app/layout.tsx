@@ -22,6 +22,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.keibai-koubai.com'),
   title: {
     default: "競売物件・公売物件の一括検索サイト｜Keibai Finder",
     template: "%s｜Keibai Finder"

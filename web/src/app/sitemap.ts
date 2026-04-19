@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://keibai-koubai.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
 
   // 1. Core pages
   const coreRoutes = [
