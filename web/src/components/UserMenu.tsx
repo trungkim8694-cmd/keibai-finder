@@ -65,6 +65,8 @@ export default function UserMenu() {
           
           <Link 
             href="/trade/find"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => setShowDropdown(false)}
             className="block w-full text-left px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
@@ -73,6 +75,8 @@ export default function UserMenu() {
           
           <Link 
             href="/features/map-search"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => setShowDropdown(false)}
             className="block w-full text-left px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
