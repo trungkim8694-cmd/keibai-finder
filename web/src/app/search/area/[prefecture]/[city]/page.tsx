@@ -60,6 +60,17 @@ export default async function AreaSearchPage({ params }: { params: { prefecture:
             ))}
           </div>
         )}
+
+        {/* SEO Content Block */}
+        <div className="mt-12 p-6 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+          <h2 className="text-lg font-bold mb-3">{decodedPref}{decodedCity}の競売物件・公売物件相場と特徴</h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 leading-relaxed">
+            {decodedPref}{decodedCity}の競売・公売市場では、戸建てやマンションから土地まで、幅広い不動産が市場価格（相場）よりも安く取引される傾向にあります。裁判所が管轄する競売（けいばい）と、行政機関が管轄する公売（こうばい）の両方の物件情報を当サイト「Keibai Finder」で一括で検索・比較することが可能です。
+          </p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            特に{decodedPref}{decodedCity}で不動産投資を検討されている方や、マイホームを安く手に入れたい方にとって、競売物件は魅力的な選択肢となります。物件の詳細ページでは、AIによる価格査定や過去の落札履歴データを活用して、適切な入札価格の目安を確認できます。初めての方でも安心して参加できるよう、事前に専門家への相談をおすすめします。
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -54,12 +54,15 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   if (!property) return { title: '物件が見つかりません' };
 
   const priceNum = property.starting_price ? Number(property.starting_price) : 0;
-  const priceFormatted = priceNum > 0 ? `${priceNum.toLocaleString()}円` : '価格非公開';
+  // Format price in Man-yen for better CTR
+  const priceFormatted = priceNum > 0 ? `${Math.round(priceNum / 10000).toLocaleString('ja-JP')}万円` : '価格非公開';
   const typeStr = property.property_type || '競売物件';
   const address = property.address?.substring(0, 20) || '';
+  const isKoubai = property.source_provider === 'NTA';
+  const tagStr = isKoubai ? '公売物件' : '競売物件';
   
-  const title = `【${priceFormatted}】${address}の${typeStr}｜${property.court_name} 競売物件情報`;
-  const description = `${property.address}の${typeStr}（競売/公売）。基準価格は${priceFormatted}です。市場価格より安い不動産をお探しならKeibai Finder. 過去の落札相場やAIによる価格査定データを公開中。`;
+  const title = `【${priceFormatted}】${address}の${typeStr}｜${property.court_name ? property.court_name + ' ' : ''}${tagStr}情報`;
+  const description = `${property.address}の${typeStr}（${tagStr}）。基準価格は${priceFormatted}です。市場価格より安い不動産をお探しならKeibai Finder. 過去の落札相場やAIによる価格査定データを公開中。`;
   
   // Use first image as openGraph image
   let ogImage = undefined;
@@ -316,18 +319,27 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   const imagesList = Array.isArray(property.images) ? property.images as string[] : [];
   const ogImageUrl = imagesList.length > 0 ? imagesList[0] : undefined;
   // Metadata for SEO
+  const jsonLdPrice = Number(property.starting_price || 0);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": `${property.address}の${property.property_type || '競売物件'}`,
-    "description": `競売物件: ${property.address}にある${property.property_type || '不動産'}です。基準価格: ${Number(property.starting_price || 0).toLocaleString()}円`,
+    "description": `${property.source_provider === 'NTA' ? '公売物件' : '競売物件'}: ${property.address}にある${property.property_type || '不動産'}です。基準価格: ${jsonLdPrice > 0 ? Math.round(jsonLdPrice / 10000).toLocaleString('ja-JP') + '万円' : '未定'}`,
     "image": ogImageUrl ? [ogImageUrl] : [],
-    "offers": {
-      "@type": "Offer",
-      "priceCurrency": "JPY",
-      "price": Number(property.starting_price || 0),
-      "availability": "https://schema.org/InStock"
-    }
+    "brand": {
+      "@type": "Brand",
+      "name": "Keibai Finder"
+    },
+    "category": "RealEstate",
+    ...(jsonLdPrice > 0 ? {
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "JPY",
+        "price": jsonLdPrice,
+        "availability": "https://schema.org/InStock",
+        "url": `https://keibai-koubai.com/property/${id}`
+      }
+    } : {})
   };
 
   // 5. PROCESS FINAL OBJECTS (SAFE SERIALIZATION FOR RSC)

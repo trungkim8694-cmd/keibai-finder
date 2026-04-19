@@ -54,14 +54,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   });
 
-  const areaRoutes = distinctLocations
-    .filter(loc => loc.prefecture && loc.city)
-    .map((loc) => ({
-      url: `${baseUrl}/search/area/${encodeURIComponent(loc.prefecture!)}/${encodeURIComponent(loc.city!)}`,
+  const areaRoutes: MetadataRoute.Sitemap = [];
+  
+  // Extract distinct prefectures
+  const prefectures = Array.from(new Set(distinctLocations.map(loc => loc.prefecture).filter(Boolean)));
+  
+  prefectures.forEach(pref => {
+    areaRoutes.push({
+      url: `${baseUrl}/search/area/${encodeURIComponent(pref!)}`,
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
-      priority: 0.7,
-    }));
+      priority: 0.8, // prefectures have higher priority than cities
+    });
+  });
+
+  // Extract cities
+  distinctLocations
+    .filter(loc => loc.prefecture && loc.city)
+    .forEach((loc) => {
+      areaRoutes.push({
+        url: `${baseUrl}/search/area/${encodeURIComponent(loc.prefecture!)}/${encodeURIComponent(loc.city!)}`,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 0.7,
+      });
+    });
 
   return [...coreRoutes, ...areaRoutes, ...propertyRoutes];
 }
