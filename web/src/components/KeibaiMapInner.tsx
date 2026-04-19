@@ -421,7 +421,7 @@ export default function KeibaiMapInner({
 }: KeibaiMapProps) {
   const router = useRouter();
   const [hazardMode, setHazardMode] = useState<'OFF' | 'FLOOD' | 'LANDSLIDE'>('OFF');
-  const [showRailways, setShowRailways] = useState(false);
+  const [showRailways, setShowRailways] = useState(true);
 
   useEffect(() => {
     fixLeafletIcons();
