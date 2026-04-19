@@ -62,6 +62,22 @@ export default function UserMenu() {
           >
             👤 マイページ
           </button>
+          
+          <Link 
+            href="/trade/find"
+            onClick={() => setShowDropdown(false)}
+            className="block w-full text-left px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            📊 不動産取引価格検索
+          </Link>
+          
+          <Link 
+            href="/features/map-search"
+            onClick={() => setShowDropdown(false)}
+            className="block w-full text-left px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            ✨ 機能紹介
+          </Link>
           <div className="border-t border-zinc-100 dark:border-zinc-800 my-1"></div>
           <button 
             onClick={() => {
