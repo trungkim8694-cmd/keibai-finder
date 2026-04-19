@@ -593,6 +593,9 @@ export default function KeibaiMapInner({
         center={initCenter} 
         zoom={initZoom} 
         maxZoom={18}
+        minZoom={5}
+        maxBounds={[[20.0, 122.0], [46.0, 154.0]]}
+        maxBoundsViscosity={1.0}
         scrollWheelZoom={mode === 'list'}
         zoomControl={false}
         className="w-full h-full relative z-0"
