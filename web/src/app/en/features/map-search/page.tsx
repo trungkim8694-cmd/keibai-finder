@@ -73,15 +73,7 @@ export default function MapFeatureLandingPageEN() {
                   <MousePointer2 className="w-4 h-4 animate-bounce" /> Click to move map
                 </div>
               </div>
-              <div className="w-full h-full bg-zinc-100 dark:bg-zinc-700 rounded-xl relative overflow-hidden">
-                 <div className="absolute top-[20%] left-[30%] -translate-x-1/2 -translate-y-1/2">
-                    <span className="relative flex h-4 w-4">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-500"></span>
-                    </span>
-                    <div className="mt-1 bg-white dark:bg-zinc-900 text-xs font-bold px-2 py-0.5 rounded shadow-sm">1,250 Man-Yen</div>
-                 </div>
-              </div>
+              <img src="/keibaikoubai.webp" alt="Keibai-Koubai Map Search" className="w-full h-full object-cover rounded-xl shadow-inner group-hover:scale-105 transition-transform duration-500" />
             </Link>
           </div>
         </div>
