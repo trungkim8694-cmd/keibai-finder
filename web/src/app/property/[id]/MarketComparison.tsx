@@ -64,7 +64,7 @@ export default function MarketComparison({ nearbySold = [], stations = [] }: { n
                   <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300 font-medium">
                     {sold.basePrice ? `${Math.round(sold.basePrice / 10000).toLocaleString('ja-JP')}万円` : '-'}
                   </td>
-                  <td className="px-5 py-4 font-black text-green-600 dark:text-green-400 tracking-tight text-base w-32">
+                  <td className="px-5 py-4 text-green-600 dark:text-green-400 font-medium whitespace-nowrap">
                     {sold.winningPrice ? `${Math.round(sold.winningPrice / 10000).toLocaleString('ja-JP')}万円` : '-'}
                   </td>
                   <td className="px-5 py-4 text-center">
