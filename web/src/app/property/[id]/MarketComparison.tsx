@@ -1,7 +1,7 @@
 export default function MarketComparison({ nearbySold = [], stations = [] }: { nearbySold?: any[], stations?: any[] }) {
   if (!nearbySold || nearbySold.length === 0) {
     return (
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 text-center text-zinc-500 mt-8">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 text-center text-zinc-500">
         <p>このエリアの過去の落札データが見つかりませんでした。</p>
       </div>
     );
@@ -17,7 +17,7 @@ export default function MarketComparison({ nearbySold = [], stations = [] }: { n
   const insightText = `このエリアは${competitionStr}（平均入札者数${avgBidder}名）、${marginStr}`;
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-sm border border-zinc-200 dark:border-zinc-800 mt-8">
+    <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-sm border border-zinc-200 dark:border-zinc-800">
       <div className="bg-zinc-200 dark:bg-zinc-800 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="font-bold text-xl text-zinc-800 dark:text-zinc-200 flex flex-wrap items-center gap-2">
           📊 AI 相場分析 (半径10km圏内)
@@ -61,7 +61,7 @@ export default function MarketComparison({ nearbySold = [], stations = [] }: { n
                   <td className="px-5 py-4 text-zinc-600 dark:text-zinc-400 font-medium font-mono text-xs">
                     {sold.distance.toFixed(1)}km
                   </td>
-                  <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300 font-medium">
+                  <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300 font-medium whitespace-nowrap">
                     {sold.basePrice ? `${Math.round(sold.basePrice / 10000).toLocaleString('ja-JP')}万円` : '-'}
                   </td>
                   <td className="px-5 py-4 text-green-600 dark:text-green-400 font-medium whitespace-nowrap">

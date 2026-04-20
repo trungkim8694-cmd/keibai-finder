@@ -25,7 +25,7 @@ export function StickyActionBar({
 
   return (
     <div className="sticky top-0 z-[100] bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-gray-100 dark:border-zinc-800 transition-all duration-300 relative mb-6">
-      <div className="max-w-4xl mx-auto px-4 py-2 sm:py-3 flex items-center justify-between">
+      <div className="w-full max-w-4xl lg:max-w-7xl mx-auto px-4 py-2 sm:py-3 flex items-center justify-between">
         
         {/* Left Side: Back button & Breadcrumb / Action combo */}
         <div className="flex flex-row items-center gap-1 sm:gap-4 flex-1">

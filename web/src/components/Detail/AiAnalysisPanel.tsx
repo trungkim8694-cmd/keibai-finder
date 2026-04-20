@@ -5,7 +5,7 @@ import { Sparkles, Wrench } from 'lucide-react';
 
 export function AiAnalysisPanel() {
   return (
-    <section className="mb-0 mt-8 rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-50 to-purple-50/40 dark:from-indigo-950/20 dark:to-purple-950/10 border border-indigo-200/60 dark:border-indigo-800/40 shadow-sm relative">
+    <section className="rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-50 to-purple-50/40 dark:from-indigo-950/20 dark:to-purple-950/10 border border-indigo-200/60 dark:border-indigo-800/40 shadow-sm relative">
       
       {/* Header */}
       <div className="flex justify-between items-center px-6 py-4 border-b border-indigo-100 dark:border-indigo-900/40 bg-white/60 dark:bg-zinc-900/40 backdrop-blur-sm">

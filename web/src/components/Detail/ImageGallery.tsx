@@ -31,6 +31,28 @@ export function ImageGallery({ images }: ImageGalleryProps) {
     setActiveIndex(prev => (prev - 1 + validImages.length) % validImages.length);
   }, [validImages.length]);
 
+  // Touch tracking for swipe gestures
+  const [touchStartXY, setTouchStartXY] = useState<{x: number, y: number} | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartXY({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartXY) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const diffX = touchStartXY.x - touchEndX;
+    const diffY = touchStartXY.y - touchEndY;
+
+    // Detect horizontal swipe, ensure it's not a vertical scroll
+    if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > 0) goNext(); // Swipe left -> Next
+      else goPrev();           // Swipe right -> Prev
+    }
+    setTouchStartXY(null);
+  };
+
   // Keyboard navigation
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -111,10 +133,10 @@ export function ImageGallery({ images }: ImageGalleryProps) {
           {validImages.length > 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); goPrev(); }}
-              className="absolute left-3 sm:left-6 z-10 bg-white/10 hover:bg-white/25 text-white rounded-full p-3 transition-colors"
+              className="absolute left-3 sm:left-6 z-10 bg-white/20 hover:bg-white/40 text-black dark:text-black rounded-full p-3 transition-colors shadow-sm mix-blend-luminosity"
               aria-label="Previous image"
             >
-              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
+              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 pointer-events-none" strokeWidth={3} />
             </button>
           )}
 
@@ -122,6 +144,8 @@ export function ImageGallery({ images }: ImageGalleryProps) {
           <div
             className="flex items-center justify-center w-full h-full px-16 sm:px-20"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
             <img
               key={activeIndex}
@@ -136,10 +160,10 @@ export function ImageGallery({ images }: ImageGalleryProps) {
           {validImages.length > 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); goNext(); }}
-              className="absolute right-3 sm:right-6 z-10 bg-white/10 hover:bg-white/25 text-white rounded-full p-3 transition-colors"
+              className="absolute right-3 sm:right-6 z-10 bg-white/20 hover:bg-white/40 text-black dark:text-black rounded-full p-3 transition-colors shadow-sm mix-blend-luminosity"
               aria-label="Next image"
             >
-              <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
+              <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7 pointer-events-none" strokeWidth={3} />
             </button>
           )}
 

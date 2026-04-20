@@ -66,7 +66,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
       <div className="flex flex-col sm:flex-row flex-wrap items-stretch gap-3">
         
         {/* Primary Action (3点セット) */}
-        <div className="flex-1 grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-2 min-w-[280px]">
+        <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 w-full">
           {(() => {
              if (sourceProvider === 'NTA') {
                let ntaPdfs: string[] = [];
@@ -93,7 +93,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                           className="flex-auto inline-flex items-center justify-center px-1.5 py-2.5 sm:py-0 min-h-[48px] bg-white dark:bg-zinc-900 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold rounded-lg transition-all active:scale-95 text-xs sm:text-sm"
                         >
                           <span className="text-sm shrink-0">📄</span> 
-                          <span className="ml-1 whitespace-nowrap text-[11px] sm:text-xs">{ntaLabels[i] || `PDF ${i + 1}`}</span>
+                          <span className="ml-1 text-[11px] sm:text-xs leading-tight text-center line-clamp-2">{ntaLabels[i] || `PDF ${i + 1}`}</span>
                         </a>
                      ))}
                    </>

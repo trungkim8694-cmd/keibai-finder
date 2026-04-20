@@ -80,8 +80,19 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
     if raw_data and isinstance(raw_data, list):
         for section in raw_data:
             data_dict = section.get("data", {})
+            
+            # Priority 1: 入札期間 or 期間入札
             for key in data_dict.keys():
-                if "期間入札" in key or "入札期間" in key or "期間" in key or "特別売却期間" in key or "特別売却" in key:
+                if "入札期間" in key or "期間入札" in key:
+                    s_d, e_d = convert_reiwa_range_to_datetimes(data_dict[key])
+                    if s_d or e_d:
+                        db_start_date, db_end_date = s_d, e_d
+                        break
+            if db_end_date: break
+            
+            # Priority 2: 特別売却期間
+            for key in data_dict.keys():
+                if "特別売却期間" in key:
                     s_d, e_d = convert_reiwa_range_to_datetimes(data_dict[key])
                     if s_d or e_d:
                         db_start_date, db_end_date = s_d, e_d

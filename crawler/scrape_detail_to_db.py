@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 load_dotenv("../web/.env")
 
 from crawler_utils import get_nearest_station_from_db, get_gsi_coords
-from ai_analyzer import extract_text_and_purge
 from supabase import create_client, Client
 import io
 
@@ -527,10 +526,19 @@ async def main():
 
                     # Parse Bid End Date
                     schedule_str = None
+                    # Priority 1: 入札期間 / 期間入札
                     for key in summary_data.keys():
-                        if "期間入札" in key or "入札期間" in key or "期間" in key:
+                        if "入札期間" in key or "期間入札" in key:
                             schedule_str = summary_data[key]
                             break
+                            
+                    # Priority 2: 特別売却期間
+                    if not schedule_str:
+                        for key in summary_data.keys():
+                            if "特別売却期間" in key:
+                                schedule_str = summary_data[key]
+                                break
+                                
                     if schedule_str:
                         m_dates = list(re.finditer(r'(令和|平成|昭和)(\d+|元)年(\d+)月(\d+)日', schedule_str))
                         if m_dates:
@@ -584,23 +592,18 @@ async def main():
                         cur.close()
                         conn.close()
                     
-                    # Extract Data from downloaded PDF
+                    # Remove AI Extraction as user disabled it
                     ai_analysis_json = None
                     raw_text_val = None
                     ai_status = "SKIPPED_AI"
                     
-                    if has_pdf_button and os.path.exists(pdf_path_full):
-                        target_types = ["戸建て", "マンション"]
-                        if prop_type_raw in target_types:
-                            print(f"  [AI] Extracting text for {prop_type_raw}...")
-                            raw_text_val = extract_text_and_purge([pdf_path_full])
-                            ai_status = "PENDING_AI"
-                        else:
-                            print(f"  [AI] Skipping text extraction for type: {prop_type_raw}. Purging PDF...")
-                            try: os.remove(pdf_path_full)
-                            except: pass
-                            ai_status = "SKIPPED_AI"
-                        pdf_url = None 
+                    if has_pdf_button:
+                        # Fallback remove the PDF if it somehow lingered
+                        try:
+                            if 'pdf_path_full' in locals() and os.path.exists(pdf_path_full): 
+                                os.remove(pdf_path_full)
+                        except: pass
+                        pdf_url = None
 
                     if area is not None:
                         area = round(area)

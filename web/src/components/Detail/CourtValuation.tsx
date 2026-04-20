@@ -30,8 +30,14 @@ export function CourtValuation({
       const now = new Date().getTime();
       const end = dayjs.utc(endDate).valueOf();
       
-      const start = startDate ? dayjs.utc(startDate).valueOf() : end - (45 * 24 * 60 * 60 * 1000); // fallback ~45 days
-      const total = end - start;
+      let start = startDate ? dayjs.utc(startDate).valueOf() : end - (45 * 24 * 60 * 60 * 1000); 
+      
+      // Sanity check: If start is after end, or if we're near the deadline but it hasn't 'started'
+      if (start >= end || (now < start && end - now < 30 * 24 * 60 * 60 * 1000)) {
+          start = end - (30 * 24 * 60 * 60 * 1000); // 30 days fallback for visual progress
+      }
+      
+      const total = end - Math.min(start, now - 1000); // Prevent divide by zero
       const elapsed = now - start;
       progressPercent = Math.min(Math.max((elapsed / total) * 100, 0), 100);
       
