@@ -63,7 +63,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
       </h3>
       
       {/* Action Bar Container */}
-      <div className="flex flex-col sm:flex-row flex-wrap items-stretch gap-3">
+      <div className="flex flex-col lg:flex-row flex-wrap items-stretch lg:items-start gap-3 w-full">
         
         {/* Primary Action (3点セット) */}
         <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 w-full">
@@ -159,8 +159,8 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
           })()}
         </div>
 
-        {/* Secondary Actions (Row on Mobile, Side on Desktop) */}
-        <div className="flex flex-col sm:flex-row flex-wrap items-stretch gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+        {/* Secondary Actions (Row on Mobile, Stack on Desktop) */}
+        <div className="flex flex-col md:flex-row lg:flex-col flex-wrap items-stretch gap-2 sm:gap-3 w-full lg:w-auto mt-2 lg:mt-0 lg:ml-auto">
           {sourceProvider === 'NTA' ? (
             <>
               <a 

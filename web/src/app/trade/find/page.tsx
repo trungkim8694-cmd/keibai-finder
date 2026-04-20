@@ -123,7 +123,7 @@ export default async function TradeFindPage(
               </Link>
               <h1 className="text-xl lg:text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                 <span className="text-2xl">📊</span> 
-                {displayCity ? `${pref}${displayCity} ${type}の` : ''}不動産取引価格検索
+                {city ? `${pref}${city} ${type}の` : ''}不動産取引価格検索
               </h1>
             </div>
             <TradeSocialShare 
