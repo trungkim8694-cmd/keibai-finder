@@ -1,53 +1,44 @@
 'use client';
 
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { LineChart as LineChartIcon } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface PriceTrendsChartProps {
-  data: { year: string; price: number }[];
+  data: { year: string; price: number; area?: number }[];
   city?: string;
+  prefecture?: string;
   propertyType?: string;
 }
 
-export function PriceTrendsChart({ data, city, propertyType }: PriceTrendsChartProps) {
+export function PriceTrendsChart({ data, city, prefecture, propertyType }: PriceTrendsChartProps) {
   if (!data || data.length === 0) {
     return (
-      <section className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-full">
-         <div className="flex items-center gap-2 mb-4">
-          <LineChartIcon className="w-5 h-5 text-zinc-400" />
-          <h3 className="font-bold text-zinc-900 dark:text-zinc-100 flex flex-wrap items-center gap-1.5">
-            価格推移 (過去5年)
-            {city && propertyType && <span className="text-xs font-semibold px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-md whitespace-nowrap">{city} ({propertyType})</span>}
-          </h3>
+      <section className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-full overflow-hidden">
+        <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 border-b border-zinc-200 dark:border-zinc-800">
+           <h3 className="font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+             📊 {prefecture}{city} {propertyType}の地価推移 (直近5年)
+           </h3>
         </div>
-        <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm">
+        <div className="flex-1 flex items-center justify-center p-6 text-zinc-400 text-sm">
            データがありません
         </div>
       </section>
     );
   }
 
-  // Format Y-axis to Man-yen
-  const formatYAxis = (tickItem: number) => {
-    return `${Math.round(tickItem / 10000)}万`;
-  };
+  const latestTrend = data.length > 0 ? data[data.length - 1] : null;
+  const latestTrendPriceMan = latestTrend ? Math.round(latestTrend.price / 10000) : 0;
+  const latestTrendArea = latestTrend?.area ? Math.round(latestTrend.area) : 0;
+  const latestTrendSqmPrice = latestTrendArea > 0 ? (latestTrendPriceMan / latestTrendArea).toFixed(1) : '0';
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomBarTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const val = payload[0].value;
-      const area = payload[0].payload.area;
       return (
-        <div className="bg-zinc-900 dark:bg-zinc-800 text-white text-xs p-3 rounded-lg shadow-xl border border-zinc-700">
-          <p className="font-bold mb-1 opacity-60">{`${label}年 平均取引額`}</p>
-          <p className="text-lg font-black text-emerald-400 mb-0.5">
-             {`${Math.round(val / 10000).toLocaleString('ja-JP')}万円`}
-          </p>
-          {area > 0 && (
-            <p className="text-[10px] text-zinc-400">
-               面積: 約{Math.round(area)}㎡
-            </p>
-          )}
+        <div className="bg-white dark:bg-zinc-800 p-2 rounded shadow-lg border border-zinc-200 dark:border-zinc-700 text-sm">
+           <p className="font-bold text-zinc-900 dark:text-zinc-100">{label}年</p>
+           <p className="text-blue-600 dark:text-blue-400 font-bold">
+             {Math.round(payload[0].value / 10000).toLocaleString('ja-JP')}万円
+           </p>
         </div>
       );
     }
@@ -55,31 +46,60 @@ export function PriceTrendsChart({ data, city, propertyType }: PriceTrendsChartP
   };
 
   return (
-    <section className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-full">
-      <div className="flex items-center gap-2 mb-6">
-        <LineChartIcon className="w-5 h-5 text-indigo-500" />
-        <h3 className="font-bold text-zinc-900 dark:text-zinc-100 flex flex-wrap items-center gap-1.5 border-b-0">
-          価格推移 (過去5年)
-          {city && propertyType && <span className="text-xs font-semibold px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-md whitespace-nowrap">{city} ({propertyType})</span>}
-        </h3>
+    <section className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-full overflow-hidden">
+      <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 border-b border-zinc-200 dark:border-zinc-800">
+         <h3 className="font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+           📊 {prefecture}{city} {propertyType}の地価推移 (直近5年)
+         </h3>
       </div>
       
-      <div className="flex-1 min-h-[200px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#52525b" strokeOpacity={0.2} />
-            <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} tickFormatter={formatYAxis} />
-            <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="price" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorPrice)" />
-          </AreaChart>
-        </ResponsiveContainer>
+      <div className="p-4 sm:p-6 pb-2 border-b border-zinc-100 dark:border-zinc-800 flex-1 flex flex-col">
+         {latestTrend && (
+            <div className="mb-4">
+               <p className="text-xs text-zinc-500 mb-1 font-bold">最新取引平均価格 / 平均面積 (単価) ({latestTrend.year})</p>
+               <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-black">{latestTrendPriceMan.toLocaleString('ja-JP')}</span>
+                  <span className="text-sm font-bold text-zinc-500 mr-2">万円</span>
+                  <span className="text-xl font-bold">/ {latestTrendArea}㎡</span>
+                  <span className="text-sm font-bold text-zinc-500 ml-1">({latestTrendSqmPrice}万円/㎡)</span>
+               </div>
+            </div>
+         )}
+         <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+               <BarChart data={data} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
+                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" className="dark:stroke-zinc-800" />
+                 <XAxis 
+                    dataKey="year" 
+                    tick={{ fill: '#9ca3af', fontSize: 11 }} 
+                    axisLine={false} 
+                    tickLine={false} 
+                 />
+                 <YAxis 
+                    tick={{ fill: '#9ca3af', fontSize: 11 }} 
+                    tickFormatter={(val) => `${Math.round(val / 10000).toLocaleString()}`}
+                    axisLine={false} 
+                    tickLine={false} 
+                    width={60}
+                 />
+                 <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'transparent' }} />
+                 <Bar dataKey="price" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+               </BarChart>
+            </ResponsiveContainer>
+         </div>
+      </div>
+      <div className="p-3 bg-zinc-50 dark:bg-zinc-900/10 border-t border-zinc-100 dark:border-zinc-800 text-right">
+        <a 
+          href="https://www.reinfolib.mlit.go.jp/landPrices/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+        >
+          出典：国土交通省地価公示
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
       </div>
     </section>
   );

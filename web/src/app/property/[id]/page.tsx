@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 // PRESERVE: PDF & Image Logic - DO NOT REMOVE.
 import Link from 'next/link';
 import { PropertyImageGallery } from '@/components/PropertyImageGallery';
-import { calculateRoi, convertToWesternYear, extractAuctionSchedule, extractAuctionRoundFromData, extractTotalArea } from '@/lib/utils';
+import { calculateRoi, convertToWesternYear, extractAuctionSchedule, extractAuctionRoundFromData, extractTotalArea, cleanAddress } from '@/lib/utils';
 import { formatBidPeriod } from '@/utils/dateFormatter';
 import MarketComparison from './MarketComparison';
 import { getNearestStations, getNearbyAuctionResults } from './actions';
@@ -70,14 +70,27 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
      ogImage = property.images[0] || undefined;
   }
 
+  const canonicalUrl = `https://keibai-finder.jp/property/${id}`;
+
   return {
     title,
     description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title,
       description,
+      url: canonicalUrl,
       images: ogImage ? [{ url: ogImage }] : [],
-    }
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ogImage ? [ogImage] : [],
+    },
   };
 }
 
@@ -234,6 +247,11 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   }
   
   const auctionRound = extractAuctionRoundFromData(property.raw_display_data);
+
+  // --- Sharing Info ---
+  const propertyUrl = `https://keibai-finder.jp/property/${property.sale_unit_id}`;
+  const addressShort = property.address?.substring(0, 30) || id;
+  const propertyTitle = `【${formattedStartPrice}】${addressShort} - ${property.property_type || '競売物件'}`;
   const endDateRaw = (property as any).bid_end_date ? new Date((property as any).bid_end_date) : null;
 
   // Prepare coordinates for markers
@@ -249,12 +267,16 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   // Define queries for parallel execution
   const stationsPromise = property.lat && property.lng ? getNearestStations(property.lat, property.lng) : Promise.resolve([]);
   const nearbyActivePromise = getProperties({ prefecture: property.prefecture || undefined, limit: 10 });
-  const nearbySoldPromise = property.lat && property.lng ? getNearbyAuctionResults(property.lat, property.lng, 10) : Promise.resolve([]);
+  const nearbySoldPromise = property.lat && property.lng ? getNearbyAuctionResults(property.lat, property.lng, 20) : Promise.resolve([]);
   
-  // Similar Properties (History) - Only fetch if address is valid
+  // Similar Properties (History) - Match by Address, Type, and Area to disambiguate Mansions
   const historyPromise = (property.address && property.address !== 'Unknown') 
     ? prisma.property.findMany({
-        where: { address: property.address, property_type: property.property_type },
+        where: { 
+          address: property.address, 
+          property_type: property.property_type,
+          ...(parsedArea ? { area: Number(parsedArea) } : {})
+        },
         orderBy: { created_at: 'asc' },
         select: { sale_unit_id: true, starting_price: true, created_at: true, raw_display_data: true }
       })
@@ -385,11 +407,11 @@ export default async function PropertyDetail({ params }: { params: { id: string 
           </span>
         )}
       </div>
-      <h1 className="text-lg md:text-xl font-black mb-2">{!(property as any).prefecture && !(property as any).city ? '詳細情報' : `${(property as any).prefecture || ''} ${(property as any).city || ''}${(property as any).address}`}</h1>
+      <h1 className="text-lg md:text-xl font-black mb-2">{!(property as any).prefecture && !(property as any).city ? '詳細情報' : cleanAddress((property as any).address, (property as any).prefecture, (property as any).city)}</h1>
       
       <div className="mb-3">
          <PropertyInfoTags property={serializedProperty} displayArea={displayArea} showCourtTag={false}>
-           {serializedHistory.length > 0 && (
+           {serializedHistory.length > 1 && (
              <AuctionHistoryBadge history={serializedHistory} />
            )}
          </PropertyInfoTags>
@@ -523,6 +545,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         <MarketValuation 
           prefecture={property.prefecture}
           city={property.city}
+          rawAddress={(property as any).address}
           propertyType={property.property_type}
           basePriceNum={basePriceNum}
           propertyArea={parsedArea}
@@ -554,6 +577,8 @@ export default async function PropertyDetail({ params }: { params: { id: string 
         saleUnitId={property.sale_unit_id} 
         predictedPrice={formattedWinningBid} 
         pdfUrl={property.pdf_url} 
+        propertyUrl={propertyUrl}
+        shareTitle={propertyTitle}
       />
 
       <main className="w-full max-w-7xl mx-auto mt-6 px-4 overflow-x-hidden">
@@ -587,11 +612,11 @@ export default async function PropertyDetail({ params }: { params: { id: string 
             </section>
 
             {nodePropertySections}
-            {nodeMarketValuation}
           </div>
 
           {/* RIGHT COLUMN */}
           <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+            {nodeMarketValuation}
             {nodeMarketComparison}
             {nodeDetailMap}
             {nodeAiAnalysisPanel}
