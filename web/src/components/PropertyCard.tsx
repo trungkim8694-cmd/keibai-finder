@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { type SharedProperty } from '../types';
 import { PropertyInfoTags } from './PropertyInfoTags';
 import FavoriteButton from './FavoriteButton';
-import { extractAuctionEndDate, extractTotalArea } from '../lib/utils';
+import { extractAuctionEndDate, extractTotalArea, cleanAddress } from '../lib/utils';
 import { formatDateJapan } from '../utils/dateFormatter';
 import { CourtContactLink } from './CourtContactLink';
 import dayjs from 'dayjs';
@@ -181,7 +181,7 @@ export default function PropertyCard({
         </div>
         
         <h3 className="text-[11px] lg:text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 mb-2 lg:mb-1 line-clamp-2 leading-snug group-hover:text-blue-500 transition-colors">
-          {!property.address || property.address === 'Unknown' ? '住所不明' : property.address}
+          {cleanAddress(property.address, property.prefecture, property.city)}
         </h3>
          <div className="mb-4 lg:mb-3">
            {(() => {

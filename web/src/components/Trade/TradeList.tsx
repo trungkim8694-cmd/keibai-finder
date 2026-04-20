@@ -20,13 +20,21 @@ export default function TradeList({ transactions }: TradeListProps) {
     return `${Math.round(Number(p) / 10000).toLocaleString('ja-JP')}万円`;
   };
 
+  const getCategoryBadge = (mlitType: string | undefined) => {
+    if (!mlitType) return <span className="text-xs px-2 py-1 rounded bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 font-bold border border-zinc-200 dark:border-zinc-700">不明</span>;
+    if (mlitType.includes("マンション")) return <span className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800">マンション</span>;
+    if (mlitType.includes("建物")) return <span className="text-xs px-2 py-1 rounded bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 font-bold border border-orange-200 dark:border-orange-800">戸建て</span>;
+    return <span className="text-xs px-2 py-1 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-bold border border-emerald-200 dark:border-emerald-800">土地</span>;
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
+        <table className="w-full text-sm text-left whitespace-nowrap lg:whitespace-normal">
            <thead>
              <tr className="text-zinc-500 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
-                <th className="font-semibold py-3 px-2 w-32">取引時期</th>
+                <th className="font-semibold py-3 px-2 w-28">取引時期</th>
+                <th className="font-semibold py-3 px-2 w-24">種別</th>
                 <th className="font-semibold py-3 px-2">物件詳細</th>
                 <th className="font-semibold py-3 px-2 text-right">取引価格</th>
              </tr>
@@ -38,10 +46,14 @@ export default function TradeList({ transactions }: TradeListProps) {
                    <td className="py-4 px-2 align-top text-zinc-500 dark:text-zinc-400 font-medium">
                      {t.Period || '-'}
                    </td>
-                   
+
                    <td className="py-4 px-2 align-top">
+                     {getCategoryBadge(t.Type)}
+                   </td>
+                   
+                   <td className="py-4 px-2 align-top min-w-[200px]">
                      <div className="text-base font-bold text-blue-700 dark:text-blue-400 mb-1">
-                        {t.Prefecture || ''}{t.Municipality || ''}{t.DistrictName || ''} {t.Type || ''}
+                        {t.Prefecture || ''}{t.Municipality || ''}{t.DistrictName || ''} <span className="text-sm font-normal text-zinc-500 ml-1">{t.Type || ''}</span>
                      </div>
                      <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
                         {t.FloorPlan && <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">{t.FloorPlan}</span>}

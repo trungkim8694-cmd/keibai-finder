@@ -8,6 +8,41 @@ import TradeList from '@/components/Trade/TradeList';
 import TradeCharts from '@/components/Trade/TradeCharts';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { TradeSocialShare } from '@/components/Trade/TradeSocialShare';
+import type { Metadata, ResolvingMetadata } from 'next';
+
+export async function generateMetadata(
+  props: { searchParams?: Promise<{ [key: string]: string | string[] | undefined }> },
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const pref = typeof searchParams?.pref === 'string' ? searchParams.pref : '';
+  const city = typeof searchParams?.city === 'string' ? searchParams.city : '';
+  const type = typeof searchParams?.type === 'string' ? searchParams.type : '戸建て';
+
+  let title = "不動産取引価格検索 (相場) | Keibai Finder";
+  let description = "国土交通省のデータを元にした不動産取引価格（相場）の検索ツールです。直近5年の地価推移や実際の取引履歴を確認できます。";
+
+  if (pref && city) {
+    title = `🔥 ${pref}${city} ${type}の不動産取引価格相場 & 地価推移 | Keibai Finder`;
+    description = `${pref}${city}エリアの${type}の過去の取引価格や、直近5年間の地価推移、平均面積・単価などの最新データを完全無料で確認できます。`;
+  }
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    }
+  };
+}
 
 export default async function TradeFindPage(
   props: {
@@ -22,17 +57,42 @@ export default async function TradeFindPage(
 
   let transactions: MlitTransaction[] = [];
   let cityCode = null;
+  let districtQuery = '';
+  let displayCity = city;
 
   if (pref && city) {
-    cityCode = await resolveCityCode(pref, city);
-    if (cityCode) {
+    const resolved = await resolveCityCode(pref, city);
+    if (resolved) {
+      cityCode = resolved.cityCode;
+      districtQuery = city.replace(resolved.cityName, '').trim();
+
       // Fetch specifically for the selected property type.
       // fetchMlitApiData returns ALL properties for the city in that year.
-      // We need to filter them manually on the server.
       const mlitTypes = mapPropertyTypeToMlit(type);
       const rawData = await fetchMlitApiData(cityCode, '2023');
       
-      transactions = rawData.filter(t => t.Type && mlitTypes.includes(t.Type));
+      let baseTransactions = rawData.filter(t => t.Type && mlitTypes.includes(t.Type));
+      
+      if (districtQuery && baseTransactions.length > 0) {
+        const districtTrans = baseTransactions.filter(t => t.DistrictName && districtQuery.startsWith(t.DistrictName));
+        // Check rule: if district filtering results in >= 2 items, use it. Otherwise fallback to city level.
+        if (districtTrans.length >= 2) {
+          baseTransactions = districtTrans;
+          const matchedDistricts = [...new Set(districtTrans.map(t => t.DistrictName).filter(Boolean))];
+          if (matchedDistricts.length > 0) {
+              matchedDistricts.sort((a, b) => (b as string).length - (a as string).length);
+              displayCity = `${resolved.cityName}${matchedDistricts[0]}`;
+          }
+        } else {
+          // Fallback to city level! Reset districtQuery so trend charts also use city level consistently.
+          districtQuery = '';
+          displayCity = resolved.cityName;
+        }
+      } else {
+          displayCity = resolved.cityName;
+      }
+      
+      transactions = baseTransactions;
     }
   }
 
@@ -40,7 +100,7 @@ export default async function TradeFindPage(
   let trendData: { year: string, price: number, area: number }[] = [];
   if (cityCode) {
      const trendYears = ['2019', '2020', '2021', '2022', '2023'];
-     const trendPromises = trendYears.map(year => getMarketValuation(cityCode, type, year));
+     const trendPromises = trendYears.map(year => getMarketValuation(cityCode, type, year, districtQuery));
      const multiYearData = await Promise.all(trendPromises);
      
      trendData = trendYears.map((year, index) => ({
@@ -63,9 +123,12 @@ export default async function TradeFindPage(
               </Link>
               <h1 className="text-xl lg:text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                 <span className="text-2xl">📊</span> 
-                {city ? `${pref}${city} ${type}の` : ''}不動産取引価格検索
+                {displayCity ? `${pref}${displayCity} ${type}の` : ''}不動産取引価格検索
               </h1>
             </div>
+            <TradeSocialShare 
+               title={city ? `🔥 ${pref}${displayCity} ${type}の不動産取引価格相場 & 地価推移 | Keibai Finder` : "🔥 不動産取引価格検索 (相場) | Keibai Finder"} 
+            />
           </div>
         </div>
       </div>
@@ -102,7 +165,7 @@ export default async function TradeFindPage(
           {/* Right Column: Analytics Charts */}
           <div className="xl:col-span-4">
              <div className="xl:sticky top-32 space-y-6">
-                <TradeCharts transactions={transactions} trendData={trendData} propertyType={type} city={city} pref={pref} />
+                <TradeCharts transactions={transactions} trendData={trendData} propertyType={type} city={displayCity} pref={pref} />
                 
                 <div className="text-right">
                   <a 

@@ -20,7 +20,7 @@ export default function MarketComparison({ nearbySold = [], stations = [] }: { n
     <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-sm border border-zinc-200 dark:border-zinc-800">
       <div className="bg-zinc-200 dark:bg-zinc-800 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="font-bold text-xl text-zinc-800 dark:text-zinc-200 flex flex-wrap items-center gap-2">
-          📊 AI 相場分析 (半径10km圏内)
+          📊 AI 相場分析 (半径20km圏内)
         </h2>
       </div>
 

@@ -14,6 +14,18 @@ export default async function GlobalHeader() {
        </a>
        <div className="flex items-center gap-2 sm:gap-3 lg:gap-2">
          <HeaderTotalCount initialCount={totalCount} />
+         
+         {/* Market Price Search Button */}
+         <Link 
+           href="/trade/find"
+           target="_blank"
+           className="flex items-center justify-center w-[36px] h-[36px] sm:w-auto sm:h-auto sm:gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 sm:border sm:border-zinc-300 sm:dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 sm:px-3 sm:py-1.5 rounded-full transition-colors box-border"
+           title="価格検索"
+         >
+           <span className="flex items-center justify-center w-[24px] h-[24px] text-[20px] leading-none">📊</span>
+           <span className="hidden sm:inline">価格検索↗</span>
+         </Link>
+
          <HeaderFavLink />
          <UserMenu />
        </div>

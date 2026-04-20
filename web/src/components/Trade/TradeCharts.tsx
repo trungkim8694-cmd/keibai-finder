@@ -33,10 +33,16 @@ export default function TradeCharts({ transactions, trendData = [], city, pref, 
 
   if (transactions.length === 0) return null;
 
-  // Calculate Average
+  // Calculate Average for Scatter Plot
   const avgArea = scatterData.length > 0 ? Math.round(scatterData.reduce((acc, curr) => acc + curr.area, 0) / scatterData.length) : 0;
   const avgPrice = scatterData.length > 0 ? Math.round(scatterData.reduce((acc, curr) => acc + curr.priceMan, 0) / scatterData.length) : 0;
   const avgSqmPrice = avgArea > 0 ? (avgPrice / avgArea).toFixed(1) : '0';
+
+  // Calculate Latest Trend Data for Bar Chart
+  const latestTrend = trendData.length > 0 ? trendData[trendData.length - 1] : null;
+  const latestTrendPriceMan = latestTrend ? Math.round(latestTrend.price / 10000) : 0;
+  const latestTrendArea = latestTrend ? Math.round(latestTrend.area) : 0;
+  const latestTrendSqmPrice = latestTrendArea > 0 ? (latestTrend.price / 10000 / latestTrend.area).toFixed(1) : '0';
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -80,13 +86,17 @@ export default function TradeCharts({ transactions, trendData = [], city, pref, 
             </h3>
           </div>
           <div className="p-4 sm:p-6 pb-2 border-b border-zinc-100 dark:border-zinc-800">
-             <div className="mb-4">
-                <p className="text-xs text-zinc-500 mb-1 font-bold">最新平均 ({trendData[trendData.length - 1].year}年)</p>
-                <div className="flex items-baseline gap-2">
-                   <span className="text-2xl font-black">{Math.round(trendData[trendData.length - 1].price / 10000).toLocaleString('ja-JP')}</span>
-                   <span className="text-sm font-bold text-zinc-500">万円</span>
+             {latestTrend && (
+                <div className="mb-4">
+                   <p className="text-xs text-zinc-500 mb-1 font-bold">最新取引平均価格 / 平均面積 (単価) ({latestTrend.year})</p>
+                   <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black">{latestTrendPriceMan.toLocaleString('ja-JP')}</span>
+                      <span className="text-sm font-bold text-zinc-500 mr-2">万円</span>
+                      <span className="text-xl font-bold">/ {latestTrendArea}㎡</span>
+                      <span className="text-sm font-bold text-zinc-500 ml-1">({latestTrendSqmPrice}万円/㎡)</span>
+                   </div>
                 </div>
-             </div>
+             )}
              <div className="h-48 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                    <BarChart data={trendData} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
@@ -122,17 +132,13 @@ export default function TradeCharts({ transactions, trendData = [], city, pref, 
         </div>
         
         <div className="p-4 sm:p-6">
-           <div className="flex flex-wrap items-end gap-x-8 gap-y-4 mb-6">
-              <div>
-                <p className="text-xs text-zinc-500 mb-1 font-bold">取引平均価格</p>
-                <div className="flex items-baseline gap-2">
-                   <span className="text-2xl font-black">{avgPrice.toLocaleString('ja-JP')}</span>
-                   <span className="text-sm font-bold text-zinc-500">万円</span>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-zinc-500 mb-1 font-bold">平均面積・単価</p>
-                <p className="text-sm font-bold">{avgArea}㎡ ({avgSqmPrice}万円/㎡)</p>
+           <div className="mb-6">
+              <p className="text-xs text-zinc-500 mb-1 font-bold">取引平均価格 / 平均面積 (単価) (2023)</p>
+              <div className="flex items-baseline gap-1">
+                 <span className="text-2xl font-black">{avgPrice.toLocaleString('ja-JP')}</span>
+                 <span className="text-sm font-bold text-zinc-500 mr-2">万円</span>
+                 <span className="text-xl font-bold">/ {avgArea}㎡</span>
+                 <span className="text-sm font-bold text-zinc-500 ml-1">({avgSqmPrice}万円/㎡)</span>
               </div>
            </div>
 

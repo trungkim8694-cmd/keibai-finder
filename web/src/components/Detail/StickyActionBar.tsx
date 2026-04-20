@@ -1,16 +1,22 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Share2 } from 'lucide-react';
 import FavoriteButton from '@/components/FavoriteButton';
+import { SocialShareDropdown } from '@/components/Detail/SocialShare';
 
 export function StickyActionBar({ 
   saleUnitId, 
   predictedPrice, 
-  pdfUrl 
+  pdfUrl,
+  shareTitle,
+  propertyUrl
 }: { 
   saleUnitId: string, 
   predictedPrice: string, 
-  pdfUrl: string | null 
+  pdfUrl: string | null,
+  shareTitle?: string,
+  propertyUrl?: string
 }) {
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -44,13 +50,14 @@ export function StickyActionBar({
 
         {/* Right Side: Sale Unit ID & PDF Action button */}
         <div className="flex items-center gap-3 sm:gap-4 shrink-0 text-right justify-end">
-          
+          <span className="text-[10px] sm:text-xs text-gray-400 shrink-0 hidden md:inline-block font-medium">物件番号: {saleUnitId}</span>
+
           {/* Universal Favorite Button */}
-          <div className="mr-2 sm:mr-1">
+          <div className="mr-0 sm:mr-1">
              <FavoriteButton id={saleUnitId} />
           </div>
 
-          <span className="text-[10px] sm:text-xs text-gray-400 shrink-0 hidden sm:inline-block font-medium">物件番号: {saleUnitId}</span>
+          <SocialShareDropdown url={propertyUrl || ''} title={shareTitle || 'Keibai Finder'} />
           
           <div className={`flex items-center transition-all duration-300
             ${isScrolled ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4 pointer-events-none absolute right-4'}

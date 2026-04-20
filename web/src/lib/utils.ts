@@ -231,3 +231,49 @@ export function calculateRoi(
   // Mathematical reduction of: ((BasePrice * 1.3 * (Yield/100)) / (BasePrice * 1.3)) * 100
   return adjustedYield;
 }
+
+export function cleanAddress(address: string | null | undefined, prefecture?: string | null, city?: string | null): string {
+  if (!address || address === 'Unknown') return '住所不明';
+  
+  let result = address.trim();
+  
+  // Use known prefecture and city if provided to strip duplicated prefixes
+  if (prefecture && city) {
+    const fullPrefix = prefecture + city;
+    while (result.startsWith(prefecture) || result.startsWith(city) || result.startsWith(fullPrefix)) {
+       if (result.startsWith(fullPrefix)) result = result.substring(fullPrefix.length).trim();
+       else if (result.startsWith(prefecture)) result = result.substring(prefecture.length).trim();
+       else if (result.startsWith(city)) result = result.substring(city.length).trim();
+    }
+    return `${prefecture}${city}${result}`;
+  }
+  
+  // Heuristic regex to find Prefecture + City
+  const match = result.match(/^(.+?[都道府県])\s*(.+?[市区町村])/);
+  if (match) {
+    const pref = match[1].trim();
+    const cty = match[2].trim();
+    const full = pref + cty;
+    
+    let sub = result.substring(match[0].length).trim();
+    while (sub.startsWith(pref) || sub.startsWith(cty) || sub.startsWith(full)) {
+       if (sub.startsWith(full)) sub = sub.substring(full.length).trim();
+       else if (sub.startsWith(pref)) sub = sub.substring(pref.length).trim();
+       else if (sub.startsWith(cty)) sub = sub.substring(cty.length).trim();
+    }
+    return `${pref} ${cty}${sub}`;
+  }
+
+  // Handle just Prefecture case (e.g. Tokyo-to followed by Tokyo-to)
+  const prefMatch = result.match(/^(.+?[都道府県])/);
+  if (prefMatch) {
+     const pref = prefMatch[1].trim();
+     let sub = result.substring(prefMatch[0].length).trim();
+     while (sub.startsWith(pref)) {
+        sub = sub.substring(pref.length).trim();
+     }
+     return `${pref} ${sub}`;
+  }
+  
+  return result;
+}
