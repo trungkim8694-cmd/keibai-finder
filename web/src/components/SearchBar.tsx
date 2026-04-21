@@ -222,7 +222,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
     });
   };
 
-  const handleApply = (overrides?: any) => {
+  const handleApply = async (overrides?: any) => {
     // Prevent React Synthetic Event from being treated as search filters array
     const actualOverrides = (overrides && overrides.nativeEvent) ? undefined : overrides;
     
@@ -245,7 +245,38 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
       managingAuthority: selectedNtaAuth !== 'ALL' ? selectedNtaAuth : undefined,
     };
 
-    onSearch({ ...currentFilters, ...actualOverrides });
+    const finalFilters = { ...currentFilters, ...actualOverrides };
+
+    // --- GSI GEOCODING INTERCEPTOR ---
+    if (finalFilters.keyword && finalFilters.keyword.trim().length > 0) {
+      try {
+         const kw = encodeURIComponent(finalFilters.keyword.trim());
+         // Only fetch GSI, very fast
+         const res = await fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${kw}`);
+         if (res.ok) {
+           const data = await res.json();
+           if (data && data.length > 0) {
+             const coords = data[0]?.geometry?.coordinates;
+             if (coords && coords.length === 2) {
+                const lng = coords[0];
+                const lat = coords[1];
+                
+                // Keep the text in the input box so user knows what they typed,
+                // but REMOVE it from finalFilters so our DB doesn't text-filter unnecessarily.
+                // The bounding-box from the Map will handle fetching everything in view!
+                finalFilters.keyword = undefined;
+                
+                // Dispatch event to make the map fly
+                window.dispatchEvent(new CustomEvent('map-fly-to', { detail: { lat, lng } }));
+             }
+           }
+         }
+      } catch (e) {
+         console.warn("GSI Geocoding API failed, falling back to DB text search", e);
+      }
+    }
+
+    onSearch(finalFilters);
     setMobileFiltersOpen(false);
     setIsExpanded(false);
   };

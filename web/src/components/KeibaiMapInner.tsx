@@ -106,6 +106,22 @@ function MapFlyTo({ center }: { center?: [number, number] }) {
   return null;
 }
 
+function MapCustomFlyToListener() {
+  const map = useMap();
+  useEffect(() => {
+    const handleFlyTo = (event: Event) => {
+      const customEvent = event as CustomEvent<{ lat: number; lng: number }>;
+      const { lat, lng } = customEvent.detail;
+      if (lat && lng) {
+        map.flyTo([lat, lng], 14, { duration: 1.5, animate: true });
+      }
+    };
+    window.addEventListener('map-fly-to', handleFlyTo);
+    return () => window.removeEventListener('map-fly-to', handleFlyTo);
+  }, [map]);
+  return null;
+}
+
 function DetailFitBounds({ target, properties }: { target: any, properties: any[] }) {
   const map = useMap();
   const [fitted, setFitted] = useState(false);
@@ -601,6 +617,7 @@ export default function KeibaiMapInner({
         className="w-full h-full relative z-0"
       >
         <MapResizeObserver />
+        <MapCustomFlyToListener />
         <CustomMapControls />
         <HazardMapControls 
           mode={hazardMode} 
