@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
+import { getRailLinesAndStations } from '@/actions/propertyActions';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
@@ -146,5 +147,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
     });
 
-  return [...coreRoutes, ...areaRoutes, ...propertyRoutes];
+  // 4. Station Programmatic Routes
+  const railData = await getRailLinesAndStations();
+  const stationRoutes: MetadataRoute.Sitemap = [];
+  
+  railData.forEach(lineItem => {
+    // Add the line silo page
+    stationRoutes.push({
+      url: `${baseUrl}/search/station/${encodeURIComponent(lineItem.line)}`,
+      lastModified: new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 0.8,
+    });
+    
+    // Add individual station pages
+    lineItem.stations.forEach(station => {
+      stationRoutes.push({
+        url: `${baseUrl}/search/station/${encodeURIComponent(lineItem.line)}/${encodeURIComponent(station)}`,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 0.7,
+      });
+    });
+  });
+
+  return [...coreRoutes, ...areaRoutes, ...stationRoutes, ...propertyRoutes];
 }

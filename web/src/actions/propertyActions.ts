@@ -72,6 +72,29 @@ export async function getAreaStats() {
   }, ['area_stats_cache_v1'], { revalidate: 3600, tags: ['stats'] })();
 }
 
+export async function getCityStats(prefecture: string) {
+  try {
+    const stats = await prisma.property.groupBy({
+      by: ['city'],
+      where: { 
+        status: 'ACTIVE',
+        prefecture: prefecture,
+        city: { not: null }
+      },
+      _count: { _all: true },
+      orderBy: { _count: { city: 'desc'} }
+    });
+    
+    return stats.map(item => ({
+      city: item.city as string,
+      count: item._count._all
+    }));
+  } catch (err) {
+    console.error("Fetch city stats err", err);
+    return [];
+  }
+}
+
 export async function getTypeStats() {
     try {
       const stats = await prisma.property.groupBy({

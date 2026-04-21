@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Map, TrendingUp, Shield, Globe } from 'lucide-react';
+import { Map, TrendingUp, Shield, MapPin, TramFront } from 'lucide-react';
 
 export default function SidebarFooter() {
   const currentYear = new Date().getFullYear();
@@ -68,20 +68,31 @@ export default function SidebarFooter() {
         </div>
       </div>
 
-      {/* 2. SEO Links for Areas (Top 4 most searched prefectures) */}
+      {/* 2. SEO Links for Areas & Stations (Silo Directories Gateways) */}
       <div className="mb-6 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
-         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">主要エリア (Areas)</h4>
-         <div className="flex flex-wrap gap-2">
-            {['東京都', '大阪府', '北海道', '福岡県'].map((pref) => (
-              <Link 
-                key={pref} 
-                href={`/search/area/${pref}`}
-                target="_blank" rel="noopener noreferrer"
-                className="text-[11px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-2 py-1 rounded-md transition-colors"
-              >
-                {pref}の物件
-              </Link>
-            ))}
+         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">ディレクトリ (Directories)</h4>
+         <div className="flex flex-col gap-2">
+            <Link 
+              href="/search/area"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[12px] bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-3 py-2 rounded-lg transition-colors font-medium border border-rose-100 dark:border-rose-900/30"
+            >
+              <div className="w-5 h-5 rounded-md bg-white dark:bg-rose-800/50 flex items-center justify-center">
+                <MapPin className="w-3 h-3 text-rose-500" />
+              </div>
+              地域・エリアから探す
+            </Link>
+            
+            <Link 
+              href="/search/station"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[12px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-3 py-2 rounded-lg transition-colors font-medium border border-emerald-100 dark:border-emerald-900/30"
+            >
+              <div className="w-5 h-5 rounded-md bg-white dark:bg-emerald-800/50 flex items-center justify-center">
+                <TramFront className="w-3 h-3 text-emerald-500" />
+              </div>
+              路線・駅から探す
+            </Link>
          </div>
       </div>
 

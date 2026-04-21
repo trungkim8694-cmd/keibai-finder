@@ -1,5 +1,5 @@
 import React from 'react';
-import { getProperties } from '@/actions/propertyActions';
+import { getProperties, getCityStats } from '@/actions/propertyActions';
 import PropertyCard from '@/components/PropertyCard';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -22,10 +22,13 @@ export default async function PrefectureSearchPage({ params }: { params: { prefe
   const decodedPref = decodeURIComponent(prefecture);
 
   // Fetch properties filtered by prefecture
-  const properties = await getProperties({
-    prefecture: decodedPref,
-    limit: 50
-  });
+  const [properties, cityStats] = await Promise.all([
+    getProperties({
+      prefecture: decodedPref,
+      limit: 50
+    }),
+    getCityStats(decodedPref)
+  ]);
 
   return (
     <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">
@@ -66,6 +69,27 @@ export default async function PrefectureSearchPage({ params }: { params: { prefe
             特に{decodedPref}で不動産投資を検討されている方や、マイホームを安く手に入れたい方にとって、競売物件は魅力的な選択肢となります。物件の詳細ページでは、AIによる価格査定や過去の落札履歴データを活用して、適切な入札価格の目安を確認できます。初めての方でも安心して参加できるよう、事前に専門家への相談をおすすめします。
           </p>
         </div>
+
+        {/* City Directory Silo */}
+        {cityStats.length > 0 && (
+          <div className="mt-8 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+              🏘️ {decodedPref}の市区町村から探す
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {cityStats.map((cityData) => (
+                <Link 
+                  href={`/search/area/${encodeURIComponent(decodedPref)}/${encodeURIComponent(cityData.city)}`} 
+                  key={cityData.city}
+                  className="bg-zinc-50 dark:bg-zinc-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-zinc-200 hover:border-rose-300 dark:border-zinc-700 dark:hover:border-rose-700 text-sm py-2 px-4 rounded-lg transition-all flex items-center gap-2 group"
+                >
+                  <span className="font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-rose-700 dark:group-hover:text-rose-300">{cityData.city}</span>
+                  <span className="text-xs bg-white dark:bg-zinc-900 text-zinc-400 group-hover:text-rose-500 px-1.5 rounded">{cityData.count}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

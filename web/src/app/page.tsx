@@ -128,10 +128,10 @@ export default function DashboardPage() {
     setMapMoved(false);
   }, []);
 
-  const handleMoveEnd = (newBounds: BoundingBox) => {
+  const handleMoveEnd = useCallback((newBounds: BoundingBox) => {
     setMapMoved(true);
     setBounds(newBounds);
-  };
+  }, []);
 
   const handleSearchThisArea = () => {
     setCurrentFilters(f => {
