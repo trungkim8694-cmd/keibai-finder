@@ -30,6 +30,25 @@ export default function DashboardPage() {
   const [areaStats, setAreaStats] = useState<Record<string, number>>({});
   const [mapMoved, setMapMoved] = useState(false);
   const [searchVersion, setSearchVersion] = useState(0); // Bump to force SWR refetch
+  const isAutoFly = useRef(false);
+  const [isFlying, setIsFlying] = useState(false);
+
+  useEffect(() => {
+    const handleFlyToTrigger = () => {
+      isAutoFly.current = true;
+      setIsFlying(true); // Suspend SWR queries
+      
+      // Fallback: If moveend never fires (map error), release suspension after 5s
+      setTimeout(() => {
+         if (isAutoFly.current) {
+            isAutoFly.current = false;
+            setIsFlying(false);
+         }
+      }, 5000);
+    };
+    window.addEventListener('map-fly-to', handleFlyToTrigger);
+    return () => window.removeEventListener('map-fly-to', handleFlyToTrigger);
+  }, []);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -39,7 +58,7 @@ export default function DashboardPage() {
 
   // 1. Fetch Map Data (Minimal payload, all matching bounds)
   const { data: mapDataArray, isLoading: isMapLoading } = useSWR(
-    isHydrated ? { ...currentFilters, mapOnly: true, _v: searchVersion } : null,
+    isHydrated && !isFlying ? { ...currentFilters, mapOnly: true, _v: searchVersion } : null,
     (filters) => getProperties({ ...filters, isMapPayload: true }),
     { revalidateOnFocus: false, dedupingInterval: 0, refreshInterval: 15000 }
   );
@@ -55,7 +74,7 @@ export default function DashboardPage() {
     isValidating
   } = useSWRInfinite(
     (pageIndex, previousPageData) => {
-      if (!isHydrated) return null;
+      if (!isHydrated || isFlying) return null;
       // Reached end
       if (previousPageData && previousPageData.length < 20) return null;
       return { 
@@ -129,8 +148,23 @@ export default function DashboardPage() {
   }, []);
 
   const handleMoveEnd = useCallback((newBounds: BoundingBox) => {
-    setMapMoved(true);
     setBounds(newBounds);
+    
+    if (isAutoFly.current) {
+      // Consume the auto-fly event
+      isAutoFly.current = false;
+      setIsFlying(false); // Resume SWR queries with the new bounds!
+
+      setCurrentFilters(f => {
+         const newF = { ...f, bounds: newBounds }; 
+         delete newF.lat; delete newF.lng;
+         return newF;
+      });
+      setMapMoved(false);
+    } else {
+      // Normal manual panning: wait for user to click 'Search this area'
+      setMapMoved(true);
+    }
   }, []);
 
   const handleSearchThisArea = () => {

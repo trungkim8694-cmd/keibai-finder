@@ -41,14 +41,6 @@ function MapEventHandler({ onBoundsChanged }: { onBoundsChanged?: (bounds: Bound
         sw: { lat: b.getSouthWest().lat, lng: b.getSouthWest().lng },
         ne: { lat: b.getNorthEast().lat, lng: b.getNorthEast().lng }
       });
-    },
-    zoomend: () => {
-      if (!onBoundsChanged) return;
-      const b = map.getBounds();
-      onBoundsChanged({
-        sw: { lat: b.getSouthWest().lat, lng: b.getSouthWest().lng },
-        ne: { lat: b.getNorthEast().lat, lng: b.getNorthEast().lng }
-      });
     }
   });
 
