@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { MapIcon, ListBulletIcon } from '@heroicons/react/20/solid';
 
 import KeibaiMap from '../components/KeibaiMap';
+import SidebarFooter from '../components/SidebarFooter';
 
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
@@ -239,6 +240,9 @@ export default function DashboardPage() {
                 )}
               </>
             )}
+            
+            {/* SEO & Internal Links Footer */}
+            {!isLoading && <SidebarFooter />}
           </div>
         </aside>
 
