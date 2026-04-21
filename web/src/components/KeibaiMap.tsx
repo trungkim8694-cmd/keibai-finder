@@ -16,6 +16,8 @@ export interface KeibaiMapProps {
   onBoundsChanged?: (bounds: BoundingBox) => void;
   center?: [number, number];
   filterFingerprint?: string;
+  mapMoved?: boolean;
+  onSearchAreaClick?: () => void;
 }
 
 const KeibaiMapInner = dynamic(() => import('./KeibaiMapInner'), { 

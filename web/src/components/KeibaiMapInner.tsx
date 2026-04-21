@@ -70,23 +70,8 @@ function MapResizeObserver() {
   return null;
 }
 
-function MapBounds({ properties, fingerprint }: { properties: any[], fingerprint?: string }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (properties.length > 0) {
-      const validProps = properties.filter(p => p.lat && p.lng);
-      if (validProps.length > 0) {
-        import('leaflet').then(L => {
-          const bounds = L.latLngBounds(validProps.map(p => [p.lat, p.lng] as [number, number]));
-          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
-        });
-      }
-    }
-  }, [map, fingerprint]);
-
-  return null;
-}
+// MapBounds removed to prevent Map hijacking and moveend race conditions.
+// The map's viewport should strictly be driven by user panning or explicit Search Geocoding (flyTo).
 
 function MapFlyTo({ center }: { center?: [number, number] }) {
   const map = useMap();
@@ -98,19 +83,20 @@ function MapFlyTo({ center }: { center?: [number, number] }) {
   return null;
 }
 
-function MapCustomFlyToListener() {
+function MapBounds({ properties, fingerprint }: { properties: any[], fingerprint?: string }) {
   const map = useMap();
   useEffect(() => {
-    const handleFlyTo = (event: Event) => {
-      const customEvent = event as CustomEvent<{ lat: number; lng: number }>;
-      const { lat, lng } = customEvent.detail;
-      if (lat && lng) {
-        map.flyTo([lat, lng], 14, { duration: 1.5, animate: true });
-      }
-    };
-    window.addEventListener('map-fly-to', handleFlyTo);
-    return () => window.removeEventListener('map-fly-to', handleFlyTo);
-  }, [map]);
+    if (!properties || properties.length === 0) return;
+    const validBounds = properties.filter(p => p.lat && p.lng);
+    if (validBounds.length === 0) return;
+
+    import('leaflet').then(L => {
+      const bounds = L.latLngBounds(validBounds.map(p => [p.lat, p.lng] as [number, number]));
+      // To ensure that search hits fit into the map gracefully
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, animate: true, duration: 1 });
+    });
+  }, [fingerprint, map]); // Execute whenever fingerprint changes (new text search)
+
   return null;
 }
 
@@ -311,15 +297,23 @@ function CustomMapControls() {
 }
 
 function HazardMapControls({ 
-  mode, 
-  setMode,
+  showFlood,
+  setShowFlood,
+  showLandslide,
+  setShowLandslide,
   showRailways,
-  setShowRailways
+  setShowRailways,
+  mapMoved,
+  onSearchAreaClick
 }: { 
-  mode: 'OFF' | 'FLOOD' | 'LANDSLIDE', 
-  setMode: (m: 'OFF' | 'FLOOD' | 'LANDSLIDE') => void,
-  showRailways: boolean,
-  setShowRailways: (v: boolean) => void
+  showFlood: boolean;
+  setShowFlood: (v: boolean) => void;
+  showLandslide: boolean;
+  setShowLandslide: (v: boolean) => void;
+  showRailways: boolean;
+  setShowRailways: (v: boolean) => void;
+  mapMoved?: boolean;
+  onSearchAreaClick?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -337,7 +331,7 @@ function HazardMapControls({
 
   return (
     <div 
-      className="absolute top-6 right-4 lg:right-6 z-[1000] pointer-events-auto flex flex-col items-end gap-2"
+      className="absolute top-14 right-4 lg:right-6 z-[1000] pointer-events-auto flex flex-col items-end gap-2"
       onDoubleClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseUp={(e) => e.stopPropagation()}
@@ -348,10 +342,11 @@ function HazardMapControls({
       <div className="bg-white/90 backdrop-blur-md border border-zinc-200 shadow-lg rounded-lg overflow-hidden p-[3px] flex flex-col transition-all gap-[1px]">
         <button 
           onClick={() => {
-            setMode('OFF');
+            setShowFlood(false);
+            setShowLandslide(false);
             setShowRailways(false);
           }}
-          className={`px-1.5 py-1 text-[9px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 ${(mode === 'OFF' && !showRailways) ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5'} w-full text-center`}
+          className={`px-1.5 py-1 text-[9px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 ${(!showFlood && !showLandslide && !showRailways) ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800 hover:bg-black/5'} w-full text-center`}
           title="Tất cả OFF"
         >
           OFF
@@ -360,30 +355,46 @@ function HazardMapControls({
         <div className="w-full h-[1px] bg-zinc-200" />
 
         <button 
-          onClick={() => setMode('FLOOD')}
-          className={`px-1.5 py-1 text-[9px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${mode === 'FLOOD' ? 'bg-blue-600 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-black/5'} w-full`}
+          onClick={() => setShowFlood(!showFlood)}
+          className={`px-1.5 py-1 text-[9px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${showFlood ? 'bg-blue-600 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-black/5'} w-full`}
         >
-          <span className={`text-[11px] leading-none flex-shrink-0 ${mode === 'FLOOD' ? '' : 'grayscale opacity-70'}`}>🌊</span> 洪水
+          <span className={`text-[11px] leading-none flex-shrink-0 ${showFlood ? '' : 'grayscale opacity-70'}`}>🌊</span> 洪水
         </button>
 
         <button 
-          onClick={() => setMode('LANDSLIDE')}
-          className={`px-1.5 py-1 text-[9px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${mode === 'LANDSLIDE' ? 'bg-orange-600 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-black/5'} w-full`}
+          onClick={() => setShowLandslide(!showLandslide)}
+          className={`px-1.5 py-1 text-[9px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${showLandslide ? 'bg-orange-600 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-black/5'} w-full`}
         >
-          <span className={`text-[11px] leading-none flex-shrink-0 ${mode === 'LANDSLIDE' ? '' : 'grayscale opacity-70'}`}>⛰️</span> 土砂災害
+          <span className={`text-[11px] leading-none flex-shrink-0 ${showLandslide ? '' : 'grayscale opacity-70'}`}>⛰️</span> 土砂災害
         </button>
 
         <div className="w-full h-[1px] bg-zinc-200" />
 
         <button 
           onClick={() => setShowRailways(!showRailways)}
-          className={`px-1.5 py-1 text-[9px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${showRailways ? 'bg-emerald-600 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-black/5'} w-full`}
+          className={`px-1.5 py-1 text-[9px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 w-full ${showRailways && !mapMoved ? 'bg-emerald-600 text-white shadow-sm' : showRailways ? 'text-emerald-700 hover:bg-emerald-50' : 'text-zinc-600 hover:text-zinc-900 hover:bg-black/5'}`}
         >
           <span className={`text-[11px] leading-none flex-shrink-0 ${showRailways ? '' : 'grayscale opacity-70'}`}>🚃</span> 路線
         </button>
+
+        {mapMoved && (
+          <>
+            <div className="w-full h-[1px] bg-zinc-200" />
+            <button 
+              onClick={onSearchAreaClick}
+              className="px-1 py-1.5 flex items-center justify-center gap-[2px] bg-blue-600 text-white rounded-[4px] shadow-sm hover:bg-blue-700 transition-all w-full animate-in fade-in zoom-in duration-200"
+              title="このエリアを検索"
+            >
+              <svg className="w-[10px] h-[10px] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="text-[8px] font-bold tracking-tighter leading-none whitespace-nowrap pt-[1px]">エリアを検索</span>
+            </button>
+          </>
+        )}
       </div>
 
-      {mode === 'FLOOD' && (
+      {showFlood && (
         <div className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg rounded-xl p-3 w-48 text-xs animate-in slide-in-from-top-2 fade-in duration-200">
           <div className="font-bold text-zinc-800 mb-2 border-b pb-1">浸水想定区域 (最大規模)</div>
           <div className="flex flex-col gap-1.5">
@@ -397,7 +408,7 @@ function HazardMapControls({
         </div>
       )}
 
-      {mode === 'LANDSLIDE' && (
+      {showLandslide && (
         <div className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg rounded-xl p-3 w-48 text-xs animate-in slide-in-from-top-2 fade-in duration-200">
           <div className="font-bold text-zinc-800 mb-2 border-b pb-1">土砂災害警戒区域</div>
           <div className="flex flex-col gap-1.5">
@@ -425,10 +436,14 @@ export default function KeibaiMapInner({
   onMarkerClick,
   onMarkerHover,
   onBoundsChanged,
-  center
+  center,
+  filterFingerprint,
+  mapMoved,
+  onSearchAreaClick
 }: KeibaiMapProps) {
   const router = useRouter();
-  const [hazardMode, setHazardMode] = useState<'OFF' | 'FLOOD' | 'LANDSLIDE'>('OFF');
+  const [showFlood, setShowFlood] = useState(false);
+  const [showLandslide, setShowLandslide] = useState(false);
   const [showRailways, setShowRailways] = useState(true);
 
   useEffect(() => {
@@ -609,13 +624,17 @@ export default function KeibaiMapInner({
         className="w-full h-full relative z-0"
       >
         <MapResizeObserver />
-        <MapCustomFlyToListener />
+        <MapBounds properties={properties} fingerprint={filterFingerprint} />
         <CustomMapControls />
         <HazardMapControls 
-          mode={hazardMode} 
-          setMode={setHazardMode} 
+          showFlood={showFlood}
+          setShowFlood={setShowFlood}
+          showLandslide={showLandslide}
+          setShowLandslide={setShowLandslide}
           showRailways={showRailways}
           setShowRailways={setShowRailways}
+          mapMoved={mapMoved}
+          onSearchAreaClick={onSearchAreaClick}
         />
 
         {/* Base Map Layers */}
@@ -633,7 +652,7 @@ export default function KeibaiMapInner({
         )}
 
         {/* Dynamic GSI Hazard Map Layers */}
-        {hazardMode === 'FLOOD' && (
+        {showFlood && (
            <TileLayer 
               url="https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png"
               opacity={0.6}
@@ -643,7 +662,7 @@ export default function KeibaiMapInner({
               keepBuffer={2}
            />
         )}
-        {hazardMode === 'LANDSLIDE' && (
+        {showLandslide && (
            <TileLayer 
               url="https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png"
               opacity={0.6}

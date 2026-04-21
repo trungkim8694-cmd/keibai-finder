@@ -34,23 +34,6 @@ export default function DashboardPage() {
   const [isFlying, setIsFlying] = useState(false);
 
   useEffect(() => {
-    const handleFlyToTrigger = () => {
-      isAutoFly.current = true;
-      setIsFlying(true); // Suspend SWR queries
-      
-      // Fallback: If moveend never fires (map error), release suspension after 5s
-      setTimeout(() => {
-         if (isAutoFly.current) {
-            isAutoFly.current = false;
-            setIsFlying(false);
-         }
-      }, 5000);
-    };
-    window.addEventListener('map-fly-to', handleFlyToTrigger);
-    return () => window.removeEventListener('map-fly-to', handleFlyToTrigger);
-  }, []);
-
-  useEffect(() => {
     setIsHydrated(true);
 
     getAreaStats().then(setAreaStats).catch(console.error);
@@ -150,21 +133,8 @@ export default function DashboardPage() {
   const handleMoveEnd = useCallback((newBounds: BoundingBox) => {
     setBounds(newBounds);
     
-    if (isAutoFly.current) {
-      // Consume the auto-fly event
-      isAutoFly.current = false;
-      setIsFlying(false); // Resume SWR queries with the new bounds!
-
-      setCurrentFilters(f => {
-         const newF = { ...f, bounds: newBounds }; 
-         delete newF.lat; delete newF.lng;
-         return newF;
-      });
-      setMapMoved(false);
-    } else {
-      // Normal manual panning: wait for user to click 'Search this area'
-      setMapMoved(true);
-    }
+    // Normal manual panning: wait for user to click 'Search this area'
+    setMapMoved(true);
   }, []);
 
   const handleSearchThisArea = () => {
@@ -282,17 +252,6 @@ export default function DashboardPage() {
 
         {/* Map Panel */}
         <div className={`flex-1 relative bg-zinc-200 dark:bg-zinc-800 ${viewMode === 'list' ? 'hidden md:block' : 'block'}`}>
-          {mapMoved && (
-            <button 
-              onClick={handleSearchThisArea} 
-              className="absolute top-[68px] lg:top-6 left-1/2 transform -translate-x-1/2 z-[1000] bg-white text-blue-600 px-3 py-1.5 text-[11px] rounded-full font-bold shadow-md hover:bg-blue-50 hover:scale-105 transition-all flex items-center gap-1.5"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              このエリアを検索
-            </button>
-          )}
           <KeibaiMap 
              mode="list"
              properties={mapProperties} 
@@ -303,6 +262,8 @@ export default function DashboardPage() {
              onMarkerHover={setHoveredPropertyId}
              onMarkerClick={handlePropertyClick}
              filterFingerprint={filterFingerprint}
+             mapMoved={mapMoved}
+             onSearchAreaClick={handleSearchThisArea}
           />
         </div>
       

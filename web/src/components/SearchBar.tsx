@@ -97,46 +97,11 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
     }, 300);
     return () => clearTimeout(timer);
   }, [keyword]);
-  // --- GSI GEOCODING REUSABLE ENGINE ---
-  const tryGeocodeAndFly = async (kw: string): Promise<boolean> => {
-      try {
-         const encoded = encodeURIComponent(kw.trim());
-         const res = await fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encoded}`);
-         if (res.ok) {
-           const data = await res.json();
-           if (data && data.length > 0) {
-             const coords = data[0]?.geometry?.coordinates;
-             if (coords && coords.length === 2) {
-                const lng = coords[0];
-                const lat = coords[1];
-                window.dispatchEvent(new CustomEvent('map-fly-to', { detail: { lat, lng } }));
-                return true;
-             }
-           }
-         }
-      } catch (e) {
-         console.warn("GSI Geocoding API failed", e);
-      }
-      return false;
-  };
-
-  const handleSuggestionSelect = async (sugg: SearchSuggestion) => {
+  const handleSuggestionSelect = (sugg: SearchSuggestion) => {
     setKeyword(sugg.text);
     setIsSuggestionsOpen(false);
     
-    // Attempt Geocoding immediately!
-    const geocoded = await tryGeocodeAndFly(sugg.text);
-    if (geocoded) {
-        // Dispatch search with clean filters (only types, isClosingSoon, providers, sort).
-        // The DB text filters are bypassed so the Map Bounds handle everything!
-        const cleanFilters = { types, isClosingSoon, providers, sort, bounds: undefined };
-        onSearch(cleanFilters);
-        setMobileFiltersOpen(false);
-        setIsExpanded(false);
-        return;
-    }
-    
-    // Fallback: If Geocoding fails (e.g. obscure LINE name), default to structural DB text search.
+    // Explicit Database Text Filter Fallback
     const overrides: any = { keyword: sugg.text };
     if (sugg.type === 'STATION') overrides.stationName = sugg.text;
     else if (sugg.type === 'CITY' && sugg.subtext) overrides.prefecture = sugg.subtext;
@@ -280,25 +245,6 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
     };
 
     const finalFilters = { ...currentFilters, ...actualOverrides };
-    // --- GSI GEOCODING INTERCEPTOR ---
-    if (finalFilters.keyword && finalFilters.keyword.trim().length > 0) {
-       const geocoded = await tryGeocodeAndFly(finalFilters.keyword);
-       if (geocoded) {
-           // We MUST intercept and REMOVE any legacy text filters so the viewport handles it cleanly.
-           finalFilters.keyword = undefined;
-           finalFilters.stationName = undefined;
-           finalFilters.lineName = undefined;
-           finalFilters.prefecture = undefined;
-           
-           // We MUST call onSearch here so that any other structural dropdown filters (like 'House' or 'Price')
-           // are registered into currentFilters in page.tsx.
-           // It won't cause the 5s lag because isFlying=true suspends the DB fetch!
-           onSearch(finalFilters);
-           setMobileFiltersOpen(false);
-           setIsExpanded(false);
-           return;
-       }
-    }
 
     onSearch(finalFilters);
     setMobileFiltersOpen(false);
