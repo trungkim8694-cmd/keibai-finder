@@ -22,12 +22,10 @@ export default async function PrefectureSearchPage({ params }: { params: { prefe
   const decodedPref = decodeURIComponent(prefecture);
 
   // Fetch properties filtered by prefecture
-  const response = await getProperties({
+  const properties = await getProperties({
     prefecture: decodedPref,
     limit: 50
   });
-
-  const properties = response.properties || [];
 
   return (
     <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">
@@ -39,7 +37,7 @@ export default async function PrefectureSearchPage({ params }: { params: { prefe
           <h1 className="text-xl lg:text-2xl font-bold text-zinc-900 dark:text-white">
             📍 {decodedPref}の競売物件・公売物件
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">該当物件: {response.totalCount} 件</p>
+          <p className="text-sm text-zinc-500 mt-1">該当物件: {properties?.length || 0} 件</p>
         </div>
       </div>
 
