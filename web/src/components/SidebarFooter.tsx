@@ -11,19 +11,19 @@ export default function SidebarFooter() {
       {/* 0. Internal linking for Tools (NEW) */}
       <div className="mb-6 space-y-3 px-2">
         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">ツール (Tools)</h4>
-        <Link href="/" className="flex items-center gap-2 text-[12px] font-medium hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors group">
+        <Link href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors group">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/30">
             <span className="text-[12px] opacity-80 group-hover:opacity-100">🗺️</span>
           </div>
           日本全国の物件マップ検索
         </Link>
-        <Link href="/trade/find" className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
+        <Link href="/trade/find" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30">
             <span className="text-[12px] opacity-80 group-hover:opacity-100">⚖️</span>
           </div>
           不動産取引価格検索 (MLIT)
         </Link>
-        <Link href="/market-insights" className="flex items-center gap-2 text-[12px] font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group">
+        <Link href="/market-insights" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30">
             <span className="text-[12px] opacity-80 group-hover:opacity-100">📈</span>
           </div>
@@ -34,13 +34,13 @@ export default function SidebarFooter() {
       {/* 1. Internal linking for PR Features */}
       <div className="mb-6 space-y-3 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">機能紹介 (Features)</h4>
-        <Link href="/features/map-search" className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
+        <Link href="/features/map-search" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30">
             <Map className="w-3.5 h-3.5 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
           </div>
           地図検索機能について
         </Link>
-        <Link href="/features/trade-price-search" className="flex items-center gap-2 text-[12px] font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group">
+        <Link href="/features/trade-price-search" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30">
             <TrendingUp className="w-3.5 h-3.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
           </div>
@@ -56,6 +56,7 @@ export default function SidebarFooter() {
               <Link 
                 key={pref} 
                 href={`/search/area/${pref}`}
+                target="_blank" rel="noopener noreferrer"
                 className="text-[11px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-2 py-1 rounded-md transition-colors"
               >
                 {pref}の物件
@@ -68,21 +69,21 @@ export default function SidebarFooter() {
       <div className="mb-6 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
          <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2 flex items-center gap-1"><Globe className="w-3 h-3" /> 言語設定 (Languages)</h4>
          <div className="flex flex-wrap gap-2 text-[11px]">
-            <Link href="/" className="hover:text-blue-500 hover:underline">日本語</Link>
+            <Link href="/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 hover:underline">日本語</Link>
             <span className="text-zinc-300 dark:text-zinc-700">|</span>
-            <Link href="/en/features/trade-price-search" className="hover:text-blue-500 hover:underline">English</Link>
+            <Link href="/en/features/trade-price-search" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 hover:underline">English</Link>
             <span className="text-zinc-300 dark:text-zinc-700">|</span>
-            <Link href="/vi/features/trade-price-search" className="hover:text-blue-500 hover:underline">Tiếng Việt</Link>
+            <Link href="/vi/features/trade-price-search" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 hover:underline">Tiếng Việt</Link>
             <span className="text-zinc-300 dark:text-zinc-700">|</span>
-            <Link href="/zh/features/trade-price-search" className="hover:text-blue-500 hover:underline">中文</Link>
+            <Link href="/zh/features/trade-price-search" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 hover:underline">中文</Link>
          </div>
       </div>
 
       {/* 4. Copyright & Legal */}
       <div className="px-2 pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2">
          <div className="flex gap-4 text-[11px]">
-           <Link href="/terms" className="flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"><Shield className="w-3 h-3" /> 利用規約</Link>
-           <Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer">プライバシー</Link>
+           <Link href="/terms" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"><Shield className="w-3 h-3" /> 利用規約</Link>
+           <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer">プライバシー</Link>
          </div>
          <div className="text-[10px] text-zinc-400 dark:text-zinc-600 mt-1">
            © {currentYear} Keibai-Koubai Finder. All rights reserved. <br/>
