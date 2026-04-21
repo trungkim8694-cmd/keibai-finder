@@ -54,11 +54,12 @@ export default async function LineStationsPage({ params }: { params: { line: str
           <div className="flex flex-wrap gap-2">
             {lineData.stations.map((station) => (
               <Link 
-                href={`/search/station/${encodeURIComponent(decodedLine)}/${encodeURIComponent(station)}`} 
-                key={station}
-                className="bg-zinc-50 dark:bg-zinc-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-zinc-200 hover:border-emerald-300 dark:border-zinc-700 dark:hover:border-emerald-700 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-emerald-700 dark:hover:text-emerald-300 px-4 py-2 rounded-lg transition-all"
+                href={`/search/station/${encodeURIComponent(decodedLine)}/${encodeURIComponent(station.name)}`} 
+                key={station.name}
+                className="bg-zinc-50 dark:bg-zinc-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-zinc-200 hover:border-emerald-300 dark:border-zinc-700 dark:hover:border-emerald-700 text-sm py-2 px-4 rounded-lg transition-all flex items-center gap-2 group"
               >
-                {station}駅
+                <span className="font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-300">{station.name}駅</span>
+                <span className="text-xs bg-white dark:bg-zinc-900 text-zinc-400 group-hover:text-emerald-500 px-1.5 rounded">{station.count}件</span>
               </Link>
             ))}
           </div>

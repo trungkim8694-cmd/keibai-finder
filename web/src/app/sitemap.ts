@@ -163,7 +163,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Add individual station pages
     lineItem.stations.forEach(station => {
       stationRoutes.push({
-        url: `${baseUrl}/search/station/${encodeURIComponent(lineItem.line)}/${encodeURIComponent(station)}`,
+        url: `${baseUrl}/search/station/${encodeURIComponent(lineItem.line)}/${encodeURIComponent(station.name)}`,
         lastModified: new Date(),
         changeFrequency: 'daily' as const,
         priority: 0.7,

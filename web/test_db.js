@@ -1,16 +1,26 @@
 const { PrismaClient } = require('@prisma/client');
-const dayjs = require('dayjs');
-const utc = require('dayjs/plugin/utc');
-const timezone = require('dayjs/plugin/timezone');
-dayjs.extend(utc);
-dayjs.extend(timezone);
-
 const prisma = new PrismaClient();
-async function run() {
-  const p = await prisma.property.findUnique({ where: { sale_unit_id: '00000025168' } });
-  console.log("DB bid_end_date raw:", p.bid_end_date);
-  console.log("DB bid_end_date ISO:", p.bid_end_date.toISOString());
-  console.log("dayjs local format:", dayjs(p.bid_end_date).format('YYYY-MM-DD HH:mm:ss'));
-  console.log("dayjs Tokyo format:", dayjs(p.bid_end_date).tz('Asia/Tokyo').format('YYYY-MM-DD HH:mm:ss'));
+
+async function main() {
+  const c = await prisma.property.count({
+    where: {
+      status: 'ACTIVE',
+      line_name: 'IRいしかわ鉄道線'
+    }
+  });
+  console.log("Count ACTIVE for IRいしかわ鉄道線:", c);
+
+  const stats = await prisma.property.groupBy({
+        by: ['line_name', 'nearest_station'],
+        where: {
+          status: 'ACTIVE',
+          line_name: 'IRいしかわ鉄道線',
+          nearest_station: { not: null }
+        },
+        _count: {
+          _all: true
+        }
+      });
+  console.log("Stats:", stats);
 }
-run();
+main().catch(console.error).finally(() => prisma.$disconnect());

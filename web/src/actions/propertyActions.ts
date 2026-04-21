@@ -617,7 +617,7 @@ async function mapPropertiesWithStations(data: any[]) {
 export async function getRailLinesAndStations() {
     try {
       const data = await prisma.property.groupBy({
-        by: ['line_name', 'nearest_station'],
+        by: ['line_name', 'nearest_station', 'prefecture'],
         where: {
           status: 'ACTIVE',
           line_name: { not: null },
@@ -629,21 +629,36 @@ export async function getRailLinesAndStations() {
       });
 
       // Group stations by line
-      const aggregated: Record<string, { count: number, stations: string[] }> = {};
+      const aggregated: Record<string, { count: number, prefectures: Set<string>, stations: { name: string, count: number }[] }> = {};
+      
       for (const item of data) {
         const line = (item as any).line_name;
-        const station = (item as any).nearest_station;
+        const rawStation = (item as any).nearest_station;
         const count = item._count._all;
+        const prefecture = (item as any).prefecture;
         
-        if (line && station) {
+        if (line && rawStation) {
+          // 1. Parse Pure Station Name from "LineName / StationName 徒歩X分 (Y km)"
+          const withoutWalk = rawStation.split(' 徒歩')[0]; // Removes " 徒歩X分 (Y km)"
+          const parts = withoutWalk.split(' / '); // Splits "LineName / StationName"
+          const pureStation = parts[parts.length - 1].trim(); // Takes "StationName"
+
           if (!aggregated[line]) {
-            aggregated[line] = { count: 0, stations: [] };
+            aggregated[line] = { count: 0, prefectures: new Set<string>(), stations: [] };
           }
           aggregated[line].count += count;
           
-          // Assuming nearest_station represents the pure station name now
-          if (!aggregated[line].stations.includes(station)) {
-            aggregated[line].stations.push(station);
+          if (prefecture) {
+             aggregated[line].prefectures.add(prefecture);
+          }
+          
+          if (pureStation) {
+            const existingStation = aggregated[line].stations.find(s => s.name === pureStation);
+            if (existingStation) {
+              existingStation.count += count;
+            } else {
+              aggregated[line].stations.push({ name: pureStation, count: count });
+            }
           }
         }
       }
@@ -652,7 +667,8 @@ export async function getRailLinesAndStations() {
       const results = Object.keys(aggregated).map(line => ({
         line,
         count: aggregated[line].count,
-        stations: aggregated[line].stations.sort()
+        prefectures: Array.from(aggregated[line].prefectures),
+        stations: aggregated[line].stations.sort((a, b) => a.name.localeCompare(b.name))
       })).sort((a,b) => a.line.localeCompare(b.line));
 
       return results;

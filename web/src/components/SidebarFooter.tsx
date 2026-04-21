@@ -8,15 +8,49 @@ export default function SidebarFooter() {
   return (
     <div className="mt-8 pt-6 pb-2 border-t border-zinc-200/60 dark:border-zinc-800/60 text-zinc-500 dark:text-zinc-500">
       
-      {/* 0. Internal linking for Tools (NEW) */}
+      {/* 1. SEO Links for Areas & Stations (Silo Directories Gateways) - MOVED TO TOP */}
       <div className="mb-6 space-y-3 px-2">
+         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">ディレクトリ (Directories)</h4>
+         <div className="flex flex-col gap-2">
+            <Link 
+              href="/"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[12px] bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg transition-colors font-medium border border-blue-100 dark:border-blue-900/30"
+            >
+              <div className="w-5 h-5 rounded-md bg-white dark:bg-blue-800/50 flex items-center justify-center">
+                <Map className="w-3 h-3 text-blue-500" />
+              </div>
+              日本全国の物件マップ検索
+            </Link>
+
+            <Link 
+              href="/search/area"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[12px] bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-3 py-2 rounded-lg transition-colors font-medium border border-rose-100 dark:border-rose-900/30"
+            >
+              <div className="w-5 h-5 rounded-md bg-white dark:bg-rose-800/50 flex items-center justify-center">
+                <MapPin className="w-3 h-3 text-rose-500" />
+              </div>
+              地域・エリアから探す
+            </Link>
+            
+            <Link 
+              href="/search/station"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[12px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-3 py-2 rounded-lg transition-colors font-medium border border-emerald-100 dark:border-emerald-900/30"
+            >
+              <div className="w-5 h-5 rounded-md bg-white dark:bg-emerald-800/50 flex items-center justify-center">
+                <TramFront className="w-3 h-3 text-emerald-500" />
+              </div>
+              路線・駅から探す
+            </Link>
+         </div>
+      </div>
+
+      {/* 2. Internal linking for Tools */}
+      <div className="mb-6 space-y-3 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">ツール (Tools)</h4>
-        <Link href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors group">
-          <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/30">
-            <span className="text-[12px] opacity-80 group-hover:opacity-100">🗺️</span>
-          </div>
-          日本全国の物件マップ検索
-        </Link>
+
         <Link href="/trade/find" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30">
             <span className="text-[12px] opacity-80 group-hover:opacity-100">⚖️</span>
@@ -31,7 +65,7 @@ export default function SidebarFooter() {
         </Link>
       </div>
 
-      {/* 1. Internal linking for PR Features (Matrix Design) */}
+      {/* 3. Internal linking for PR Features (Matrix Design) */}
       <div className="mb-6 space-y-4 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">機能紹介 (FEATURES & LANGUAGES)</h4>
         
@@ -68,35 +102,7 @@ export default function SidebarFooter() {
         </div>
       </div>
 
-      {/* 2. SEO Links for Areas & Stations (Silo Directories Gateways) */}
-      <div className="mb-6 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
-         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">ディレクトリ (Directories)</h4>
-         <div className="flex flex-col gap-2">
-            <Link 
-              href="/search/area"
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-[12px] bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-3 py-2 rounded-lg transition-colors font-medium border border-rose-100 dark:border-rose-900/30"
-            >
-              <div className="w-5 h-5 rounded-md bg-white dark:bg-rose-800/50 flex items-center justify-center">
-                <MapPin className="w-3 h-3 text-rose-500" />
-              </div>
-              地域・エリアから探す
-            </Link>
-            
-            <Link 
-              href="/search/station"
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-[12px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-3 py-2 rounded-lg transition-colors font-medium border border-emerald-100 dark:border-emerald-900/30"
-            >
-              <div className="w-5 h-5 rounded-md bg-white dark:bg-emerald-800/50 flex items-center justify-center">
-                <TramFront className="w-3 h-3 text-emerald-500" />
-              </div>
-              路線・駅から探す
-            </Link>
-         </div>
-      </div>
-
-      {/* 3. Copyright & Legal */}
+      {/* 4. Copyright & Legal */}
       <div className="px-2 pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2">
          <div className="flex gap-4 text-[11px]">
            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"><Shield className="w-3 h-3" /> 利用規約</Link>

@@ -3,6 +3,7 @@ import { getAreaStats } from '@/actions/propertyActions';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { MapPin } from 'lucide-react';
+import AreaSearchFilter from '@/components/AreaSearchFilter';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -41,34 +42,7 @@ export default async function AreaIndexPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          {REGIONS.map(region => (
-            <div key={region.name} className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
-              <h2 className="text-lg font-bold mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3">{region.name}</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {region.prefs.map(pref => {
-                  const count = areaStats[pref] || 0;
-                  return (
-                    <Link 
-                      key={pref}
-                      href={`/search/area/${encodeURIComponent(pref)}`}
-                      className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/20 px-3 py-2 border border-zinc-200 dark:border-zinc-700 hover:border-rose-300 dark:hover:border-rose-700 rounded-lg transition-colors group"
-                    >
-                      <span className="font-medium text-sm text-zinc-700 dark:text-zinc-300 group-hover:text-rose-700 dark:group-hover:text-rose-300">
-                        {pref}
-                      </span>
-                      <span className="text-xs text-zinc-400 group-hover:text-rose-500">
-                        {count}件
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AreaSearchFilter areaStats={areaStats} regions={REGIONS} />
     </div>
   );
 }
