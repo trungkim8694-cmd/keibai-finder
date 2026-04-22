@@ -55,7 +55,12 @@ echo "--------------------------------------------------"
 echo "5. Dọn dẹp hình ảnh Supabase Storage (cleanup_property_images.py)"
 python3 cleanup_property_images.py --delete || echo "⚠️ Lỗi khi dọn dẹp Storage (sẽ bỏ qua để không lỗi toàn bộ tiến trình)"
 
+# 6. Viết Báo Cáo Phân Tích (Daily Digest) bằng AI Gemini
+echo "--------------------------------------------------"
+echo "6. Sinh bản tin AI Daily Digest (ai_seo_writer.py)"
+python3 ai_seo_writer.py || echo "⚠️ Lỗi khi sinh bài AI. Sẽ bỏ qua để không sập tiến trình."
+
 echo "=================================================="
 echo "✅ HOÀN THÀNH CRAWLER HÀNG NGÀY LÚC $(date)"
-python3 /app/crawler/telegram_notify.py "🏠 <b>Keibai Finder - Daily Report</b>\n📅 $(date +'%Y-%m-%d %H:%M JST')\nToàn bộ dữ liệu BIT/NTA và Kết quả đấu giá đã được cập nhật. Dọn dẹp Storage hoàn tất."
+python3 /app/crawler/telegram_notify.py "🏠 <b>Keibai Finder - Daily Report</b>\n📅 $(date +'%Y-%m-%d %H:%M JST')\nToàn bộ dữ liệu BIT/NTA và Kết quả đấu giá đã cập nhật. Đã sinh Bản Tin Insights."
 echo "=================================================="
