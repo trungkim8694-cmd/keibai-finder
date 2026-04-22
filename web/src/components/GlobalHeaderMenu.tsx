@@ -87,6 +87,13 @@ export default function GlobalHeaderMenu() {
                   </div>
                   市場分析ダッシュボード
                 </Link>
+                
+                <Link href="/insights" onClick={() => setIsOpen(false)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-bold text-amber-600 dark:text-amber-500 hover:text-amber-700 dark:hover:text-amber-400 transition-colors group p-1 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/30">
+                  <div className="w-6 h-6 shrink-0 rounded-md bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-[12px] opacity-100">⚡</span>
+                  </div>
+                  本日の市場分析
+                </Link>
               </div>
             </div>
 
@@ -125,9 +132,13 @@ export default function GlobalHeaderMenu() {
               </div>
             </div>
 
-            {/* Legal */}
+            {/* Legal & Contact */}
             <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2">
-              <div className="flex gap-4 text-[11px]">
+              <div className="text-[11px] text-zinc-500 dark:text-zinc-500 font-medium leading-relaxed">
+                日本Office: 東京都豊島区南池袋２丁目３３<br/>
+                Email: <a href="mailto:info@keibai-koubai.com" className="hover:text-blue-600 transition-colors">info@keibai-koubai.com</a>
+              </div>
+              <div className="flex gap-4 text-[11px] mt-1">
                 <Link onClick={() => setIsOpen(false)} href="/terms" className="flex items-center gap-1 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-300"><Shield className="w-3 h-3" /> 利用規約</Link>
                 <Link onClick={() => setIsOpen(false)} href="/privacy" className="hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-300">プライバシー</Link>
               </div>

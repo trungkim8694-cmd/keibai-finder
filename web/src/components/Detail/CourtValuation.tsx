@@ -41,10 +41,12 @@ export function CourtValuation({
       const elapsed = now - start;
       progressPercent = Math.min(Math.max((elapsed / total) * 100, 0), 100);
       
-      const endDay = dayjs.utc(endDate).startOf('day').valueOf();
-      const nowDay = dayjs().startOf('day').valueOf();
-      diffDays = Math.ceil((endDay - nowDay) / (1000 * 60 * 60 * 24));
-      if (diffDays < 0) isExpired = true;
+      const endDay = dayjs.utc(endDate).startOf('day');
+      // Normalize today to UTC for proper day diff comparison
+      const nowDay = dayjs().utc().startOf('day');
+      diffDays = endDay.diff(nowDay, 'day');
+      
+      if (diffDays <= -1) isExpired = true;
   }
   const isUrgent = diffDays <= 5 && diffDays >= 0;
   const isCritical = diffDays <= 2 && diffDays >= 0;

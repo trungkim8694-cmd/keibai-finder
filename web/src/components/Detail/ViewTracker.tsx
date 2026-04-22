@@ -28,6 +28,7 @@ export function ViewTracker({ id, label, image }: { id: string, label: string, i
       // Slice max 20
       if (historyObj.length > 20) historyObj = historyObj.slice(0, 20);
       localStorage.setItem('keibai_history', JSON.stringify(historyObj));
+      window.dispatchEvent(new Event('keibai_history_update'));
 
       // Check if viewed in the last 30 minutes (30 * 60 * 1000 = 1800000ms)
       if (!lastViewed || (now - parseInt(lastViewed, 10) > 1800000)) {

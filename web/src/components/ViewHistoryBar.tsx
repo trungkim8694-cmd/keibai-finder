@@ -6,11 +6,26 @@ export default function ViewHistoryBar() {
    const [history, setHistory] = useState<any[]>([]);
    const [isOpen, setIsOpen] = useState(false);
 
-   useEffect(() => {
+   // Handle History sync
+   const syncHistory = () => {
      try {
        const h = JSON.parse(localStorage.getItem('keibai_history') || '[]');
        setHistory(h);
      } catch(e){}
+   };
+
+   useEffect(() => {
+     syncHistory();
+     // Listen for custom dispatch from ViewTracker
+     window.addEventListener('keibai_history_update', syncHistory);
+     // Optional: Listen to native storage events if opened in multi-tabs
+     window.addEventListener('storage', (e) => {
+       if(e.key === 'keibai_history') syncHistory();
+     });
+     return () => {
+       window.removeEventListener('keibai_history_update', syncHistory);
+       window.removeEventListener('storage', syncHistory);
+     };
    }, []);
 
    if (history.length === 0) return null;

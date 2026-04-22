@@ -50,7 +50,12 @@ echo "--------------------------------------------------"
 echo "4. Phân tích MLIT Gap Toàn diện (mlit_calculator.py)"
 python3 mlit_calculator.py || handle_error "mlit_calculator.py"
 
+# 5. Dọn dẹp Supabase Storage (Xóa hình ảnh rác)
+echo "--------------------------------------------------"
+echo "5. Dọn dẹp hình ảnh Supabase Storage (cleanup_property_images.py)"
+python3 cleanup_property_images.py --delete || echo "⚠️ Lỗi khi dọn dẹp Storage (sẽ bỏ qua để không lỗi toàn bộ tiến trình)"
+
 echo "=================================================="
 echo "✅ HOÀN THÀNH CRAWLER HÀNG NGÀY LÚC $(date)"
-python3 /app/crawler/telegram_notify.py "🏠 <b>Keibai Finder - Daily Report</b>\n📅 $(date +'%Y-%m-%d %H:%M JST')\nToàn bộ dữ liệu BIT/NTA và Kết quả đấu giá đã được cập nhật thành công lên hệ thống."
+python3 /app/crawler/telegram_notify.py "🏠 <b>Keibai Finder - Daily Report</b>\n📅 $(date +'%Y-%m-%d %H:%M JST')\nToàn bộ dữ liệu BIT/NTA và Kết quả đấu giá đã được cập nhật. Dọn dẹp Storage hoàn tất."
 echo "=================================================="

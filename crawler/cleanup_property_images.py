@@ -37,36 +37,55 @@ def get_active_ids():
     return ids
 
 def delete_supabase_folder(bucket_name, folder_path):
-    # Supabase storage API `remove` requires exact file paths,
-    # so we must list all files in the folder and delete them.
-    res = supabase.storage.from_(bucket_name).list(folder_path)
-    if not res: return
-    
-    files_to_remove = [f"{folder_path}/{item['name']}" for item in res if item['name'] != '.emptyFolderPlaceholder']
-    if files_to_remove:
-        supabase.storage.from_(bucket_name).remove(files_to_remove)
+    limit = 1000
+    offset = 0
+    all_files = []
+    while True:
+        res = supabase.storage.from_(bucket_name).list(folder_path, {"limit": limit, "offset": offset})
+        if not res: break
+        count = len(res)
+        all_files.extend([f"{folder_path}/{item['name']}" for item in res if item['name'] != '.emptyFolderPlaceholder'])
+        if count < limit: break
+        offset += limit
+        
+    if all_files:
+        supabase.storage.from_(bucket_name).remove(all_files)
+
+def get_all_folders(bucket_name, path=""):
+    limit = 500
+    offset = 0
+    all_folders = []
+    while True:
+        res = supabase.storage.from_(bucket_name).list(path, {"limit": limit, "offset": offset})
+        if not res: break
+        count = len(res)
+        all_folders.extend(res)
+        if count < limit: break
+        offset += limit
+    return all_folders
 
 def main():
-    print("=== Supabase Storage Cleanup ===")
+    print("=== Supabase Storage Cleanup (Paginated) ===")
     
     active_ids = get_active_ids()
     print(f"🗃️  Total ACTIVE properties in DB: {len(active_ids)}")
 
     # 1. Clean properties/ folders
     print("\n[1] Checking 'properties/' folder...")
-    prop_folders = supabase.storage.from_(STORAGE_BUCKET).list("properties")
+    prop_folders = get_all_folders(STORAGE_BUCKET, "properties")
     orphaned_props = []
     if prop_folders:
         for f in prop_folders:
             folder_name = f['name']
-            if folder_name not in active_ids:
+            if folder_name not in active_ids and folder_name != '.emptyFolderPlaceholder':
                 orphaned_props.append(folder_name)
     
+    print(f"Total folders found: {len(prop_folders)}")
     print(f"🗑️  Orphaned properties/ folders: {len(orphaned_props)}")
 
     # 2. Clean pdfs/ files
     print("\n[2] Checking 'pdfs/' folder...")
-    pdf_files = supabase.storage.from_(STORAGE_BUCKET).list("pdfs")
+    pdf_files = get_all_folders(STORAGE_BUCKET, "pdfs")
     orphaned_pdfs = []
     if pdf_files:
         for f in pdf_files:

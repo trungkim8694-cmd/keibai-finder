@@ -102,9 +102,25 @@ export default function SidebarFooter() {
         </div>
       </div>
 
-      {/* 4. Copyright & Legal */}
+      {/* 4. Market Insights (Daily Digest static links for SEO) */}
+      <div className="mb-6 space-y-3 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
+        <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">🔥 今日の掘り出し物 (INSIGHTS)</h4>
+        
+        <Link href="/insights" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors group">
+          <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-amber-50 dark:group-hover:bg-amber-900/30">
+            <span className="text-[12px] opacity-80 group-hover:opacity-100">📰</span>
+          </div>
+          <span className="line-clamp-1">すべての市場レポートを見る</span>
+        </Link>
+      </div>
+
+      {/* 5. Copyright & Legal */}
       <div className="px-2 pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2">
-         <div className="flex gap-4 text-[11px]">
+         <div className="text-[11px] text-zinc-500 dark:text-zinc-500 font-medium leading-relaxed">
+           日本Office: 東京都豊島区南池袋２丁目３３<br/>
+           Email: <a href="mailto:info@keibai-koubai.com" className="hover:text-blue-600 transition-colors">info@keibai-koubai.com</a>
+         </div>
+         <div className="flex gap-4 text-[11px] mt-1">
            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"><Shield className="w-3 h-3" /> 利用規約</Link>
            <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer">プライバシー</Link>
          </div>

@@ -2,43 +2,32 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// generator py {
-//   provider             = "prisma-client-py"
-//   interface            = "asyncio"
-//   recursive_type_depth = 5
-// }
-
 datasource db {
   provider = "postgresql"
 }
 
 model Property {
-  sale_unit_id   String            @id
-  source_provider String           @default("BIT")
-  source_url     String?
-  court_name     String
-  property_type  String
-  address        String
-  prefecture     String?
-  city           String?
-  lat            Float?
-  lng            Float?
-  starting_price BigInt?
-  status         String            @default("ACTIVE")
-  views          Int               @default(dbgenerated("floor(random() * 601 + 200)::int"))
-  thumbnailUrl   String?
-  pdf_url        String?
-  raw_display_data Json?
-  raw_text       String?           @db.Text
-  ai_analysis    Json?
-  ai_status      String?           @default("PENDING_AI")
-  build_year_western Int?
-  images         String[]
-  
-  mlit_estimated_price BigInt?
-  mlit_investment_gap  Float?
-
-  
+  sale_unit_id         String            @id
+  source_provider      String            @default("BIT")
+  source_url           String?
+  court_name           String
+  property_type        String
+  address              String
+  prefecture           String?
+  city                 String?
+  lat                  Float?
+  lng                  Float?
+  starting_price       BigInt?
+  status               String            @default("ACTIVE")
+  views                Int               @default(dbgenerated("(floor(((random() * (601)::double precision) + (200)::double precision)))::integer"))
+  thumbnailUrl         String?
+  pdf_url              String?
+  raw_display_data     Json?
+  raw_text             String?
+  ai_analysis          Json?
+  ai_status            String?           @default("PENDING_AI")
+  build_year_western   Int?
+  images               String[]
   area                 Float?
   bid_start_date       DateTime?
   bid_end_date         DateTime?
@@ -47,12 +36,12 @@ model Property {
   nearest_station      String?
   distance_to_station  Int?
   walk_time_to_station Int?
-  created_at     DateTime          @default(now())
-  updated_at     DateTime          @updatedAt
-  
-  // Relations
-  auction_events AuctionSchedule[]
-  auction_history AuctionHistory[]
+  created_at           DateTime          @default(now())
+  updated_at           DateTime          @updatedAt
+  mlit_estimated_price BigInt?
+  mlit_investment_gap  Float?
+  auction_history      AuctionHistory[]
+  auction_events       AuctionSchedule[]
 
   @@index([lat, lng])
   @@index([prefecture])
@@ -63,49 +52,46 @@ model Property {
   @@index([nearest_station])
   @@index([walk_time_to_station])
   @@index([managing_authority])
-  @@index([mlit_investment_gap])
   @@index([views])
   @@index([created_at])
+  @@index([mlit_investment_gap], map: "idx_property_mlit_gap")
 }
 
 model AuctionHistory {
-  id             String   @id @default(uuid())
-  sale_unit_id   String
-  price          BigInt?
-  round_name     String?
-  drop_percent   Float?
-  discovered_at  DateTime @default(now())
-  
-  property       Property @relation(fields: [sale_unit_id], references: [sale_unit_id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  sale_unit_id  String
+  price         BigInt?
+  round_name    String?
+  drop_percent  Float?
+  discovered_at DateTime @default(now())
+  property      Property @relation(fields: [sale_unit_id], references: [sale_unit_id], onDelete: Cascade)
 }
 
 model AuctionSchedule {
-  id               String   @id @default(uuid())
-  sale_unit_id     String
-  bid_start_date   DateTime?
-  bid_end_date     DateTime?
-  open_date        DateTime?
-  
-  // Relation
-  property         Property @relation(fields: [sale_unit_id], references: [sale_unit_id], onDelete: Cascade)
+  id             String    @id @default(uuid())
+  sale_unit_id   String
+  bid_start_date DateTime?
+  bid_end_date   DateTime?
+  open_date      DateTime?
+  property       Property  @relation(fields: [sale_unit_id], references: [sale_unit_id], onDelete: Cascade)
 }
 
 model AuctionResult {
-  id              String    @id @default(uuid())
-  sale_unit_id    String?   @unique
-  caseNumber      String
-  address         String?
-  lat             Float?
-  lng             Float?
-  basePrice       BigInt?
-  winningPrice    BigInt?
-  bidderCount     Int?
-  winnerType      String?
-  marginRate      Float?
+  id               String    @id @default(uuid())
+  sale_unit_id     String?   @unique
+  caseNumber       String
+  address          String?
+  lat              Float?
+  lng              Float?
+  basePrice        BigInt?
+  winningPrice     BigInt?
+  bidderCount      Int?
+  winnerType       String?
+  marginRate       Float?
   competitionLevel String?
-  completionDate  DateTime?
-  raw_data        Json?
-  created_at      DateTime  @default(now())
+  completionDate   DateTime?
+  raw_data         Json?
+  created_at       DateTime  @default(now())
 
   @@index([lat, lng])
 }
@@ -121,42 +107,35 @@ model RailwayStation {
   @@index([lat, lng])
 }
 
-// ==========================================
-// User Authentication (NextAuth / Auth.js)
-// ==========================================
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?    @unique
   emailVerified DateTime?
   image         String?
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
   accounts      Account[]
-  sessions      Session[]
-  
-  // Custom Relations
-  favorites     Favorite[]
-  memos         UserMemo[]
   comments      Comment[]
-
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  favorites     Favorite[]
+  sessions      Session[]
+  memos         UserMemo[]
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -177,16 +156,13 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ==========================================
-// Keibai User Features
-// ==========================================
 model Favorite {
   id           String   @id @default(cuid())
   userId       String
   sale_unit_id String
   created_at   DateTime @default(now())
-  
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, sale_unit_id])
 }
 
@@ -194,11 +170,11 @@ model UserMemo {
   id           String   @id @default(cuid())
   userId       String
   sale_unit_id String
-  content      String   @db.Text
+  content      String
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
-  
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, sale_unit_id])
 }
 
@@ -206,15 +182,11 @@ model Comment {
   id           String   @id @default(cuid())
   userId       String
   sale_unit_id String
-  content      String   @db.Text
+  content      String
   created_at   DateTime @default(now())
-  
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ==========================================
-// MLIT External Data Cache
-// ==========================================
 model MlitMarketCache {
   id               String   @id @default(cuid())
   municipalityCode String
@@ -223,9 +195,37 @@ model MlitMarketCache {
   avgTradePrice    BigInt?
   avgPricePerSqm   BigInt?
   avgArea          Float?
-  transactions     Json?    
+  transactions     Json?
   last_fetched_at  DateTime @default(now())
 
   @@unique([municipalityCode, propertyType, year])
   @@index([municipalityCode])
+}
+
+model DailyDigest {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  publishDate    DateTime  @default(now())
+  
+  // SEO Metadata
+  title_ja       String
+  title_en       String
+  title_vi       String
+  title_zh       String
+  
+  // Cấu trúc Content phân mảnh (Lưu Markdown)
+  content_ja     String    @db.Text
+  content_en     String    @db.Text
+  content_vi     String    @db.Text
+  content_zh     String    @db.Text
+  
+  // Dữ liệu dùng dể Render React Shortcode và SEO Internal link
+  tags           String[]  // ['saitama', 'tokyo', 'mansion']
+  featuredImage  String?   // Ảnh Cover
+  
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  
+  @@index([publishDate])
+  @@index([slug])
 }
