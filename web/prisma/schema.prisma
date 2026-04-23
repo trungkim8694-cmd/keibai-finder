@@ -55,6 +55,7 @@ model Property {
   @@index([views])
   @@index([created_at])
   @@index([mlit_investment_gap], map: "idx_property_mlit_gap")
+  @@index([status, source_provider])
 }
 
 model AuctionHistory {

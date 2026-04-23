@@ -12,13 +12,23 @@ import random
 load_dotenv("../web/.env")
 
 from crawler_utils import clean_area_string, convert_reiwa_range_to_datetimes, get_nearest_station_from_db, get_random_user_agent, geocode_address
-from supabase import create_client, Client
 import io
+import boto3
 
-supabase_url = os.environ.get("SUPABASE_URL")
-supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
-supabase: Client = create_client(supabase_url, supabase_key)
-STORAGE_BUCKET = "keibai-storage"
+r2_account_id = os.environ.get("R2_ACCOUNT_ID")
+r2_access_key = os.environ.get("R2_ACCESS_KEY_ID")
+r2_secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
+R2_BUCKET = os.environ.get("R2_BUCKET_NAME", "keibai-storage")
+r2_public_url = os.environ.get("R2_PUBLIC_URL")
+
+s3_client = None
+if r2_account_id and r2_access_key and r2_secret_key:
+    s3_client = boto3.client('s3',
+        endpoint_url=f"https://{r2_account_id}.r2.cloudflarestorage.com",
+        aws_access_key_id=r2_access_key,
+        aws_secret_access_key=r2_secret_key,
+        region_name="auto"
+    )
 
 db_url = os.environ.get("DATABASE_URL", "").replace("?schema=public", "")
 gemini_key = os.environ.get("GEMINI_API_KEY")
@@ -389,13 +399,17 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                             img_bytes = img_byte_arr.getvalue()
                             
                             try:
-                                supabase.storage.from_(STORAGE_BUCKET).upload(
-                                    path=f"properties/{sale_unit_id}/{image_filename}",
-                                    file=img_bytes,
-                                    file_options={"content-type": "image/webp", "upsert": "true"}
-                                )
-                                public_img_url = f"{supabase_url}/storage/v1/object/public/{STORAGE_BUCKET}/properties/{sale_unit_id}/{image_filename}"
-                                pdf_images.append(public_img_url)
+                                if s3_client:
+                                    s3_client.put_object(
+                                        Bucket=R2_BUCKET,
+                                        Key=f"properties/{sale_unit_id}/{image_filename}",
+                                        Body=img_bytes,
+                                        ContentType="image/webp"
+                                    )
+                                    public_img_url = f"{r2_public_url}/properties/{sale_unit_id}/{image_filename}"
+                                    pdf_images.append(public_img_url)
+                                else:
+                                    print("    [WARNING] R2 Storage chưa được cấu hình, bỏ qua upload ảnh.")
                                 print(f"    [INFO] Uploaded: {image_filename} | concentration_ratio={concentration_ratio:.4f}")
                                 
                                 if len(pdf_images) >= 5:

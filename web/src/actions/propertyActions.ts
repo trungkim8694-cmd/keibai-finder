@@ -247,7 +247,10 @@ export interface SearchFilters {
 }
 
 export async function getProperties(filters: SearchFilters = {}) {
-  console.log(">>> [DEBUG getProperties API CALLED]", JSON.stringify(filters));
+  // Wrap core query within unstable_cache for Next.js internal heavy caching layer
+  const fetchPropertiesData = unstable_cache(
+    async (cacheKeyStr: string) => {
+  console.log(">>> [DEBUG getProperties DB HIT]", cacheKeyStr);
   try {
     let data: any[] = [];
     

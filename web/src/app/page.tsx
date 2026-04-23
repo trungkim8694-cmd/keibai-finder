@@ -13,8 +13,16 @@ import UserMenu from '../components/UserMenu';
 import Link from 'next/link';
 import { MapIcon, ListBulletIcon } from '@heroicons/react/20/solid';
 
-import KeibaiMap from '../components/KeibaiMap';
 import SidebarFooter from '../components/SidebarFooter';
+
+const KeibaiMap = dynamic(() => import('../components/KeibaiMap'), { 
+  ssr: false, 
+  loading: () => (
+    <div className="w-full h-full bg-zinc-100 dark:bg-zinc-900 animate-pulse flex items-center justify-center text-zinc-400">
+      Đang tải bản đồ...
+    </div>
+  )
+});
 
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
@@ -39,16 +47,56 @@ export default function DashboardPage() {
     getAreaStats().then(setAreaStats).catch(console.error);
   }, []);
 
-  // 1. Fetch Map Data (Minimal payload, all matching bounds)
+  const buildQueryString = (filters: any) => {
+     const params = new URLSearchParams();
+     if (filters.isMapPayload) params.append('isMapPayload', 'true');
+     if (filters.page) params.append('page', filters.page.toString());
+     if (filters.limit) params.append('limit', filters.limit.toString());
+     if (filters.bounds) {
+       params.append('swLat', filters.bounds.sw.lat.toString());
+       params.append('swLng', filters.bounds.sw.lng.toString());
+       params.append('neLat', filters.bounds.ne.lat.toString());
+       params.append('neLng', filters.bounds.ne.lng.toString());
+     }
+     if (filters.keyword) params.append('keyword', filters.keyword);
+     if (filters.sort) params.append('sort', filters.sort);
+     if (filters.prefecture) params.append('prefecture', filters.prefecture);
+     if (filters.minPrice) params.append('minPrice', filters.minPrice.toString());
+     if (filters.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+     if (filters.newOnly) params.append('newOnly', 'true');
+     if (filters.isClosingSoon) params.append('isClosingSoon', 'true');
+     if (filters.types) {
+       filters.types.forEach((t: string) => params.append('types[]', t));
+     }
+     return params.toString();
+  };
+
+  const fetchPropertiesApi = async (filters: any) => {
+     const qs = buildQueryString(filters);
+     const res = await fetch(`/api/properties?${qs}`);
+     if (!res.ok) throw new Error('API Error');
+     return res.json();
+  };
+
+  const mapFilters = useMemo(() => {
+     const f = { ...currentFilters };
+     // Khắc phục Lớp 2: Loại bỏ hoàn toàn Bounds khỏi API Map để Cache Edge Toàn Quốc
+     delete f.bounds; 
+     delete f.lat; 
+     delete f.lng;
+     return f;
+  }, [currentFilters]);
+
+  // 1. Fetch Map Data (One-Time Global Payload: Không bao gồm Bounding Box)
   const { data: mapDataArray, isLoading: isMapLoading } = useSWR(
-    isHydrated && !isFlying ? { ...currentFilters, mapOnly: true, _v: searchVersion } : null,
-    (filters) => getProperties({ ...filters, isMapPayload: true }),
-    { revalidateOnFocus: false, dedupingInterval: 0, refreshInterval: 15000 }
+    isHydrated && !isFlying ? { ...mapFilters, isMapPayload: true, _v: searchVersion } : null,
+    fetchPropertiesApi,
+    { revalidateOnFocus: false, dedupingInterval: 60000 }
   );
   
   const mapProperties = mapDataArray || [];
 
-  // 2. Fetch List Data (Paginated, full payload)
+  // 2. Fetch List Data (Paginated, Full Payload, Sử dụng Bounding Box)
   const {
     data: listDataArray,
     size,
@@ -58,18 +106,16 @@ export default function DashboardPage() {
   } = useSWRInfinite(
     (pageIndex, previousPageData) => {
       if (!isHydrated || isFlying) return null;
-      // Reached end
       if (previousPageData && previousPageData.length < 20) return null;
       return { 
         ...currentFilters, 
-        // DO NOT inject reactive bounds from state to decouple list from map!
         page: pageIndex + 1, 
-        listOnly: true,
+        limit: 20,
         _v: searchVersion
       };
     },
-    (key) => getProperties({ ...key, limit: 20 }),
-    { revalidateOnFocus: false, revalidateFirstPage: true, refreshInterval: 15000 }
+    fetchPropertiesApi,
+    { revalidateOnFocus: false, revalidateFirstPage: true, refreshInterval: 60000 }
   );
 
   const rawListProperties = listDataArray ? ([] as any[]).concat(...listDataArray) : [];
@@ -193,10 +239,17 @@ export default function DashboardPage() {
 
           <div ref={listRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full relative">
             {isLoading && listProperties.length === 0 ? (
-              <div className="flex items-center justify-center p-8 space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} className="bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-sm border border-zinc-200 dark:border-zinc-800 animate-pulse">
+                    <div className="h-48 bg-zinc-200 dark:bg-zinc-800 w-full mb-3" />
+                    <div className="p-4 space-y-3">
+                       <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4" />
+                       <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-1/2" />
+                       <div className="h-8 bg-zinc-200 dark:bg-zinc-800 rounded w-full mt-2" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <>

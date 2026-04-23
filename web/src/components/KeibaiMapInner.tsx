@@ -645,7 +645,7 @@ export default function KeibaiMapInner({
         />
         {showRailways && (
           <TileLayer 
-              url="https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png" 
+              url="/api/tiles/railway/{z}/{x}/{y}.png" 
               opacity={0.6} 
               maxZoom={18}
           />
@@ -654,7 +654,7 @@ export default function KeibaiMapInner({
         {/* Dynamic GSI Hazard Map Layers */}
         {showFlood && (
            <TileLayer 
-              url="https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png"
+              url="/api/tiles/flood/{z}/{x}/{y}.png"
               opacity={0.6}
               maxNativeZoom={17}
               maxZoom={18}
@@ -664,7 +664,7 @@ export default function KeibaiMapInner({
         )}
         {showLandslide && (
            <TileLayer 
-              url="https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png"
+              url="/api/tiles/landslide/{z}/{x}/{y}.png"
               opacity={0.6}
               maxNativeZoom={17}
               maxZoom={18}
