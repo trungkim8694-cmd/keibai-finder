@@ -246,11 +246,9 @@ export interface SearchFilters {
   minArea?: number;
 }
 
-export async function getProperties(filters: SearchFilters = {}) {
-  // Wrap core query within unstable_cache for Next.js internal heavy caching layer
-  const fetchPropertiesData = unstable_cache(
-    async (cacheKeyStr: string) => {
-  console.log(">>> [DEBUG getProperties DB HIT]", cacheKeyStr);
+const getPropertiesCached = unstable_cache(
+  async (filters: SearchFilters) => {
+  console.log(">>> [DEBUG getProperties DB HIT]", JSON.stringify(filters));
   try {
     let data: any[] = [];
     
@@ -461,6 +459,13 @@ export async function getProperties(filters: SearchFilters = {}) {
     console.error("Failed to fetch properties:", error);
     return [];
   }
+ },
+ ['daily-properties-cache'],
+ { tags: ['daily-properties'], revalidate: 86400 }
+);
+
+export async function getProperties(filters: SearchFilters = {}) {
+  return getPropertiesCached(filters);
 }
 
 export async function getPropertiesByIds(ids: string[]) {
