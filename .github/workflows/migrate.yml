@@ -1,0 +1,31 @@
+name: Supabase Database Migration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install psycopg2-binary
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Prisma
+        run: |
+          cd web
+          npm install
+      - name: Run Prisma DB Push
+        run: |
+          cd web
+          export DATABASE_URL="postgresql://postgres:h5.9n%24AudB%2Fh_ch@db.qtgefqhqdfnpadufhnye.supabase.co:5432/postgres"
+          npx prisma db push --accept-data-loss || true
+      - name: Run Python Migration Script
+        run: python migrate_db_data.py
