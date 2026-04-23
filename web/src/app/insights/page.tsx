@@ -10,6 +10,8 @@ export const metadata: Metadata = {
 };
 
 // Next.js 15: async Server Component
+export const revalidate = 600; // Auto update every 10 minutes
+
 export default async function InsightsHubPage() {
   // Fetch from DB
   const digests = await prisma.dailyDigest.findMany({

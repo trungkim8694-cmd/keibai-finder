@@ -33,6 +33,8 @@ export async function generateMetadata(
   }
 }
 
+export const revalidate = 600; // Auto update every 10 minutes
+
 export default async function DigestDetailPage({ params, searchParams }: Props) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
