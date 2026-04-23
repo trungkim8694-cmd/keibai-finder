@@ -100,6 +100,18 @@ jobs:
         run: |
           cd crawler
           python ai_seo_writer.py || echo "AI Writer failed but proceeding"
+
+      - name: Revalidate Next.js Cache (Zero-Latency Release)
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+        run: |
+          if [ -z "$FRONTEND_URL" ]; then
+            echo "Skipping cache revalidation: FRONTEND_URL secret is not set."
+          else
+            curl -X POST -H "Authorization: Bearer ${WEBHOOK_SECRET:-keibai_super_secret_4am}" "$FRONTEND_URL/api/revalidate-cache"
+            echo -e "\n[+] Next.js Edge Cache has been successfully revalidated!"
+          fi
           
       - name: Telegram Notification - Success
         if: ${{ needs.scrape_bit.result == 'success' && needs.scrape_nta.result == 'success' }}
