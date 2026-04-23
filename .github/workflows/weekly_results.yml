@@ -2,8 +2,8 @@ name: Weekly Auction Results Crawler
 
 on:
   schedule:
-    # 15:00 UTC Chủ Nhật = 0:00 AM JST Thứ Hai
-    - cron: '0 15 * * 0'
+    # 19:00 UTC Thứ Năm = 4:00 AM JST Thứ Sáu
+    - cron: '0 19 * * 4'
   workflow_dispatch:
 
 jobs:
