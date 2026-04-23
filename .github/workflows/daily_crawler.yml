@@ -1,0 +1,110 @@
+name: Daily Parallel Keibai Crawler
+
+on:
+  schedule:
+    # 20:00 UTC = 5:00 AM JST
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape_bit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install Dependencies
+        run: |
+          pip install -r crawler/requirements.txt
+          playwright install chromium
+          playwright install-deps
+      - name: Run BIT Crawler
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          cd crawler
+          python advanced_crawler.py
+
+  scrape_nta:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install Dependencies
+        run: |
+          pip install -r crawler/requirements.txt
+          playwright install chromium
+          playwright install-deps
+      - name: Run NTA Crawler
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          cd crawler
+          python nta_parser.py
+
+  post_processing:
+    needs: [scrape_bit, scrape_nta]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install Dependencies
+        run: pip install -r crawler/requirements.txt
+      
+      - name: MLIT Calculator
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd crawler
+          python mlit_calculator.py
+          
+      - name: Cleanup Images
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          cd crawler
+          python cleanup_property_images.py --delete || echo "Cleanup failed but proceeding"
+          
+      - name: AI SEO Writer
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          cd crawler
+          python ai_seo_writer.py || echo "AI Writer failed but proceeding"
+          
+      - name: Telegram Notification - Success
+        if: ${{ needs.scrape_bit.result == 'success' && needs.scrape_nta.result == 'success' }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          cd crawler
+          python telegram_notify.py "🏠 <b>Keibai Finder - Daily Report</b>%0A📅 $(date +'%Y-%m-%d %H:%M JST')%0AToàn bộ dữ liệu BIT và NTA đã được cập nhật thành công qua GitHub Actions. Đã sinh Bản Tin Insights."
+
+      - name: Telegram Notification - Failure
+        if: ${{ needs.scrape_bit.result != 'success' || needs.scrape_nta.result != 'success' }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          cd crawler
+          python telegram_notify.py "⚠️ <b>Crawler THẤT BẠI</b>%0A📅 $(date +'%Y-%m-%d %H:%M JST')%0AMột tiến trình trong GitHub Actions (BIT hoặc NTA) đã gặp sự cố. Vui lòng kiểm tra tab Actions trên Github."

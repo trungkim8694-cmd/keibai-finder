@@ -1,0 +1,48 @@
+name: Weekly Auction Results Crawler
+
+on:
+  schedule:
+    # 15:00 UTC Chủ Nhật = 0:00 AM JST Thứ Hai
+    - cron: '0 15 * * 0'
+  workflow_dispatch:
+
+jobs:
+  scrape_results:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install Dependencies
+        run: |
+          pip install -r crawler/requirements.txt
+          playwright install chromium
+          playwright install-deps
+      
+      - name: Run Auction Results Crawler
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd crawler
+          python crawl_all_japan_results.py
+
+      - name: Telegram Notification - Success
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          cd crawler
+          python telegram_notify.py "⚖️ <b>Keibai Finder - Weekly Results</b>%0A📅 $(date +'%Y-%m-%d %H:%M JST')%0AToàn bộ Kết Quả Đấu Giá Nhật Bản tuần này đã được cào và cập nhật."
+
+      - name: Telegram Notification - Failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          cd crawler
+          python telegram_notify.py "⚠️ <b>Results Crawler THẤT BẠI</b>%0A📅 $(date +'%Y-%m-%d %H:%M JST')%0AQuá trình cào kết quả đấu giá tự động gặp sự cố."

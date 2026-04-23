@@ -360,13 +360,17 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                             except ValueError:
                                 pil_color = Image.frombytes("RGBA", [pix_color.width, pix_color.height], pix_color.samples).convert("RGB")
                                 
-                            sample = pil_color.resize((150, 150))
-                            pixels = list(sample.getdata())
-                            colorful = sum(1 for r,g,b in pixels if max(r,g,b) - min(r,g,b) > 20)
-                            color_ratio = colorful / len(pixels)
+                            sample = pil_color.resize((300, 300)).convert("L")
+                            hist = sample.histogram()
+                            hist_sorted = sorted(hist, reverse=True)
                             
-                            # Condition 2: Color ratio > 0.003
-                            if color_ratio <= 0.003:
+                            # Calculate area taken by the top 30 most frequent shades of gray
+                            top_30_sum = sum(hist_sorted[:30])
+                            concentration_ratio = top_30_sum / (300 * 300)
+                            
+                            # Filter out drawing/maps: If > 75% of the page is just plain paper background
+                            if concentration_ratio > 0.75:
+                                print(f"    [INFO] Bỏ qua trang {page_idx} (Bản vẽ/Text) - concentration_ratio={concentration_ratio:.4f}")
                                 continue
 
                             mat_high = fitz.Matrix(200 / 72, 200 / 72)
@@ -376,23 +380,26 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                             except ValueError:
                                 pil_high = Image.frombytes("RGBA", [pix_high.width, pix_high.height], pix_high.samples).convert("RGB")
 
-                            image_filename = f"{sale_unit_id}_p{page_idx}.jpg"
+                            # Resize to max 1200px width/height to save space
+                            pil_high.thumbnail((1200, 1600))
+
+                            image_filename = f"{sale_unit_id}_p{page_idx}.webp"
                             img_byte_arr = io.BytesIO()
-                            pil_high.save(img_byte_arr, format="JPEG", quality=85)
+                            pil_high.save(img_byte_arr, format="WEBP", quality=80)
                             img_bytes = img_byte_arr.getvalue()
                             
                             try:
                                 supabase.storage.from_(STORAGE_BUCKET).upload(
                                     path=f"properties/{sale_unit_id}/{image_filename}",
                                     file=img_bytes,
-                                    file_options={"content-type": "image/jpeg", "upsert": "true"}
+                                    file_options={"content-type": "image/webp", "upsert": "true"}
                                 )
                                 public_img_url = f"{supabase_url}/storage/v1/object/public/{STORAGE_BUCKET}/properties/{sale_unit_id}/{image_filename}"
                                 pdf_images.append(public_img_url)
-                                print(f"    [INFO] Uploaded: {image_filename} | color_ratio={color_ratio:.4f}")
+                                print(f"    [INFO] Uploaded: {image_filename} | concentration_ratio={concentration_ratio:.4f}")
                                 
-                                if len(pdf_images) >= 10:
-                                    print("    [IMG] Reached maximum of 10 extracted images, stopping PDF image parsing.")
+                                if len(pdf_images) >= 5:
+                                    print("    [IMG] Reached maximum of 5 extracted photos, stopping PDF image parsing.")
                                     break
                             except Exception as up_img_e:
                                 print(f"    [IMG] Error uploading {image_filename}: {up_img_e}")
