@@ -89,7 +89,7 @@ export default async function DigestDetailPage({ params, searchParams }: Props) 
           <div className="flex flex-wrap items-center gap-3">
             <span className="flex items-center gap-1.5 text-sm font-medium text-zinc-500 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1 rounded-full">
               <Calendar className="w-4 h-4" />
-              {new Date(digest.publishDate).toLocaleDateString('ja-JP')}
+              {new Date(digest.publishDate).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}
             </span>
             {digest.tags?.map(tag => (
               <span key={tag} className="flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 px-3 py-1 rounded-full">

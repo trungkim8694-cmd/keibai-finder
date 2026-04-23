@@ -53,7 +53,7 @@ export default async function InsightsHubPage() {
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-md">
                         <Calendar className="w-3.5 h-3.5" />
-                        {new Date(digest.publishDate).toLocaleDateString('ja-JP')}
+                        {new Date(digest.publishDate).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}
                       </span>
                       {digest.tags.slice(0, 3).map(tag => (
                         <span key={tag} className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">
