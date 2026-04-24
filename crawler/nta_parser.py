@@ -67,7 +67,7 @@ def extract_pdf_links(soup):
 def scrape_nta(limit=20):
     db_url = os.environ.get("DATABASE_URL")
     if not db_url: return
-    db_url = db_url.replace("?schema=public", "")
+    db_url = db_url.split("?")[0]
     conn = psycopg2.connect(db_url)
     cur = conn.cursor()
     

@@ -48,7 +48,7 @@ if not DATABASE_URL:
     load_dotenv(dotenv_path="/Users/kimtrung/keibai-finder/web/.env.local")
     DATABASE_URL = os.environ.get("DATABASE_URL")
 
-db_url = DATABASE_URL.replace("?schema=public", "")
+db_url = DATABASE_URL.split("?")[0]
 MLIT_API_KEY = "3cee958080dc40b2854698b6407d4b5a"
 BASE_URL = "https://www.reinfolib.mlit.go.jp/ex-api/external"
 HEADERS = {"Ocp-Apim-Subscription-Key": MLIT_API_KEY}

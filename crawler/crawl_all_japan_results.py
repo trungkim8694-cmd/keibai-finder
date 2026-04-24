@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import random
 
 load_dotenv("../web/.env")
-db_url = os.environ.get("DATABASE_URL").replace("?schema=public", "")
+db_url = os.environ.get("DATABASE_URL").split("?")[0]
 gemini_key = os.environ.get("GEMINI_API_KEY")
 
 from crawler_utils import geocode_address, prepend_prefecture

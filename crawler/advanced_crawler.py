@@ -30,7 +30,7 @@ if r2_account_id and r2_access_key and r2_secret_key:
         region_name="auto"
     )
 
-db_url = os.environ.get("DATABASE_URL", "").replace("?schema=public", "")
+db_url = os.environ.get("DATABASE_URL", "").split("?")[0]
 gemini_key = os.environ.get("GEMINI_API_KEY")
 
 PREF_MAP = {

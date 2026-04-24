@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 
 load_dotenv("../web/.env")
 
-db_url = os.environ.get("DATABASE_URL").replace("?schema=public", "")
+db_url = os.environ.get("DATABASE_URL").split("?")[0]
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 STORAGE_BUCKET = "keibai-storage"
