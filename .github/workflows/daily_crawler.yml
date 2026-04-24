@@ -101,26 +101,30 @@ jobs:
           cd crawler
           python ai_seo_writer.py || echo "AI Writer failed but proceeding"
 
-      - name: Revalidate Next.js Cache (Zero-Latency Release)
+      - name: Cache Revalidation & Telegram Notification
+        if: ${{ needs.scrape_bit.result == 'success' && needs.scrape_nta.result == 'success' }}
         env:
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-        run: |
-          if [ -z "$FRONTEND_URL" ]; then
-            echo "Skipping cache revalidation: FRONTEND_URL secret is not set."
-          else
-            curl -X POST -H "Authorization: Bearer ${WEBHOOK_SECRET:-keibai_super_secret_4am}" "$FRONTEND_URL/api/revalidate-cache"
-            echo -e "\n[+] Next.js Edge Cache has been successfully revalidated!"
-          fi
-          
-      - name: Telegram Notification - Success
-        if: ${{ needs.scrape_bit.result == 'success' && needs.scrape_nta.result == 'success' }}
-        env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
+          # 1. Trigger Cache Webhook
+          CACHE_STATUS="[Bỏ qua - Chưa cài Webhook]"
+          if [ -n "$FRONTEND_URL" ]; then
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Authorization: Bearer ${WEBHOOK_SECRET:-keibai_super_secret_4am}" "$FRONTEND_URL/api/revalidate-cache")
+            if [ "$HTTP_CODE" == "200" ]; then
+                CACHE_STATUS="Đã thành công ✅"
+            else
+                CACHE_STATUS="Thất bại (HTTP $HTTP_CODE) ❌"
+            fi
+            echo "Cache Webhook Status: $HTTP_CODE"
+          fi
+          
+          # 2. Inform Telegram
           cd crawler
-          python telegram_notify.py "🏠 <b>Keibai Finder - Daily Report</b>%0A📅 $(date +'%Y-%m-%d %H:%M JST')%0AToàn bộ dữ liệu BIT và NTA đã được cập nhật thành công qua GitHub Actions. Đã sinh Bản Tin Insights."
+          MSG="🏠 <b>Keibai Finder - Daily Report</b>%0A📅 $(date +'%Y-%m-%d %H:%M JST')%0A1️⃣ Dữ liệu BIT/NTA đã rà quét xong.%0A2️⃣ Đã sinh Bản Tin AI Insights.%0A3️⃣ Bộ đệm Edge Cache: $CACHE_STATUS"
+          python telegram_notify.py "$MSG"
 
       - name: Telegram Notification - Failure
         if: ${{ needs.scrape_bit.result != 'success' || needs.scrape_nta.result != 'success' }}
