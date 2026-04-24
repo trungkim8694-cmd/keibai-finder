@@ -439,6 +439,9 @@ const getPropertiesCached = unstable_cache(
                if (typeof d.starting_price === 'bigint') {
                    d.starting_price = Number(d.starting_price);
                }
+               if (typeof d.mlit_estimated_price === 'bigint') {
+                   d.mlit_estimated_price = Number(d.mlit_estimated_price);
+               }
                
                return d;
             });
