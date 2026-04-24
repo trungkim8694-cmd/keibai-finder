@@ -78,11 +78,12 @@ jobs:
         run: pip install -r crawler/requirements.txt
       
       - name: MLIT Calculator
+        id: mlit
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           cd crawler
-          python mlit_calculator.py
+          if python mlit_calculator.py; then echo "status=success" >> $GITHUB_OUTPUT; else echo "status=failure" >> $GITHUB_OUTPUT; fi
           
       - name: Cleanup Images
         env:
@@ -94,12 +95,13 @@ jobs:
           python cleanup_property_images.py --delete || echo "Cleanup failed but proceeding"
           
       - name: AI SEO Writer
+        id: seo
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           cd crawler
-          python ai_seo_writer.py || echo "AI Writer failed but proceeding"
+          if python ai_seo_writer.py; then echo "status=success" >> $GITHUB_OUTPUT; else echo "status=failure" >> $GITHUB_OUTPUT; fi
 
       - name: Cache Revalidation & Telegram Notification
         if: ${{ needs.scrape_bit.result == 'success' && needs.scrape_nta.result == 'success' }}
@@ -123,7 +125,17 @@ jobs:
           
           # 2. Inform Telegram
           cd crawler
-          MSG="🏠 <b>Keibai Finder - Daily Report</b>%0A📅 $(date +'%Y-%m-%d %H:%M JST')%0A1️⃣ Dữ liệu BIT/NTA đã rà quét xong.%0A2️⃣ Đã sinh Bản Tin AI Insights.%0A3️⃣ Bộ đệm Edge Cache: $CACHE_STATUS"
+          
+          MLIT_VAL="${{ steps.mlit.outputs.status }}"
+          SEO_VAL="${{ steps.seo.outputs.status }}"
+          
+          MLIT_TXT="Đã thành công ✅"
+          if [ "$MLIT_VAL" != "success" ]; then MLIT_TXT="Thất bại ❌"; fi
+          
+          SEO_TXT="Đã thành công ✅"
+          if [ "$SEO_VAL" != "success" ]; then SEO_TXT="Thất bại ❌"; fi
+          
+          MSG="🏠 <b>Keibai Finder - Daily Report</b>%0A📅 $(date +'%Y-%m-%d %H:%M JST')%0A1️⃣ Dữ liệu BIT/NTA đã rà quét xong.%0A2️⃣ Thẩm Định Giá MLIT: $MLIT_TXT%0A3️⃣ Bản Tin AI Insights: $SEO_TXT%0A4️⃣ Bộ đệm Edge Cache: $CACHE_STATUS"
           python telegram_notify.py "$MSG"
 
       - name: Telegram Notification - Failure
