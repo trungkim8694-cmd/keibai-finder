@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     
     // 2. Dọn dẹp Page Cache (ISR)
     revalidatePath('/market-insights');
+    revalidatePath('/insights');
     revalidatePath('/');
 
     console.log('[Webhook] Successfully revalidated properties and stats cache at 4AM');
