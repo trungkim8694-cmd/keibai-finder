@@ -5,7 +5,7 @@ import sys
 
 # Khai báo trực tiếp 2 connection strings
 OLD_DB_URL = "postgresql://postgres.nuyfejmbvxkgcitvygcy:%40Hrptlcct6789@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
-NEW_DB_URL = "postgresql://postgres:h5.9n%24AudB%2Fh_ch@db.qtgefqhqdfnpadufhnye.supabase.co:5432/postgres"
+NEW_DB_URL = "postgresql://postgres.qtgefqhqdfnpadufhnye:h5.9n%24AudB%2Fh_ch@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres"
 
 # Thứ tự Insert rất quan trọng để tránh lỗi Foreign Key constraints
 TABLES_ORDER = [
@@ -57,8 +57,20 @@ def migrate():
             placeholders = ", ".join(["%s"] * len(cols))
             insert_query = f"INSERT INTO {table} ({cols_str}) VALUES ({placeholders}) ON CONFLICT DO NOTHING"
             
+            JSON_COLS = ["raw_display_data", "ai_analysis", "transactions", "raw_data"]
             # Chuẩn bị dữ liệu insert
-            data_to_insert = [tuple(row) for row in rows]
+            data_to_insert = []
+            for row in rows:
+                new_row = []
+                for i, val in enumerate(row):
+                    col_name = cols[i]
+                    if val is None:
+                        new_row.append(val)
+                    elif col_name in JSON_COLS:
+                        new_row.append(psycopg2.extras.Json(val))
+                    else:
+                        new_row.append(val)
+                data_to_insert.append(tuple(new_row))
             
             # Bơm dữ liệu vào DB mới
             psycopg2.extras.execute_batch(new_cur, insert_query, data_to_insert, page_size=2000)

@@ -246,52 +246,45 @@ export interface SearchFilters {
   minArea?: number;
 }
 
-const getPropertiesCached = unstable_cache(
-  async (filters: SearchFilters) => {
-  console.log(">>> [DEBUG getProperties DB HIT]", JSON.stringify(filters));
-  try {
-    let data: any[] = [];
-    
-    // 1. Initialize AND array with mandatory status filter
-    const andConditions: any[] = [{ status: 'ACTIVE' }];
+function buildWhereClause(filters: SearchFilters, exclude?: 'types' | 'prefectures' | 'provider' | 'railways') {
+  const andConditions: any[] = [{ status: 'ACTIVE' }];
 
-    // 2. Map Bounds
-    if (filters.bounds && filters.bounds.sw && filters.bounds.ne) {
-      andConditions.push({
-        lat: { gte: filters.bounds.sw.lat, lte: filters.bounds.ne.lat },
-        lng: { gte: filters.bounds.sw.lng, lte: filters.bounds.ne.lng }
-      });
-    }
+  if (filters.bounds && filters.bounds.sw && filters.bounds.ne && exclude !== 'prefectures') {
+    andConditions.push({
+      lat: { gte: filters.bounds.sw.lat, lte: filters.bounds.ne.lat },
+      lng: { gte: filters.bounds.sw.lng, lte: filters.bounds.ne.lng }
+    });
+  }
 
-    // 3. Property Types
-    if (filters.types && filters.types.length > 0) {
-      if (filters.types.includes('その他')) {
-        const explicitTypes = filters.types.filter(t => t !== 'その他');
-        if (explicitTypes.length > 0) {
-          andConditions.push({
-            OR: [
-              { property_type: { in: explicitTypes } },
-              { property_type: { notIn: ['戸建て', 'マンション', '土地', '農地'] } }
-            ]
-          });
-        } else {
-          andConditions.push({
-            property_type: { notIn: ['戸建て', 'マンション', '土地', '農地'] }
-          });
-        }
+  if (exclude !== 'types' && filters.types && filters.types.length > 0) {
+    if (filters.types.includes('その他')) {
+      const explicitTypes = filters.types.filter(t => t !== 'その他');
+      if (explicitTypes.length > 0) {
+        andConditions.push({
+          OR: [
+            { property_type: { in: explicitTypes } },
+            { property_type: { notIn: ['戸建て', 'マンション', '土地', '農地'] } }
+          ]
+        });
       } else {
-        andConditions.push({ property_type: { in: filters.types } });
+        andConditions.push({
+          property_type: { notIn: ['戸建て', 'マンション', '土地', '農地'] }
+        });
       }
+    } else {
+      andConditions.push({ property_type: { in: filters.types } });
     }
+  }
 
-    // 4. Prefectures
+  if (exclude !== 'prefectures') {
     if (filters.prefectures && filters.prefectures.length > 0) {
       andConditions.push({ prefecture: { in: filters.prefectures } });
     } else if (filters.prefecture) {
       andConditions.push({ prefecture: filters.prefecture });
     }
+  }
 
-    // 5. Providers (BIT / NTA)
+  if (exclude !== 'provider') {
     const activeProviders = filters.providers || (filters.provider && filters.provider !== 'ALL' ? [filters.provider] : ['BIT', 'NTA']);
     const providerOrConditions: any[] = [];
     
@@ -314,8 +307,9 @@ const getPropertiesCached = unstable_cache(
     if (providerOrConditions.length > 0) {
       andConditions.push({ OR: providerOrConditions });
     }
+  }
 
-    // 6. Railway Lines & Stations
+  if (exclude !== 'railways') {
     if (filters.lineName && filters.lineName !== 'ALL') {
       andConditions.push({
          OR: [
@@ -328,46 +322,154 @@ const getPropertiesCached = unstable_cache(
     if (filters.stationName && filters.stationName !== 'ALL') {
       andConditions.push({ nearest_station: { contains: filters.stationName, mode: 'insensitive' } });
     }
+  }
 
-    // 7. Price, Area, Time
-    if (filters.minPrice || filters.maxPrice) {
-      const priceFilter: any = {};
-      if (filters.minPrice) priceFilter.gte = filters.minPrice;
-      if (filters.maxPrice) priceFilter.lte = filters.maxPrice;
-      andConditions.push({ starting_price: priceFilter });
-    }
-    
-    if (filters.newOnly) {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      andConditions.push({ created_at: { gte: weekAgo } });
-    }
-    
-    if (filters.isClosingSoon) {
-      const now = new Date();
-      const p7D = new Date();
-      p7D.setDate(p7D.getDate() + 7);
-      andConditions.push({ bid_end_date: { gte: now, lte: p7D } });
-    }
-    
-    if (filters.minArea) {
-      andConditions.push({ area: { gte: filters.minArea } });
-    }
+  if (filters.minPrice || filters.maxPrice) {
+    const priceFilter: any = {};
+    if (filters.minPrice) priceFilter.gte = filters.minPrice;
+    if (filters.maxPrice) priceFilter.lte = filters.maxPrice;
+    andConditions.push({ starting_price: priceFilter });
+  }
+  
+  if (filters.newOnly) {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    andConditions.push({ created_at: { gte: weekAgo } });
+  }
+  
+  if (filters.isClosingSoon) {
+    const now = new Date();
+    const p7D = new Date();
+    p7D.setDate(p7D.getDate() + 7);
+    andConditions.push({ bid_end_date: { gte: now, lte: p7D } });
+  }
+  
+  if (filters.minArea) {
+    andConditions.push({ area: { gte: filters.minArea } });
+  }
 
-    // 8. Keyword Search
-    if (filters.keyword) {
-      andConditions.push({
-        OR: [
-          { address: { contains: filters.keyword, mode: 'insensitive' } },
-          { nearest_station: { contains: filters.keyword, mode: 'insensitive' } },
-          { prefecture: { contains: filters.keyword, mode: 'insensitive' } },
-          { city: { contains: filters.keyword, mode: 'insensitive' } },
-        ]
+  if (filters.keyword) {
+    andConditions.push({
+      OR: [
+        { address: { contains: filters.keyword, mode: 'insensitive' } },
+        { nearest_station: { contains: filters.keyword, mode: 'insensitive' } },
+        { prefecture: { contains: filters.keyword, mode: 'insensitive' } },
+        { city: { contains: filters.keyword, mode: 'insensitive' } },
+      ]
+    });
+  }
+  
+  return { AND: andConditions };
+}
+
+export async function getFacetedStats(filters: SearchFilters = {}) {
+  try {
+    const typesWhere = buildWhereClause(filters, 'types');
+    const typesPromise = prisma.property.groupBy({
+      by: ['property_type'],
+      where: typesWhere,
+      _count: { _all: true }
+    }).then(stats => {
+      const result: Record<string, number> = { '戸建て': 0, 'マンション': 0, '土地': 0, '農地': 0, 'その他': 0 };
+      const mainTypes = ['戸建て', 'マンション', '土地', '農地'];
+      stats.forEach(item => {
+        const type = item.property_type;
+        const count = item._count._all;
+        if (type && mainTypes.includes(type)) result[type] += count;
+        else result['その他'] += count;
       });
-    }
+      return result;
+    });
 
-    // Final Where Clause Construction
-    const whereClause: any = { AND: andConditions };
+    const prefWhere = buildWhereClause(filters, 'prefectures');
+    const prefPromise = prisma.property.groupBy({
+      by: ['prefecture'],
+      where: prefWhere,
+      _count: { _all: true },
+    }).then(res => res.reduce((acc, curr) => {
+      if (curr.prefecture) acc[curr.prefecture] = curr._count._all;
+      return acc;
+    }, {} as Record<string, number>));
+
+    const authWhere = buildWhereClause(filters, 'provider');
+    const authPromise = (async () => {
+       const bitStats = await prisma.property.groupBy({
+           by: ['court_name'],
+           where: { ...authWhere, source_provider: 'BIT' },
+           _count: { _all: true },
+       });
+       const ntaStats = await prisma.property.groupBy({
+           by: ['managing_authority'],
+           where: { ...authWhere, source_provider: 'NTA' },
+           _count: { _all: true },
+       });
+       
+       const processStats = (data: any[], keyField: string) => {
+         return data.filter(d => d[keyField]).map(d => ({
+           name: d[keyField], count: d._count._all
+         })).sort((a, b) => b.count - a.count);
+       };
+
+       return {
+         bit: processStats(bitStats, 'court_name'),
+         nta: processStats(ntaStats, 'managing_authority').map(n => ({ 
+             name: n.name.split(' ')[0], count: n.count 
+         }))
+       };
+    })();
+
+    const railWhere = buildWhereClause(filters, 'railways');
+    const railPromise = prisma.property.findMany({
+      where: { ...railWhere, line_name: { not: null, not: '' } },
+      select: { line_name: true, nearest_station: true },
+    }).then(rawData => {
+      const lineMap: Record<string, Set<string>> = {};
+      const lineCounts: Record<string, number> = {};
+
+      rawData.forEach(p => {
+        if (!p.line_name) return;
+        
+        let lines = p.line_name.includes(',') ? p.line_name.split(',').map(s => s.trim()) : [p.line_name.trim()];
+        let stations = (p.nearest_station && p.nearest_station.includes(','))
+          ? p.nearest_station.split(',').map(s => s.trim())
+          : [p.nearest_station?.trim() || ''];
+
+        lines.forEach(line => {
+          if (!lineMap[line]) {
+            lineMap[line] = new Set();
+            lineCounts[line] = 0;
+          }
+          lineCounts[line]++;
+          stations.forEach(st => {
+            if (st) lineMap[line].add(st);
+          });
+        });
+      });
+
+      return Object.entries(lineMap).map(([line, stationSet]) => ({
+        line,
+        count: lineCounts[line],
+        stations: Array.from(stationSet).sort()
+      })).sort((a, b) => b.count - a.count);
+    });
+
+    const [typeStats, areaStats, authorityStats, railData] = await Promise.all([
+       typesPromise, prefPromise, authPromise, railPromise
+    ]);
+
+    return { typeStats, areaStats, authorityStats, railData };
+  } catch (err) {
+     console.error("Faceted calculation error:", err);
+     return { typeStats: {}, areaStats: {}, authorityStats: { bit: [], nta: [] }, railData: [] };
+  }
+}
+
+async function getPropertiesCore(filters: SearchFilters) {
+  console.log(">>> [DEBUG getProperties DB HIT]", JSON.stringify(filters));
+  try {
+    let data: any[] = [];
+    
+    const whereClause = buildWhereClause(filters);
     console.log(">>> [DEBUG getProperties FINAL WHERE]", JSON.stringify(whereClause, null, 2));
 
 
@@ -462,12 +564,22 @@ const getPropertiesCached = unstable_cache(
     console.error("Failed to fetch properties:", error);
     return [];
   }
- },
- ['daily-properties-cache'],
- { tags: ['daily-properties'], revalidate: 86400 }
+}
+
+const getPropertiesCached = unstable_cache(
+  async (filters: SearchFilters) => {
+    return getPropertiesCore(filters);
+  },
+  ['daily-properties-cache'],
+  { tags: ['daily-properties'], revalidate: 86400 }
 );
 
 export async function getProperties(filters: SearchFilters = {}) {
+  // Map payloads contain up to 2000 properties with rich JSON fields, exceeding Next.js 2MB unstable_cache limit.
+  // We bypass unstable_cache here; the CDN Edge cache (route.ts Cache-Control) will handle caching it instead.
+  if (filters.isMapPayload) {
+    return getPropertiesCore(filters);
+  }
   return getPropertiesCached(filters);
 }
 

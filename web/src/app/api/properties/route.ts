@@ -66,6 +66,33 @@ export async function GET(request: Request) {
     const isClosingSoon = searchParams.get('isClosingSoon');
     if (isClosingSoon === 'true') filters.isClosingSoon = true;
 
+    const provider = searchParams.get('provider');
+    if (provider) filters.provider = provider;
+
+    const providers = searchParams.getAll('providers[]');
+    if (providers && providers.length > 0) filters.providers = providers;
+
+    const courtName = searchParams.get('courtName');
+    if (courtName) filters.courtName = courtName;
+
+    const managingAuthority = searchParams.get('managingAuthority');
+    if (managingAuthority) filters.managingAuthority = managingAuthority;
+
+    const lineName = searchParams.get('lineName');
+    if (lineName) filters.lineName = lineName;
+
+    const stationName = searchParams.get('stationName');
+    if (stationName) filters.stationName = stationName;
+
+    const maxWalkTime = searchParams.get('maxWalkTime');
+    if (maxWalkTime) filters.maxWalkTime = parseInt(maxWalkTime);
+
+    const minArea = searchParams.get('minArea');
+    if (minArea) filters.minArea = parseInt(minArea);
+
+    const prefectures = searchParams.getAll('prefectures[]');
+    if (prefectures && prefectures.length > 0) filters.prefectures = prefectures;
+
     // Fetch data via the existing logic
     const data = await getProperties(filters);
 

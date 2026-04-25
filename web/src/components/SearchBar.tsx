@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, Fragment, useEffect, useTransition, useRef } from 'react';
+import { useState, Fragment, useEffect, useTransition, useRef, useMemo } from 'react';
 import { Combobox, Transition, Popover, Dialog, Portal } from '@headlessui/react';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { MagnifyingGlassIcon, ChevronDownIcon, CheckIcon, MapPinIcon, FunnelIcon, XMarkIcon, CurrencyYenIcon, MapIcon, ArrowPathIcon, StarIcon } from '@heroicons/react/20/solid';
-import { getRailLinesAndStations, getSearchSuggestions, getAuthorityStats, getTypeStats, SearchSuggestion } from '../actions/propertyActions';
+import { getRailLinesAndStations, getSearchSuggestions, getAuthorityStats, getTypeStats, getFacetedStats, SearchSuggestion } from '../actions/propertyActions';
 import { useRouter, useSearchParams } from 'next/navigation';
+import useSWR from 'swr';
 
 export interface Station {
   id: string;
@@ -60,7 +61,7 @@ export interface SavedFilter {
   };
 }
 
-export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: SearchFilters) => void, areaStats?: Record<string, number> }) {
+export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) => void }) {
   const {refs, floatingStyles} = useFloating({
     placement: 'bottom-end',
     middleware: [offset(10), flip(), shift({ padding: 16 })],
@@ -113,7 +114,6 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
 
   // Search state
   const [types, setTypes] = useState<string[]>([]);
-  const [typeStats, setTypeStats] = useState<Record<string, number>>({});
   
   // Drill down states (Simulated region logic)
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
@@ -134,13 +134,11 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true); // Search collapse state
   const [isMounted, setIsMounted] = useState(false);
-
-  const [railData, setRailData] = useState<{line: string, count: number, stations: string[]}[]>([]);
   const [selectedLine, setSelectedLine] = useState<string>('ALL');
   const [selectedStation, setSelectedStation] = useState<string>('ALL');
 
   // Authority Dropdown state
-  const [authorityData, setAuthorityData] = useState<{ bit: {name:string;count:number}[], nta: {name:string;count:number}[] }>({ bit: [], nta: [] });
+  // Authority Dropdown state
   const [selectedCourt, setSelectedCourt] = useState<string>('ALL');
   const [selectedNtaAuth, setSelectedNtaAuth] = useState<string>('ALL');
   const [isBitOpen, setIsBitOpen] = useState(false);
@@ -151,10 +149,36 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
 
   useEffect(() => {
     setIsMounted(true);
-    getRailLinesAndStations().then(data => setRailData(data as any));
-    getAuthorityStats().then(data => setAuthorityData(data));
-    getTypeStats().then(data => setTypeStats(data));
   }, []);
+
+  const activeSearchFilters: SearchFilters = useMemo(() => {
+    const filters: SearchFilters = { types };
+    if (keyword) filters.keyword = keyword;
+    filters.minPrice = minPrice;
+    filters.maxPrice = maxPrice;
+    filters.isClosingSoon = isUrgent;
+    filters.prefectures = !isNationwide && selectedPrefectures.length > 0 ? selectedPrefectures : undefined;
+    filters.provider = provider !== 'ALL' ? provider : undefined;
+    filters.providers = activeProviders;
+    filters.maxWalkTime = walkTime;
+    filters.minArea = minArea;
+    filters.lineName = selectedLine !== 'ALL' ? selectedLine : undefined;
+    filters.stationName = selectedStation !== 'ALL' ? selectedStation : undefined;
+    filters.courtName = selectedCourt !== 'ALL' ? selectedCourt : undefined;
+    filters.managingAuthority = selectedNtaAuth !== 'ALL' ? selectedNtaAuth : undefined;
+    return filters;
+  }, [types, keyword, minPrice, maxPrice, isUrgent, isNationwide, selectedPrefectures, provider, activeProviders, walkTime, minArea, selectedLine, selectedStation, selectedCourt, selectedNtaAuth]);
+
+  const { data: stats } = useSWR(
+    isMounted ? ['faceted', JSON.stringify(activeSearchFilters)] : null,
+    () => getFacetedStats(activeSearchFilters),
+    { keepPreviousData: true }
+  );
+
+  const railData = stats?.railData || [];
+  const typeStats = stats?.typeStats || {};
+  const areaStats = stats?.areaStats || {};
+  const authorityData = stats?.authorityStats || { bit: [], nta: [] };
   
   useEffect(() => {
      if (isMounted) {
@@ -191,13 +215,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
      }
   }, [isMounted]);
 
-  useEffect(() => {
-    if (isMounted && areaStats && Object.keys(areaStats).length > 0) {
-      console.log(`[Debug] Real-time Area Stats Payload:`, Object.entries(areaStats).map(([k, v]) => `${k}:${v}`).join(', '));
-      const regionSum = regions.reduce((acc, r) => acc + (prefectures[r] ? prefectures[r].reduce((sum: number, p: string) => sum + (areaStats[p] || 0), 0) : 0), 0);
-      console.log(`[Debug] Sum of Regions (47 Prefectures):`, regionSum, `| National (全国):`, areaStats['全国'] || 0);
-    }
-  }, [areaStats, isMounted]);
+
 
   const triggerSearch = (overrides: Partial<SearchFilters> = {}) => {
     startTransition(() => {
@@ -458,15 +476,15 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
     return parts.join(' / ');
   };
 
-  const totalBit = authorityData?.bit.reduce((acc, curr) => acc + curr.count, 0) || 0;
+  const totalBit = (authorityData?.bit || []).reduce((acc: any, curr: any) => acc + curr.count, 0) || 0;
   const bitActiveCount = selectedCourt === 'ALL' 
     ? totalBit 
-    : authorityData?.bit.find(x => x.name === selectedCourt)?.count || 0;
+    : (authorityData?.bit || []).find((x: any) => x.name === selectedCourt)?.count || 0;
 
-  const totalNta = authorityData?.nta.reduce((acc, curr) => acc + curr.count, 0) || 0;
+  const totalNta = (authorityData?.nta || []).reduce((acc: any, curr: any) => acc + curr.count, 0) || 0;
   const ntaActiveCount = selectedNtaAuth === 'ALL' 
     ? totalNta 
-    : authorityData?.nta.find(x => x.name === selectedNtaAuth)?.count || 0;
+    : (authorityData?.nta || []).find((x: any) => x.name === selectedNtaAuth)?.count || 0;
 
   return (
     <div className={`w-full sticky top-0 z-[60] lg:relative lg:z-auto pointer-events-auto transition-all duration-500 ${isExpanded ? 'bg-white/95 dark:bg-zinc-950/95 lg:bg-transparent dark:lg:bg-transparent shadow-sm lg:shadow-none backdrop-blur-md lg:backdrop-blur-none border-b border-zinc-200 dark:border-zinc-800 lg:border-none' : 'bg-transparent border-transparent shadow-none pointer-events-none pb-14 lg:pb-0'}`}>
@@ -474,10 +492,10 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
       {/* =========================================
           COLLAPSED SUMMARY PILL
           ========================================= */}
-      <div className={`flex absolute top-1 w-full justify-center transition-all duration-300 z-[70] items-center gap-2
-         ${!isExpanded ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}
+      <div className={`flex absolute top-1 w-full justify-center transition-all duration-300 z-[70] items-center gap-2 pointer-events-none
+         ${!isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
       `}>
-         <div className="flex items-center gap-2 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-lg border border-gray-200 dark:border-zinc-700 rounded-full p-1 pl-4">
+         <div className="flex items-center gap-2 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-lg border border-gray-200 dark:border-zinc-700 rounded-full p-1 pl-4 pointer-events-auto">
            <button 
              onClick={() => setIsExpanded(true)}
              className="flex items-center gap-2.5 hover:text-blue-600 transition-colors"
@@ -773,7 +791,9 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                        <button 
                          key={pt} 
                          onClick={() => {
-                           setTypes(types.includes(pt) ? types.filter(t => t !== pt) : [...types, pt]);
+                           const newTypes = types.includes(pt) ? types.filter(t => t !== pt) : [...types, pt];
+                           setTypes(newTypes);
+                           triggerSearch({ types: newTypes });
                          }}
                          className={`px-2.5 lg:px-2 py-1 lg:py-1 text-xs lg:text-[11px] font-bold rounded-full transition-colors border flex items-center gap-1 whitespace-nowrap ${types.includes(pt) ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900' : 'bg-transparent text-zinc-600 hover:bg-zinc-100 border-gray-200 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800'}`}
                        >
@@ -788,14 +808,14 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                  {/* Price Dropdowns */}
                  <div className="flex items-center gap-2 lg:gap-1 shrink-0">
                    <span className="text-sm lg:text-sm leading-none mr-1 lg:mr-0">💰</span>
-                   <select value={minPrice || ''} onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : undefined)} className="text-[11px] lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none">
+                   <select value={minPrice || ''} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : undefined; setMinPrice(v); triggerSearch({ minPrice: v }); }} className="text-[11px] lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none">
                      <option value="">下限なし</option>
                      <option value="5000000">500万円</option>
                      <option value="10000000">1000万円</option>
                      <option value="20000000">2000万円</option>
                    </select>
                    <span className="text-zinc-400 text-[11px] lg:text-xs">~</span>
-                   <select value={maxPrice || ''} onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : undefined)} className="text-[11px] lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none pl-1">
+                   <select value={maxPrice || ''} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : undefined; setMaxPrice(v); triggerSearch({ maxPrice: v }); }} className="text-[11px] lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none pl-1">
                      <option value="">上限なし</option>
                      <option value="5000000">500万円</option>
                      <option value="10000000">1000万円</option>
@@ -825,7 +845,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          }`}
                        >
                          <span>⚖️</span>
-                         <span className="max-w-[120px] sm:max-w-[160px] truncate">{selectedCourt !== 'ALL' ? selectedCourt : `BIT 裁判所(${authorityData.bit.reduce((acc, curr) => acc + curr.count, 0)})`}</span>
+                         <span className="max-w-[120px] sm:max-w-[160px] truncate">{selectedCourt !== 'ALL' ? selectedCourt : `BIT 裁判所(${(authorityData?.bit || []).reduce((acc: any, curr: any) => acc + curr.count, 0)})`}</span>
                         </button>
                        <button
                          ref={bitRefs.setReference}
@@ -852,7 +872,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                                <span>すべての裁判所</span>
                                {selectedCourt === 'ALL' && <span className="text-blue-600">✓</span>}
                              </button>
-                             {authorityData.bit.map(item => (
+                             {(authorityData?.bit || []).map((item: any) => (
                                <button
                                  key={item.name}
                                  onClick={() => { setSelectedCourt(item.name); setProvider('BIT'); setIsBitOpen(false); triggerSearch({ courtName: item.name, provider: 'BIT' }); }}
@@ -891,7 +911,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          }`}
                        >
                          <span>🏛️</span>
-                         <span className="max-w-[120px] sm:max-w-[160px] truncate">{selectedNtaAuth !== 'ALL' ? selectedNtaAuth : `NTA 税務署(${authorityData.nta.reduce((acc, curr) => acc + curr.count, 0)})`}</span>
+                         <span className="max-w-[120px] sm:max-w-[160px] truncate">{selectedNtaAuth !== 'ALL' ? selectedNtaAuth : `NTA 税務署(${(authorityData?.nta || []).reduce((acc: any, curr: any) => acc + curr.count, 0)})`}</span>
                         </button>
                        <button
                          ref={ntaRefs.setReference}
@@ -918,10 +938,10 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                                <span>すべての税務署</span>
                                {selectedNtaAuth === 'ALL' && <span className="text-red-500">✓</span>}
                              </button>
-                             {authorityData.nta.length === 0 && (
+                             {(authorityData?.nta || []).length === 0 && (
                                <p className="text-[10px] text-zinc-400 px-3 py-2 italic">データなし</p>
                              )}
-                             {authorityData.nta.map(item => (
+                             {(authorityData?.nta || []).map((item: any) => (
                                <button
                                  key={item.name}
                                  onClick={() => { setSelectedNtaAuth(item.name); setProvider('NTA'); setIsNtaOpen(false); triggerSearch({ managingAuthority: item.name, provider: 'NTA' }); }}
@@ -1001,7 +1021,7 @@ export default function SearchBar({ onSearch, areaStats = {} }: { onSearch: (f: 
                          className="text-sm lg:text-[11px] font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none max-w-[100px] truncate"
                        >
                          <option value="ALL">駅指定なし</option>
-                         {railData.find(r => r.line === selectedLine)?.stations.map(st => (
+                         {(railData.find(r => r.line === selectedLine)?.stations || []).map(st => (
                            <option key={st} value={st}>{st}</option>
                          ))}
                        </select>

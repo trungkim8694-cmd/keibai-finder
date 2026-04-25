@@ -45,3 +45,4 @@ next-env.d.ts
 # Tránh lưu trữ File cào dữ liệu rác
 public/pdfs/
 public/property_images/
+.env*.local

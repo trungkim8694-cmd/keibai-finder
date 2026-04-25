@@ -35,7 +35,6 @@ export default function DashboardPage() {
 
   const [bounds, setBounds] = useState<BoundingBox | undefined>(undefined);
   const [currentFilters, setCurrentFilters] = useState<SearchFilters>({});
-  const [areaStats, setAreaStats] = useState<Record<string, number>>({});
   const [mapMoved, setMapMoved] = useState(false);
   const [searchVersion, setSearchVersion] = useState(0); // Bump to force SWR refetch
   const isAutoFly = useRef(false);
@@ -43,8 +42,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setIsHydrated(true);
-
-    getAreaStats().then(setAreaStats).catch(console.error);
   }, []);
 
   const buildQueryString = (filters: any) => {
@@ -67,6 +64,19 @@ export default function DashboardPage() {
      if (filters.isClosingSoon) params.append('isClosingSoon', 'true');
      if (filters.types) {
        filters.types.forEach((t: string) => params.append('types[]', t));
+     }
+     if (filters.provider) params.append('provider', filters.provider);
+     if (filters.providers) {
+       filters.providers.forEach((p: string) => params.append('providers[]', p));
+     }
+     if (filters.courtName) params.append('courtName', filters.courtName);
+     if (filters.managingAuthority) params.append('managingAuthority', filters.managingAuthority);
+     if (filters.lineName) params.append('lineName', filters.lineName);
+     if (filters.stationName) params.append('stationName', filters.stationName);
+     if (filters.maxWalkTime) params.append('maxWalkTime', filters.maxWalkTime.toString());
+     if (filters.minArea) params.append('minArea', filters.minArea.toString());
+     if (filters.prefectures) {
+       filters.prefectures.forEach((p: string) => params.append('prefectures[]', p));
      }
      return params.toString();
   };
@@ -223,7 +233,7 @@ export default function DashboardPage() {
       {/* 2. Horizontal Toolbar (Search & Filter) */}
       <div className="w-full z-[9999] shadow-none lg:shadow-none bg-zinc-50 dark:bg-zinc-950 lg:bg-transparent dark:lg:bg-transparent shrink-0 relative lg:pt-2">
         <Suspense fallback={<div className="h-16 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800"></div>}>
-          <SearchBar onSearch={handleSearch} areaStats={areaStats} />
+          <SearchBar onSearch={handleSearch} />
         </Suspense>
       </div>
 
