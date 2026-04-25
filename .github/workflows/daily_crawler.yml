@@ -2,8 +2,8 @@ name: Daily Parallel Keibai Crawler
 
 on:
   schedule:
-    # 20:00 UTC = 5:00 AM JST
-    - cron: '0 20 * * *'
+    # 20:00 UTC = 5:00 AM JST (Chạy 2 ngày 1 lần)
+    - cron: '0 20 */2 * *'
   workflow_dispatch:
 
 jobs:
