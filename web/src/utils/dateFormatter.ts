@@ -6,8 +6,6 @@ import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const TOKYO_TZ = 'Asia/Tokyo';
-
 /**
  * Format date standalone using UTC to prevent double-shifting by timezones.
  * Prisma treats Naive times as UTC, so we must just read it as UTC to get exactly what's in the DB.

@@ -37,7 +37,7 @@ export default function TradePriceFeatureLandingPage() {
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            href="/trade/find"
+            href="/trade-find"
             className="inline-flex justify-center items-center gap-2 rounded-xl bg-blue-600 px-8 py-3.5 text-base font-bold text-white shadow-sm hover:bg-blue-500 hover:shadow-md hover:-translate-y-0.5 transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
           >
             <Search className="w-5 h-5" /> 今すぐ無料で検索する
@@ -72,7 +72,7 @@ export default function TradePriceFeatureLandingPage() {
             </div>
             
             {/* Mockup Placeholder */}
-            <Link href="/trade/find" className="relative rounded-2xl bg-white dark:bg-zinc-800 shadow-xl border border-zinc-200 dark:border-zinc-700 p-2 overflow-hidden aspect-video group block cursor-pointer">
+            <Link href="/trade-find" className="relative rounded-2xl bg-white dark:bg-zinc-800 shadow-xl border border-zinc-200 dark:border-zinc-700 p-2 overflow-hidden aspect-video group block cursor-pointer">
               <div className="absolute inset-0 bg-blue-100/30 dark:bg-indigo-900/20 backdrop-blur-[1px] flex items-center justify-center group-hover:opacity-0 transition-opacity z-10 duration-500">
                 <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-4 py-2 rounded-full font-bold shadow-lg">
                   <MousePointer2 className="w-4 h-4 animate-bounce" /> ここをクリックして検索画面へ
@@ -117,7 +117,7 @@ export default function TradePriceFeatureLandingPage() {
             市場の「実勢価格」を知ることで、競売での入札額の目安が明確になります。利回りを最大化するための第一歩を踏み出しましょう。
           </p>
           <Link
-            href="/trade/find"
+            href="/trade-find"
             className="inline-flex justify-center items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-8 py-3.5 text-base font-bold shadow-md hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all hover:scale-105"
           >
             取引価格を検索する <ArrowRight className="w-4 h-4" />

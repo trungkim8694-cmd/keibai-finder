@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Map, TrendingUp, Shield, MapPin, TramFront } from 'lucide-react';
+import { Map, TrendingUp, Shield, MapPin, TramFront, Layers } from 'lucide-react';
 
 export default function SidebarFooter() {
   const currentYear = new Date().getFullYear();
@@ -51,11 +51,17 @@ export default function SidebarFooter() {
       <div className="mb-6 space-y-3 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">ツール (Tools)</h4>
 
-        <Link href="/trade/find" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
+        <Link href="/trade-find" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30">
             <span className="text-[12px] opacity-80 group-hover:opacity-100">⚖️</span>
           </div>
           不動産取引価格検索 (MLIT)
+        </Link>
+        <Link href="/area-map" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-rose-600 dark:hover:text-rose-400 transition-colors group">
+          <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-rose-50 dark:group-hover:bg-rose-900/30">
+            <span className="text-[12px] opacity-80 group-hover:opacity-100">🌋</span>
+          </div>
+          エリア分析マップ (災害・都市計画)
         </Link>
         <Link href="/market-insights" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30">
@@ -82,6 +88,22 @@ export default function SidebarFooter() {
             <Link href="/en/features/map-search" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded transition-colors">English</Link>
             <Link href="/vi/features/map-search" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded transition-colors">Tiếng Việt</Link>
             <Link href="/zh/features/map-search" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded transition-colors">中文</Link>
+          </div>
+        </div>
+
+        {/* Area Map PR */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[12px] font-bold text-zinc-700 dark:text-zinc-300">
+            <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+              <Layers className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+            </div>
+            エリア分析マップについて
+          </div>
+          <div className="flex gap-2 pl-7">
+            <Link href="/features/area-map" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-800/40 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded transition-colors">日本語</Link>
+            <Link href="/en/features/area-map" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded transition-colors">English</Link>
+            <Link href="/vi/features/area-map" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded transition-colors">Tiếng Việt</Link>
+            <Link href="/zh/features/area-map" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded transition-colors">中文</Link>
           </div>
         </div>
 
@@ -117,7 +139,7 @@ export default function SidebarFooter() {
       {/* 5. Copyright & Legal */}
       <div className="px-2 pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2">
          <div className="text-[11px] text-zinc-500 dark:text-zinc-500 font-medium leading-relaxed">
-           日本Office: 東京都豊島区南池袋２丁目３３<br/>
+           日本Office: 東京都豊島区<br/>
            Email: <a href="mailto:info@keibai-koubai.com" className="hover:text-blue-600 transition-colors">info@keibai-koubai.com</a>
          </div>
          <div className="flex gap-4 text-[11px] mt-1">

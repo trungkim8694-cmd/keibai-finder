@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import Image from 'next/image';
 
 export default function ViewHistoryBar() {
    const [history, setHistory] = useState<any[]>([]);
@@ -11,7 +11,7 @@ export default function ViewHistoryBar() {
      try {
        const h = JSON.parse(localStorage.getItem('keibai_history') || '[]');
        setHistory(h);
-     } catch(e){}
+     } catch {}
    };
 
    useEffect(() => {
@@ -70,7 +70,7 @@ export default function ViewHistoryBar() {
                  <a href={`/property/${item.id}`} onClick={() => setIsOpen(false)} key={`${item.id}-${idx}`} className="snap-start min-w-[100px] max-w-[100px] block rounded-xl overflow-hidden bg-transparent shrink-0 group">
                      <div className="w-full aspect-square bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
                         {item.image ? (
-                            <img src={item.image} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <Image src={item.image} alt="" fill sizes="100px" quality={60} className="object-cover group-hover:scale-110 transition-transform duration-500" />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-400 font-bold tracking-widest bg-zinc-50 dark:bg-zinc-950">NO IMAGE</div>
                         )}

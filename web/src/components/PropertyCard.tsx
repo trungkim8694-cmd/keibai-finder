@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+
 import { type SharedProperty } from '../types';
 import { PropertyInfoTags } from './PropertyInfoTags';
 import FavoriteButton from './FavoriteButton';
@@ -43,10 +43,7 @@ export default function PropertyCard({
     formattedPrice = `${(Number(property.starting_price) / 10000).toLocaleString('ja-JP')}万円`;
   }
   
-  // REAL AI YIELD (from ai_analysis)
-  const isSupportedType = ['戸建て', 'マンション'].includes(property.property_type);
-  const aiYield = property.ai_analysis?.ja?.roi_analysis?.yield_percent;
-  const showAiYield = isSupportedType && aiYield !== undefined && aiYield > 0;
+
 
   // contact_url is pre-extracted by the server action from BIT Summary section
   const courtContactUrl: string | null = (property as any).contact_url || null;

@@ -62,7 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/trade/find`,
+      url: `${baseUrl}/trade-find`,
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
       priority: 0.9,
@@ -133,6 +133,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily' as const,
       priority: 0.8, // prefectures have higher priority than cities
     });
+    // Add area-map specific routes
+    areaRoutes.push({
+      url: `${baseUrl}/area-map/${encodeURIComponent(pref!)}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8, 
+    });
   });
 
   // Extract cities
@@ -143,6 +150,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: `${baseUrl}/search/area/${encodeURIComponent(loc.prefecture!)}/${encodeURIComponent(loc.city!)}`,
         lastModified: new Date(),
         changeFrequency: 'daily' as const,
+        priority: 0.7,
+      });
+      // Add area-map specific routes
+      areaRoutes.push({
+        url: `${baseUrl}/area-map/${encodeURIComponent(loc.prefecture!)}/${encodeURIComponent(loc.city!)}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
         priority: 0.7,
       });
     });

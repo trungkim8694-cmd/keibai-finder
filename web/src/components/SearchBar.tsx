@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, Fragment, useEffect, useTransition, useRef, useMemo } from 'react';
-import { Combobox, Transition, Popover, Dialog, Portal } from '@headlessui/react';
+import { useState, Fragment, useEffect, useTransition, useMemo } from 'react';
+import { Transition, Popover, Portal } from '@headlessui/react';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
-import { MagnifyingGlassIcon, ChevronDownIcon, CheckIcon, MapPinIcon, FunnelIcon, XMarkIcon, CurrencyYenIcon, MapIcon, ArrowPathIcon, StarIcon } from '@heroicons/react/20/solid';
-import { getRailLinesAndStations, getSearchSuggestions, getAuthorityStats, getTypeStats, getFacetedStats, SearchSuggestion } from '../actions/propertyActions';
+import { MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, MapIcon, StarIcon } from '@heroicons/react/20/solid';
+import { getSearchSuggestions, getFacetedStats, SearchSuggestion } from '../actions/propertyActions';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 
@@ -110,7 +110,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     
     triggerSearch(overrides);
   };
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // Search state
   const [types, setTypes] = useState<string[]>([]);
@@ -131,7 +131,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
   const [minArea, setMinArea] = useState<number | undefined>();
   const [sort, setSort] = useState<'newest' | 'views' | 'ending' | 'priceAsc' | 'areaDesc' | 'gap_desc'>('newest');
   
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   const [isExpanded, setIsExpanded] = useState(true); // Search collapse state
   const [isMounted, setIsMounted] = useState(false);
   const [selectedLine, setSelectedLine] = useState<string>('ALL');
@@ -182,7 +182,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
   
   useEffect(() => {
      if (isMounted) {
-        let initialOverrides: any = {};
+        const initialOverrides: any = {};
 
         const lineParam = searchParams.get('line');
         const prefsParam = searchParams.get('prefs');
@@ -265,7 +265,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     const finalFilters = { ...currentFilters, ...actualOverrides };
 
     onSearch(finalFilters);
-    setMobileFiltersOpen(false);
+
     setIsExpanded(false);
   };
 
@@ -336,8 +336,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     } catch {}
   };
 
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [saveModalName, setSaveModalName] = useState('');
+
 
   const handleSaveFilter = () => {
     // getFilterSummary logic translated for preset name
@@ -442,23 +441,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     '九州・沖縄': ['福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県']
   };
 
-  const hasActiveFilters = 
-    keyword !== '' ||
-    types.length > 0 ||
-    selectedRegions.length > 0 ||
-    selectedPrefectures.length > 0 ||
-    !isNationwide ||
-    minPrice !== undefined ||
-    maxPrice !== undefined ||
-    minArea !== undefined ||
-    isUrgent !== false ||
-    activeProviders.length < 2 ||
-    walkTime !== undefined ||
-    selectedLine !== 'ALL' ||
-    selectedStation !== 'ALL' ||
-    selectedCourt !== 'ALL' ||
-    selectedNtaAuth !== 'ALL' ||
-    sort !== 'newest';
+
 
   const getFilterSummary = () => {
     const parts = [];
@@ -476,18 +459,8 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     return parts.join(' / ');
   };
 
-  const totalBit = (authorityData?.bit || []).reduce((acc: any, curr: any) => acc + curr.count, 0) || 0;
-  const bitActiveCount = selectedCourt === 'ALL' 
-    ? totalBit 
-    : (authorityData?.bit || []).find((x: any) => x.name === selectedCourt)?.count || 0;
-
-  const totalNta = (authorityData?.nta || []).reduce((acc: any, curr: any) => acc + curr.count, 0) || 0;
-  const ntaActiveCount = selectedNtaAuth === 'ALL' 
-    ? totalNta 
-    : (authorityData?.nta || []).find((x: any) => x.name === selectedNtaAuth)?.count || 0;
-
   return (
-    <div className={`w-full sticky top-0 z-[60] lg:relative lg:z-auto pointer-events-auto transition-all duration-500 ${isExpanded ? 'bg-white/95 dark:bg-zinc-950/95 lg:bg-transparent dark:lg:bg-transparent shadow-sm lg:shadow-none backdrop-blur-md lg:backdrop-blur-none border-b border-zinc-200 dark:border-zinc-800 lg:border-none' : 'bg-transparent border-transparent shadow-none pointer-events-none pb-14 lg:pb-0'}`}>
+    <div className={`w-full sticky top-0 z-[60] lg:relative lg:z-auto pointer-events-auto transition-all duration-500 ${isExpanded ? 'bg-white/95 dark:bg-zinc-950/95 lg:bg-transparent dark:lg:bg-transparent shadow-sm lg:shadow-none backdrop-blur-md lg:backdrop-blur-none border-b border-zinc-200 dark:border-zinc-800 lg:border-none' : 'bg-transparent border-transparent shadow-none pointer-events-none pb-[42px] lg:pb-0'}`}>
       
       {/* =========================================
           COLLAPSED SUMMARY PILL

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, Map, TrendingUp, Shield, MapPin, TramFront } from 'lucide-react';
+import { Menu, Map, TrendingUp, Shield, MapPin, TramFront, Layers } from 'lucide-react';
 
 export default function GlobalHeaderMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -75,11 +75,17 @@ export default function GlobalHeaderMenu() {
             <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
               <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500">ツール (Tools)</h4>
               <div className="flex flex-col gap-2">
-                <Link href="/trade/find" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group p-1">
+                <Link href="/trade-find" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group p-1">
                   <div className="w-6 h-6 shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30">
                     <span className="text-[12px] opacity-80 group-hover:opacity-100">⚖️</span>
                   </div>
                   不動産取引価格検索 (MLIT)
+                </Link>
+                <Link href="/area-map" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-[12px] font-medium hover:text-rose-600 dark:hover:text-rose-400 transition-colors group p-1">
+                  <div className="w-6 h-6 shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-rose-50 dark:group-hover:bg-rose-900/30">
+                    <span className="text-[12px] opacity-80 group-hover:opacity-100">🌋</span>
+                  </div>
+                  エリア分析マップ (災害・都市計画)
                 </Link>
                 <Link href="/market-insights" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-[12px] font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group p-1">
                   <div className="w-6 h-6 shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30">
@@ -119,6 +125,21 @@ export default function GlobalHeaderMenu() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-[12px] font-bold text-zinc-700 dark:text-zinc-300">
                   <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                    <Layers className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                  </div>
+                  エリア分析マップについて
+                </div>
+                <div className="flex flex-wrap gap-1.5 pl-7">
+                  <Link onClick={() => setIsOpen(false)} href="/features/area-map" className="text-[10px] bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded">日本語</Link>
+                  <Link onClick={() => setIsOpen(false)} href="/en/features/area-map" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded">English</Link>
+                  <Link onClick={() => setIsOpen(false)} href="/vi/features/area-map" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded">Tiếng Việt</Link>
+                  <Link onClick={() => setIsOpen(false)} href="/zh/features/area-map" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded">中文</Link>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[12px] font-bold text-zinc-700 dark:text-zinc-300">
+                  <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
                     <TrendingUp className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   価格査定機能について
@@ -135,7 +156,7 @@ export default function GlobalHeaderMenu() {
             {/* Legal & Contact */}
             <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2">
               <div className="text-[11px] text-zinc-500 dark:text-zinc-500 font-medium leading-relaxed">
-                日本Office: 東京都豊島区南池袋２丁目３３<br/>
+                日本Office: 東京都豊島区<br/>
                 Email: <a href="mailto:info@keibai-koubai.com" className="hover:text-blue-600 transition-colors">info@keibai-koubai.com</a>
               </div>
               <div className="flex gap-4 text-[11px] mt-1">

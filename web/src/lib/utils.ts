@@ -1,6 +1,6 @@
 // Shared utilities for Keibai Finder
 
-export function extractTotalArea(rawDisplayData: any, propertyType?: string): number | null {
+export function extractTotalArea(rawDisplayData: any): number | null {
   if (!rawDisplayData) return null;
   try {
      let parsed = typeof rawDisplayData === 'string' ? JSON.parse(rawDisplayData) : rawDisplayData;

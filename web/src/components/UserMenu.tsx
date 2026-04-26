@@ -2,14 +2,12 @@
 
 import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import SignupModal from './SignupModal';
 
 export default function UserMenu() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
@@ -64,7 +62,7 @@ export default function UserMenu() {
           </button>
           
           <Link 
-            href="/trade/find"
+            href="/trade-find"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setShowDropdown(false)}

@@ -38,7 +38,7 @@ export default function TradeSearchForm({ initialPref, initialCity, initialType 
     if (city) params.set('city', city);
     params.set('type', type);
 
-    router.push(`/trade/find?${params.toString()}`);
+    router.push(`/trade-find?${params.toString()}`);
   };
 
   return (

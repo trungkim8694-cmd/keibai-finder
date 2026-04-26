@@ -192,13 +192,14 @@ def main():
     print("--- [DAILY DIGEST ENGINE START] ---")
     try:
         # 1. Connect DB
-        conn = psycopg2.connect(DATABASE_URL)
+        db_url_clean = DATABASE_URL.replace("?pgbouncer=true", "")
+        conn = psycopg2.connect(db_url_clean)
         
         # 2. Lấy Properties
         top_props = fetch_top_properties(conn)
         if not top_props:
-            print("Không tìm thấy Properties có margin > 20% trong kho. Exit.")
-            return
+            print("Không tìm thấy Properties có margin > 20% trong kho. Bỏ qua.")
+            sys.exit(1)
 
         print(f"[1] Lọc được {len(top_props)} tài sản.")
         
@@ -208,14 +209,14 @@ def main():
         
         if not ja_content or len(ja_content) < 100:
             print("Gemini sinh nội dung lỗi (Trống).")
-            return
+            sys.exit(1)
         
         print("[3] Bài viết OK. Khởi chạy Translation Worker sinh JSON (EN, VI, ZH)...")
         translations = translate_content(ja_content)
         
         if not translations:
              print("Lỗi khi Dịch thuật.")
-             return
+             sys.exit(1)
              
         # 4. Lưu DB
         print("[4] Đẩy dữ liệu lên Prisma Database...")
@@ -223,6 +224,7 @@ def main():
         
     except Exception as e:
         print(f"FATAL ERROR: {e}")
+        sys.exit(1)
     finally:
         if 'conn' in locals() and conn:
             conn.close()

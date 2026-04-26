@@ -70,7 +70,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
      ogImage = property.images[0] || undefined;
   }
 
-  const canonicalUrl = `https://keibai-finder.jp/property/${id}`;
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://keibai-finder.com';
+  const canonicalUrl = `${baseUrl}/property/${id}`;
 
   return {
     title,
@@ -249,7 +250,8 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   const auctionRound = extractAuctionRoundFromData(property.raw_display_data);
 
   // --- Sharing Info ---
-  const propertyUrl = `https://keibai-finder.jp/property/${property.sale_unit_id}`;
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://keibai-finder.com';
+  const propertyUrl = `${baseUrl}/property/${property.sale_unit_id}`;
   const addressShort = property.address?.substring(0, 30) || id;
   const propertyTitle = `【${formattedStartPrice}】${addressShort} - ${property.property_type || '競売物件'}`;
   const endDateRaw = (property as any).bid_end_date ? new Date((property as any).bid_end_date) : null;

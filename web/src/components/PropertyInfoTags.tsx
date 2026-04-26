@@ -11,7 +11,7 @@ interface InfoTagsProps {
 }
 
 export function PropertyInfoTags({ property, displayArea, children, showCourtTag = false }: InfoTagsProps) {
-  let formattedArea = displayArea;
+  const formattedArea = displayArea;
 
   let formattedSchedule = property.auctionSchedule || (property as any).extractedSchedule;
   if (!formattedSchedule && ((property as any).bid_start_date || (property as any).bid_end_date)) {
@@ -62,7 +62,7 @@ export function PropertyInfoTags({ property, displayArea, children, showCourtTag
                  typeLabel = rawName;
              }
          }
-     } catch (e) {
+     } catch {
          // ignore parsing error
      }
   }

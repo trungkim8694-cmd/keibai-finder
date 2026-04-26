@@ -34,7 +34,7 @@ export default async function PrefectureSearchPage({ params }: { params: { prefe
     <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">
       <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/trade/find" className="inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors mb-2">
+          <Link href="/trade-find" className="inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors mb-2">
             <ArrowLeft className="w-4 h-4 mr-1" /> マップ検索へ戻る
           </Link>
           <h1 className="text-xl lg:text-2xl font-bold text-zinc-900 dark:text-white">

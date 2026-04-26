@@ -105,7 +105,7 @@ export function NearbyTransactions({ transactions, prefecture, city, propertyTyp
 
       <div className="p-4 bg-zinc-50 dark:bg-zinc-900/10">
         <a 
-          href={`/trade/find?pref=${encodeURIComponent(prefecture)}&city=${encodeURIComponent(city)}${propertyType ? `&type=${encodeURIComponent(propertyType)}` : ''}`}
+          href={`/trade-find?pref=${encodeURIComponent(prefecture)}&city=${encodeURIComponent(city)}${propertyType ? `&type=${encodeURIComponent(propertyType)}` : ''}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-1.5 w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-all shadow-sm hover:shadow focus:ring-4 focus:ring-indigo-500/20"

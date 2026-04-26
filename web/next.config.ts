@@ -60,6 +60,18 @@ const nextConfig: NextConfig = {
          destination: 'https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/:path*'
       },
       {
+         source: '/api/tiles/tsunami/:path*',
+         destination: 'https://disaportaldata.gsi.go.jp/raster/04_tsunami_new_data/:path*'
+      },
+      {
+         source: '/api/tiles/storm_surge/:path*',
+         destination: 'https://disaportaldata.gsi.go.jp/raster/03_takashio_l2_shinsuishin_data/:path*'
+      },
+      {
+         source: '/api/tiles/shelter/:path*',
+         destination: 'https://cyberjapandata.gsi.go.jp/xyz/skhb08/:path*'
+      },
+      {
          source: '/api/tiles/railway/:path*',
          destination: 'https://a.tiles.openrailwaymap.org/standard/:path*'
       }
