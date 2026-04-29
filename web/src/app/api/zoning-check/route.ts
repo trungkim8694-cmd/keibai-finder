@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import { point } from '@turf/helpers';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: CORS_HEADERS });
+}
+
 const MLIT_API_KEY = process.env.MLIT_REINFOLIB_API_KEY || '';
 
 function latLngToTile(lat: number, lng: number, zoom: number) {
@@ -31,10 +41,10 @@ export async function GET(request: NextRequest) {
   const latStr = searchParams.get('lat');
   const lngStr = searchParams.get('lng');
 
-  if (!latStr || !lngStr) return NextResponse.json({ error: 'Missing coordinates' }, { status: 400 });
+  if (!latStr || !lngStr) return NextResponse.json({ error: 'Missing coordinates' }, { status: 400, headers: CORS_HEADERS });
   const lat = parseFloat(latStr);
   const lng = parseFloat(lngStr);
-  if (isNaN(lat) || isNaN(lng)) return NextResponse.json({ error: 'Invalid coordinates' }, { status: 400 });
+  if (isNaN(lat) || isNaN(lng)) return NextResponse.json({ error: 'Invalid coordinates' }, { status: 400, headers: CORS_HEADERS });
 
   const tile = latLngToTile(lat, lng, 15);
   const targetPt = point([lng, lat]);
@@ -47,7 +57,7 @@ export async function GET(request: NextRequest) {
     feature: null
   };
 
-  if (!MLIT_API_KEY) return NextResponse.json(result, { status: 200 });
+  if (!MLIT_API_KEY) return NextResponse.json(result, { status: 200, headers: CORS_HEADERS });
 
   try {
     const [planData, useData] = await Promise.all([
@@ -89,9 +99,9 @@ export async function GET(request: NextRequest) {
        }
     }
 
-    return NextResponse.json(result, { status: 200 });
+    return NextResponse.json(result, { status: 200, headers: CORS_HEADERS });
 
   } catch (err) {
-    return NextResponse.json({ error: 'Zoning mapping logic error' }, { status: 500 });
+    return NextResponse.json({ error: 'Zoning mapping logic error' }, { status: 500, headers: CORS_HEADERS });
   }
 }

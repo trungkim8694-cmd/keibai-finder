@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Keibai Lens - Siêu công cụ Check Giá & Quy Hoạch BĐS Nhật",
+    "description": "App Name for Vietnam Store"
+  },
+  "appShortName": {
+    "message": "Keibai Lens",
+    "description": "Short App Name"
+  },
+  "appDesc": {
+    "message": "Công cụ không thể thiếu trước khi mua chung cư/nhà phố ở Nhật! Xem ngay dữ liệu lịch sử giá giao dịch (MLIT) và cảnh báo ngập lụt, sạt lở từ chính phủ chỉ với 1 click.",
+    "description": "App Description for Vietnam Store"
+  }
+}

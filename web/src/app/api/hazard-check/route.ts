@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import { point } from '@turf/helpers';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: CORS_HEADERS });
+}
+
 // Helper to convert Lat/Lng to XYZ Tile
 function latLngToTile(lat: number, lng: number, zoom: number) {
   const x = Math.floor((lng + 180) / 360 * Math.pow(2, zoom));
@@ -48,14 +58,14 @@ export async function GET(request: NextRequest) {
   const lngStr = searchParams.get('lng');
 
   if (!latStr || !lngStr) {
-    return NextResponse.json({ error: 'Missing coordinates' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing coordinates' }, { status: 400, headers: CORS_HEADERS });
   }
 
   const lat = parseFloat(latStr);
   const lng = parseFloat(lngStr);
 
   if (isNaN(lat) || isNaN(lng)) {
-    return NextResponse.json({ error: 'Invalid coordinates' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid coordinates' }, { status: 400, headers: CORS_HEADERS });
   }
 
   const tile = latLngToTile(lat, lng, 15);
@@ -73,7 +83,7 @@ export async function GET(request: NextRequest) {
 
   if (!MLIT_API_KEY) {
       // Return warnings completely empty of random mock data if no API Key
-      return NextResponse.json(result, { status: 200 });
+      return NextResponse.json(result, { status: 200, headers: CORS_HEADERS });
   }
 
   try {
@@ -172,6 +182,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
+        ...CORS_HEADERS
       },
     });
   } catch (error) {
@@ -183,6 +194,6 @@ export async function GET(request: NextRequest) {
         tsunami: "システムエラー",
         storm_surge: "システムエラー",
         shelter: "システムエラー"
-    }, { status: 500 });
+    }, { status: 500, headers: CORS_HEADERS });
   }
 }

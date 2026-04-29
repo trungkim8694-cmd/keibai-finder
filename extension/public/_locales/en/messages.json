@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Keibai Lens - Real Estate Valuation & Hazard X-Ray",
+    "description": "App Name for Global Store"
+  },
+  "appShortName": {
+    "message": "Keibai Lens",
+    "description": "Short App Name"
+  },
+  "appDesc": {
+    "message": "Instantly reveal MLIT market property prices & critical flood/landslide risk hazard maps with a single click. A must-have tool for investors.",
+    "description": "App Description for Global Store"
+  }
+}

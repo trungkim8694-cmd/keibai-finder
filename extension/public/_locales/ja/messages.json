@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Keibai Lens: 不動産価格・ハザードマップチェッカー",
+    "description": "App Name for Japan Store"
+  },
+  "appShortName": {
+    "message": "Keibai Lens",
+    "description": "Short App Name"
+  },
+  "appDesc": {
+    "message": "不動産ポータルサイトで家を買う前に！国交省の取引価格とハザードリスク（浸水・土砂災害など）を1クリックで見抜く、不動産投資家向け必須ツール。",
+    "description": "App Description for Japan Store"
+  }
+}

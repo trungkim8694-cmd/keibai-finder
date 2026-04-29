@@ -75,6 +75,12 @@ export default function GlobalHeaderMenu() {
             <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
               <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500">ツール (Tools)</h4>
               <div className="flex flex-col gap-2">
+                <Link href="/extension" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-[12px] font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group p-1">
+                  <div className="w-6 h-6 shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30">
+                    <img src="/extension-icon.png" alt="Keibai Lens" className="w-4 h-4 rounded-[4px] opacity-80 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  Keibai Lens 拡張機能
+                </Link>
                 <Link href="/trade-find" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group p-1">
                   <div className="w-6 h-6 shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30">
                     <span className="text-[12px] opacity-80 group-hover:opacity-100">⚖️</span>
@@ -93,20 +99,29 @@ export default function GlobalHeaderMenu() {
                   </div>
                   市場分析ダッシュボード
                 </Link>
-                
-                <Link href="/insights" onClick={() => setIsOpen(false)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-bold text-amber-600 dark:text-amber-500 hover:text-amber-700 dark:hover:text-amber-400 transition-colors group p-1 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/30">
-                  <div className="w-6 h-6 shrink-0 rounded-md bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <span className="text-[12px] opacity-100">⚡</span>
-                  </div>
-                  本日の市場分析
-                </Link>
               </div>
             </div>
 
             {/* Features */}
             <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
-              <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500">機能紹介 (FEATURES)</h4>
+              <Link href="/features" onClick={() => setIsOpen(false)} className="flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase text-zinc-400 hover:text-indigo-600 dark:text-zinc-500 dark:hover:text-indigo-400 transition-colors">機能紹介 (FEATURES) <span>→</span></Link>
               
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[12px] font-bold text-zinc-700 dark:text-zinc-300">
+                  <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 overflow-hidden">
+                    <img src="/extension-icon.png" alt="Keibai Lens" className="w-3.5 h-3.5 rounded-[3px] opacity-90" />
+                  </div>
+                  Keibai Lens 拡張機能について
+                </div>
+                <div className="flex flex-wrap gap-1.5 pl-7">
+                  <Link onClick={() => setIsOpen(false)} href="/extension" className="text-[10px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded">日本語</Link>
+                  <Link onClick={() => setIsOpen(false)} href="/en/extension" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded">English</Link>
+                  <Link onClick={() => setIsOpen(false)} href="/vi/extension" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded">Tiếng Việt</Link>
+                  <Link onClick={() => setIsOpen(false)} href="/zh/extension" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded">中文</Link>
+                </div>
+              </div>
+
+
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-[12px] font-bold text-zinc-700 dark:text-zinc-300">
                   <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
@@ -150,6 +165,19 @@ export default function GlobalHeaderMenu() {
                   <Link onClick={() => setIsOpen(false)} href="/vi/features/trade-price-search" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded">Tiếng Việt</Link>
                   <Link onClick={() => setIsOpen(false)} href="/zh/features/trade-price-search" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded">中文</Link>
                 </div>
+              </div>
+            </div>
+
+            {/* Insights */}
+            <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
+              <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500">🔥 今日の掘り出し物 (INSIGHTS)</h4>
+              <div className="flex flex-col gap-2">
+                <Link href="/insights" onClick={() => setIsOpen(false)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors group p-1">
+                  <div className="w-6 h-6 shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-amber-50 dark:group-hover:bg-amber-900/30">
+                    <span className="text-[12px] opacity-80 group-hover:opacity-100">📰</span>
+                  </div>
+                  <span className="line-clamp-1">すべての市場レポートを見る</span>
+                </Link>
               </div>
             </div>
 

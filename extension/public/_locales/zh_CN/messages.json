@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Keibai Lens - 日本房产查价与灾害风险雷达",
+    "description": "App Name for China Store"
+  },
+  "appShortName": {
+    "message": "Keibai Lens",
+    "description": "Short App Name"
+  },
+  "appDesc": {
+    "message": "购买日本房产必备！一键查询国土交通省的历史交易价格，以及准确的洪水和泥石流风险灾害地图，让海外投资者避开大坑。",
+    "description": "App Description for China Store"
+  }
+}

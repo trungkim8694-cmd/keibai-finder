@@ -51,6 +51,13 @@ export default function SidebarFooter() {
       <div className="mb-6 space-y-3 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
         <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">ツール (Tools)</h4>
 
+        <Link href="/extension" className="flex items-center gap-2 text-[12px] font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group mb-3">
+          <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30">
+            <img src="/extension-icon.png" alt="Keibai Lens" className="w-4 h-4 rounded-[4px] opacity-80 group-hover:opacity-100 transition-opacity" />
+          </div>
+          Keibai Lens 拡張機能
+        </Link>
+
         <Link href="/trade-find" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30">
             <span className="text-[12px] opacity-80 group-hover:opacity-100">⚖️</span>
@@ -73,8 +80,23 @@ export default function SidebarFooter() {
 
       {/* 3. Internal linking for PR Features (Matrix Design) */}
       <div className="mb-6 space-y-4 px-2 border-t border-zinc-100 dark:border-zinc-800/50 pt-4">
-        <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-600 mb-2">機能紹介 (FEATURES & LANGUAGES)</h4>
-        
+        <Link href="/features" className="flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 mb-2 transition-colors">機能紹介 (FEATURES & LANGUAGES) <span>→</span></Link>
+        {/* Keibai Lens PR */}
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center gap-2 text-[12px] font-bold text-zinc-700 dark:text-zinc-300">
+            <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
+              <img src="/extension-icon.png" alt="Keibai Lens" className="w-3.5 h-3.5 rounded-[3px] opacity-90" />
+            </div>
+            Keibai Lens 拡張機能について
+          </div>
+          <div className="flex gap-2 pl-7 flex-wrap">
+            <Link href="/extension" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-800/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded transition-colors">日本語</Link>
+            <Link href="/en/extension" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded transition-colors">English</Link>
+            <Link href="/vi/extension" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded transition-colors">Tiếng Việt</Link>
+            <Link href="/zh/extension" target="_blank" rel="noopener noreferrer" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded transition-colors">中文</Link>
+          </div>
+        </div>
+
         {/* Map Search PR */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-[12px] font-bold text-zinc-700 dark:text-zinc-300">
