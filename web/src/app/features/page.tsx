@@ -59,16 +59,15 @@ export default function FeaturesIndexPage() {
           </Link>
 
           {/* Chrome Extension */}
-          <Link href="/extension" className="group block bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 border border-slate-700 shadow-lg hover:shadow-2xl transition-all relative overflow-hidden">
-            <div className="absolute right-0 top-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl" />
-            <div className="w-14 h-14 bg-slate-800 border border-slate-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform relative z-10">
-              <Cpu className="w-7 h-7 text-blue-400" />
+          <Link href="/extension" className="group block bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-300 transition-all">
+            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Cpu className="w-7 h-7 text-blue-600" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-3 group-hover:text-blue-400 transition-colors relative z-10">X-Ray 拡張機能 (Chrome Tool)</h2>
-            <p className="text-slate-300 mb-6 leading-relaxed relative z-10">
+            <h2 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">Keibai Lens 拡張機能 (Chrome Tool)</h2>
+            <p className="text-slate-600 mb-6 leading-relaxed">
               SUUMOやHOME'Sで家を探す際に、この拡張機能を使えばワンクリックで「相場情報」と「災害リスク」をリアルタイムで透視できます。
             </p>
-            <span className="text-blue-400 font-bold text-sm flex items-center gap-1 relative z-10">無料でインストール <span className="group-hover:translate-x-1 transition-transform">→</span></span>
+            <span className="text-blue-600 font-bold text-sm flex items-center gap-1">無料でインストール <span className="group-hover:translate-x-1 transition-transform">→</span></span>
           </Link>
 
         </div>
