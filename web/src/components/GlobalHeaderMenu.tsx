@@ -178,6 +178,12 @@ export default function GlobalHeaderMenu() {
                   </div>
                   <span className="line-clamp-1">すべての市場レポートを見る</span>
                 </Link>
+                <Link href="/blogs" onClick={() => setIsOpen(false)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[12px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group p-1">
+                  <div className="w-6 h-6 shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30">
+                    <span className="text-[12px] opacity-80 group-hover:opacity-100">📖</span>
+                  </div>
+                  <span className="line-clamp-1">📖 ナレッジ & ガイド (BLOGS)</span>
+                </Link>
               </div>
             </div>
 

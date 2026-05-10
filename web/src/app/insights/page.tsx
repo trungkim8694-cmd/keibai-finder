@@ -15,6 +15,9 @@ export const revalidate = 600; // Auto update every 10 minutes
 export default async function InsightsHubPage() {
   // Fetch from DB
   const digests = await prisma.dailyDigest.findMany({
+    where: {
+      category: 'MARKET_REPORT'
+    },
     orderBy: { publishDate: 'desc' },
     take: 50,
   });

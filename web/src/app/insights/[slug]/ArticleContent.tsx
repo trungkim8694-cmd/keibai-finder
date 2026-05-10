@@ -64,6 +64,51 @@ export default async function ArticleContent({ content }: { content: string }) {
 
   return (
     <div className="space-y-16 lg:space-y-24">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .prose {
+          color: #374151 !important; 
+          text-align: justify !important;
+          text-justify: inter-character !important;
+        }
+        .prose p { 
+          margin-top: 0 !important; 
+          margin-bottom: 1.25rem !important; 
+          line-height: 1.7 !important;
+        }
+        .prose h1, .prose h2, .prose h3 { 
+          margin-top: 2.5rem !important; 
+          margin-bottom: 1rem !important; 
+          font-weight: 800 !important;
+          letter-spacing: -0.01em !important;
+          color: #18181b !important;
+        }
+        .prose blockquote {
+          margin-top: 2rem !important;
+          margin-bottom: 2rem !important;
+          padding: 1.25rem 1.75rem !important;
+          background: linear-gradient(to right, rgba(59, 130, 246, 0.04), rgba(59, 130, 246, 0.01)) !important;
+          border-left: 4px solid #3b82f6 !important;
+          border-radius: 0 0.75rem 0.75rem 0;
+          font-style: italic !important;
+          color: #4b5563 !important;
+        }
+        .prose li {
+          margin-top: 0.4rem !important;
+          margin-bottom: 0.4rem !important;
+        }
+        .prose a {
+          color: #2563eb !important;
+          font-weight: 700 !important;
+          text-decoration: underline !important;
+          text-underline-offset: 3px !important;
+          transition: all 0.2s ease !important;
+        }
+        .prose img {
+          margin: 2rem auto !important;
+          border-radius: 0.75rem !important;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+        }
+      `}} />
       {blocks.filter(b => !b.isCTA).map((block, index) => {
         
         // Render clustered block (Text on Left, Chart on Right)
@@ -75,22 +120,27 @@ export default async function ArticleContent({ content }: { content: string }) {
             {/* Left Column: Markdown text portion */}
             <div className={block.chartId ? "lg:col-span-7" : "lg:col-span-12"}>
               <article className="prose prose-zinc dark:prose-invert prose-lg max-w-none 
-                prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl 
-                prose-a:text-blue-600 dark:prose-a:text-blue-400 hover:prose-a:text-blue-500
+                prose-headings:font-black prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl 
+                prose-headings:mt-32 prose-headings:mb-16
+                prose-p:my-20 prose-p:leading-[2.0]
+                prose-li:my-12
+                prose-blockquote:my-24 prose-blockquote:py-8
+                prose-a:text-blue-600 dark:prose-a:text-blue-400 
+                prose-a:font-bold prose-a:underline prose-a:decoration-2 prose-a:underline-offset-4
+                prose-a:after:content-['\2197'] prose-a:after:ml-1 prose-a:after:inline-block
+                hover:prose-a:text-blue-700 dark:hover:prose-a:text-blue-300
                 prose-img:rounded-xl prose-img:shadow-lg">
-                {block.textParts.map((textStr, i) => (
-                  <ReactMarkdown 
-                    key={i} 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      table: ({node, ...props}) => <div className="overflow-x-auto my-6"><table className="min-w-full divide-y divide-zinc-300 dark:divide-zinc-700" {...props} /></div>,
-                      th: ({node, ...props}) => <th className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100" {...props} />,
-                      td: ({node, ...props}) => <td className="px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 text-sm" {...props} />,
-                    }}
-                  >
-                    {textStr}
-                  </ReactMarkdown>
-                ))}
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    table: ({node, ...props}) => <div className="overflow-x-auto my-6"><table className="min-w-full divide-y divide-zinc-300 dark:divide-zinc-700" {...props} /></div>,
+                    th: ({node, ...props}) => <th className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100" {...props} />,
+                    td: ({node, ...props}) => <td className="px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 text-sm" {...props} />,
+                  }}
+                >
+                  {block.textParts.join('\n\n')}
+                </ReactMarkdown>
+
                 {block.chartId && (
                   <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-6 pb-2 border-b border-zinc-100 dark:border-zinc-800/50 inline-flex items-center">
                     出典：

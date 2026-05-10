@@ -33,7 +33,20 @@ export async function generateMetadata(
   }
 }
 
-export const revalidate = 600; // Auto update every 10 minutes
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const digests = await prisma.dailyDigest.findMany({
+    where: {
+      category: 'MARKET_REPORT'
+    },
+    select: { slug: true }
+  });
+
+  return digests.map((digest) => ({
+    slug: digest.slug,
+  }));
+}
 
 export default async function DigestDetailPage({ params, searchParams }: Props) {
   const resolvedParams = await params;
@@ -46,6 +59,16 @@ export default async function DigestDetailPage({ params, searchParams }: Props) 
   });
 
   if (!digest) {
+    notFound();
+  }
+
+  // Prevent Duplicate Content: Only MARKET_REPORT belongs in /insights
+  if (digest.category !== 'MARKET_REPORT') {
+    // If it's a GUIDE or CAUTION, redirect to /blogs
+    if (digest.category === 'GUIDE' || digest.category === 'CAUTION') {
+      const { redirect } = require('next/navigation');
+      redirect(`/blogs/${slug}${resolvedSearchParams.lang ? `?lang=${resolvedSearchParams.lang}` : ''}`);
+    }
     notFound();
   }
 

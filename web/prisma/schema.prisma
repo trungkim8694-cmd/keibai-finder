@@ -220,6 +220,8 @@ model DailyDigest {
   content_vi     String    @db.Text
   content_zh     String    @db.Text
   
+  category       String    @default("MARKET_REPORT") // New field: MARKET_REPORT, GUIDE, CAUTION
+
   // Dữ liệu dùng dể Render React Shortcode và SEO Internal link
   tags           String[]  // ['saitama', 'tokyo', 'mansion']
   featuredImage  String?   // Ảnh Cover
