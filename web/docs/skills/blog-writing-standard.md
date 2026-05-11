@@ -19,13 +19,12 @@ This document defines the high-performance, Japanese-optimized writing standard 
 - **CTA Boxes**: Place important internal links inside a `> blockquote` or a dedicated CTA paragraph with a clear leading emoji like 👉.
 
 ## 3. SEO & Content Structure
-- **Primary Language**: Japanese (JA). All titles and slugs should be in Japanese for local indexing.
-- **Multi-language Support**: Every article MUST have high-quality content for **JA, VI, EN, and ZH**. 
-- **CRITICAL**: Never use fallback content (e.g., using Vietnamese text for the English version). All English content must be professionally translated and follow the same Airy Layout.
-- **Link Verification**: Ensure that internal links (e.g., `/insights`, `/area-map`) are functional and correctly formatted in ALL language versions.
-  - `H1`: Compulsory unique title containing primary keywords.
-  - `H2/H3`: Clear numbered sections (e.g., `### 1. Definition...`).
-- **Slugs**: Use Japanese characters in the slug (URL encoded).
+- **Primary Language**: Japanese (JA) is the primary content language. However, all slugs must follow global SEO standards (English/Romaji).
+- **Slug Standards**:
+  - **Format**: Only lowercase English letters, numbers, and hyphens (`-`).
+  - **Language**: English or Romaji (e.g., `keibai`, `koubai`).
+  - **Length**: Keep it concise (5-7 words maximum).
+  - **FORBIDDEN**: Never use Japanese characters, spaces, or special symbols in the final slug.
 
 ## 4. Tone & Readability
 - **Professional & Educational**: Maintain a trustworthy tone. Explain complex legal terms (like *San-ten-setto* or *Hikihodashi Meirei*) simply.

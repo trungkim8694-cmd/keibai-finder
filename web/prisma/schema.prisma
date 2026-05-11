@@ -226,9 +226,21 @@ model DailyDigest {
   tags           String[]  // ['saitama', 'tokyo', 'mansion']
   featuredImage  String?   // Ảnh Cover
   
+  previousSlugs  String[]  @default([])
+  
   created_at     DateTime  @default(now())
   updated_at     DateTime  @updatedAt
   
   @@index([publishDate])
   @@index([slug])
+}
+
+model Redirect {
+  id         String   @id @default(cuid())
+  oldPath    String   @unique
+  newPath    String
+  statusCode Int      @default(301)
+  created_at DateTime @default(now())
+
+  @@index([oldPath])
 }
