@@ -76,13 +76,38 @@ def get_gsi_coords(address):
 def clean_area_string(val):
     if not val:
         return None
-    raw = str(val).split('\n')[0]
-    hw = unicodedata.normalize('NFKC', raw) # Full to Half-width
-    clean_str = re.sub(r'[,，\s]', '', hw) # Remove all commas
-    m = re.search(r'(\d+(?:\.\d+)?)', clean_str)
-    if m:
-        return float(m.group(1))
-    return None
+    
+    # Normalize unicode to NFKC (converts full-width to half-width)
+    hw = unicodedata.normalize('NFKC', str(val))
+    
+    # Standardize area units to "㎡" (handle m2, m 2, etc.)
+    hw = re.sub(r'm\s*2', '㎡', hw, flags=re.IGNORECASE)
+    hw = re.sub(r'ｍ\s*２', '㎡', hw)
+    
+    # Strip floor designations (e.g. 1階, 1階部分, 地下2階建)
+    hw = re.sub(r'地下\d+(?:\.\d+)?\s*階(?:部分|建)?', ' ', hw, flags=re.IGNORECASE)
+    hw = re.sub(r'\d+(?:\.\d+)?\s*階(?:部分|建)?', ' ', hw, flags=re.IGNORECASE)
+    
+    # Strip room numbers (e.g. 103号室, 103号)
+    hw = re.sub(r'\d+\s*号室?', ' ', hw, flags=re.IGNORECASE)
+    
+    # Remove commas that are part of numbers like 1,234.56
+    hw_no_commas = re.sub(r'(?<=\d),(?=\d)', '', hw)
+    
+    # Find all float numbers in the remaining string
+    matches = re.findall(r'(\d+(?:\.\d+)?)', hw_no_commas)
+    if not matches:
+        return None
+        
+    # Sum all extracted numbers
+    total = 0.0
+    for num_str in matches:
+        try:
+            total += float(num_str)
+        except ValueError:
+            pass
+            
+    return total if total > 0 else None
 
 def convert_reiwa_to_datetime(date_str):
     if not date_str:

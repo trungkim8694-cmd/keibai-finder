@@ -74,10 +74,35 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
     
     # Extra DB Fields Parsing
     db_area = None
-    if raw_data and "物件目録" in raw_data:
+    if raw_data and isinstance(raw_data, list):
+        if prop_type in ["戸建て", "土地", "農地", "山林", "宅地"]:
+            temp_area = 0.0
+            for section in raw_data:
+                for k, v in section.get('data', {}).items():
+                    if "土地面積（登記）" in k or "地積（登記）" in k or ("土地" in section.get('asset_title', '') and "面積" in k and "現況" not in k):
+                        val = clean_area_string(v)
+                        if val is not None:
+                            temp_area += val
+            if temp_area > 0:
+                db_area = temp_area
+        elif prop_type == "マンション":
+            found_area = None
+            for section in raw_data:
+                if found_area is not None: break
+                for target in ["専有面積（登記）", "専有面積", "面積"]:
+                    for k, v in section.get('data', {}).items():
+                        if target in k and "現況" not in k and "バルコニー" not in k and "共用" not in k:
+                            val = clean_area_string(v)
+                            if val is not None:
+                                found_area = val
+                                break
+                    if found_area is not None: break
+            if found_area is not None:
+                db_area = found_area
+                
+    if db_area is None and isinstance(raw_data, dict) and "物件目録" in raw_data:
         mokuroku = raw_data.get("物件目録", [])
         for block in mokuroku:
-            # We try to grab the first "地積" or "面積" or "床面積" from the blocks
             for val in block.values():
                 if val:
                     val_str = str(val)
@@ -85,6 +110,9 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
                         db_area = clean_area_string(val_str)
                         if db_area: break
             if db_area: break
+            
+    if db_area is not None:
+        db_area = round(db_area)
             
     db_start_date, db_end_date = None, None
     if raw_data and isinstance(raw_data, list):

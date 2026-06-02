@@ -8,25 +8,43 @@ export function extractTotalArea(rawDisplayData: any): number | null {
 
      let totalArea = 0;
      const checkValue = (k: string, v: string) => {
-        if (k.includes('面積') && !k.includes('現況')) {
-           // Parse "１６５．２９m 2" or "1500m2" to float
-           const hw = v.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)).replace(/[．]/g, '.');
-           const m = hw.match(/([\d\.]+)/);
-           if (m) {
-             const area = parseFloat(m[1]);
-             if (!isNaN(area)) totalArea += area;
+        if (k.includes('面積') && !k.includes('現況') && !k.includes('バルコニー') && !k.includes('共用')) {
+           // Normalize characters to half-width and standard dot
+           let hw = v.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)).replace(/[．]/g, '.');
+           
+           // Standardize units
+           hw = hw.replace(/m\s*2/gi, '㎡');
+           hw = hw.replace(/ｍ\s*２/g, '㎡');
+           
+           // Strip floor designations
+           hw = hw.replace(/地下\d+(\.\d+)?\s*階(部分|建)?/gi, ' ');
+           hw = hw.replace(/\d+(\.\d+)?\s*階(部分|建)?/gi, ' ');
+           
+           // Strip room numbers
+           hw = hw.replace(/\d+\s*号室?/gi, ' ');
+           
+           // Strip commas in numbers
+           hw = hw.replace(/(\d+),(?=\d+)/g, '$1');
+           
+           // Extract and sum all numbers
+           const matches = hw.match(/(\d+(?:\.\d+)?)/g);
+           if (matches) {
+              matches.forEach((numStr) => {
+                 const area = parseFloat(numStr);
+                 if (!isNaN(area)) totalArea += area;
+              });
            }
         }
      };
 
      if (Array.isArray(parsed)) {
-       parsed.forEach((item: any) => {
-          if (item.data) {
-            Object.entries(item.data).forEach(([k, v]) => checkValue(k, String(v)));
-          } else if (item.key) {
-            checkValue(item.key, String(item.value));
-          }
-       });
+        parsed.forEach((item: any) => {
+           if (item.data) {
+             Object.entries(item.data).forEach(([k, v]) => checkValue(k, String(v)));
+           } else if (item.key) {
+             checkValue(item.key, String(item.value));
+           }
+        });
      }
      return totalArea > 0 ? totalArea : null;
   } catch { return null; }

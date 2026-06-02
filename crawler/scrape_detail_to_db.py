@@ -9,7 +9,7 @@ from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 load_dotenv("../web/.env")
 
-from crawler_utils import get_nearest_station_from_db, get_gsi_coords
+from crawler_utils import get_nearest_station_from_db, get_gsi_coords, clean_area_string
 from supabase import create_client, Client
 import io
 
@@ -481,42 +481,24 @@ async def main():
                     def to_half_width(s):
                         return s.translate(str.maketrans('０１２３４５６７８９．，', '0123456789.,'))
 
-                    def process_land_val(val):
-                        nonlocal area
-                        if not val: return
-                        hw = to_half_width(str(val))
-                        m = re.search(r'([\d,\.]+)', hw)
-                        if m:
-                            num_str = m.group(1).replace(',', '')
-                            try:
-                                num = float(num_str)
-                                if area is None: area = 0
-                                area += num
-                            except: pass
-
-                    def process_mansion_val(val_str):
-                        hw = to_half_width(val_str)
-                        hw = re.sub(r'地下[\d\.]+\s*階(部分|建)?', ' ', hw)
-                        hw = re.sub(r'[\d\.]+\s*階(部分|建)?', ' ', hw)
-                        m = re.search(r'(\d+\.?\d*)\s*(m2|㎡|平米|ｍ２)', hw, re.IGNORECASE)
-                        if m: return float(m.group(1))
-                        m = re.search(r'(\d+\.?\d*)', hw)
-                        if m: return float(m.group(1))
-                        return None
-                        
                     if prop_type_raw in ["戸建て", "土地", "農地", "山林", "宅地"]:
+                        temp_area = 0.0
                         for section in raw_data:
                             for k, v in section.get('data', {}).items():
-                                if "土地面積（登記）" in k:
-                                    process_land_val(v)
+                                if "土地面積（登記）" in k or "地積（登記）" in k or ("土地" in section.get('asset_title', '') and "面積" in k and "現況" not in k):
+                                    val = clean_area_string(v)
+                                    if val is not None:
+                                        temp_area += val
+                        if temp_area > 0:
+                            area = temp_area
                     elif prop_type_raw == "マンション":
                         found_area = None
                         for section in raw_data:
                             if found_area is not None: break
                             for target in ["専有面積（登記）", "専有面積", "面積"]:
                                 for k, v in section.get('data', {}).items():
-                                    if target in k:
-                                        val = process_mansion_val(str(v))
+                                    if target in k and "現況" not in k and "バルコニー" not in k and "共用" not in k:
+                                        val = clean_area_string(v)
                                         if val is not None:
                                             found_area = val
                                             break
