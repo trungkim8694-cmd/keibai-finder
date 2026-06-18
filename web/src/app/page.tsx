@@ -83,7 +83,11 @@ export default function DashboardPage() {
 
   const fetchPropertiesApi = async (filters: any) => {
      const qs = buildQueryString(filters);
-     const res = await fetch(`/api/properties?${qs}`);
+     const res = await fetch(`/api/properties?${qs}`, {
+        headers: {
+           'x-app-client': 'keibai-finder-client'
+        }
+     });
      if (!res.ok) throw new Error('API Error');
      return res.json();
   };
@@ -227,8 +231,62 @@ export default function DashboardPage() {
     return JSON.stringify(obj);
   }, [currentFilters]);
 
+  const homepageJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://www.keibai-koubai.com/#website",
+        "url": "https://www.keibai-koubai.com/",
+        "name": "Keibai Finder",
+        "description": "全国の不動産競売・公売情報を一括検索。AIによる落札価格の査定、過去の取引相場（国土交通省データ連携）で市場価格より安い不動産が見つかります。",
+        "publisher": {
+          "@id": "https://www.keibai-koubai.com/#organization"
+        },
+        "potentialAction": [
+          {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://www.keibai-koubai.com/?keyword={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        ],
+        "inLanguage": "ja"
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://www.keibai-koubai.com/#organization",
+        "name": "TQC株式会社 (TQC Corporation)",
+        "alternateName": "Keibai Finder",
+        "url": "https://www.keibai-koubai.com/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.keibai-koubai.com/icon.png",
+          "caption": "Keibai Finder Logo"
+        },
+        "email": "info@keibai-koubai.com",
+        "telephone": "+81-3-6907-1219",
+        "faxNumber": "+81-3-6701-2399",
+        "address": {
+          "@type": "PostalAddress",
+          "postalCode": "171-0022",
+          "addressCountry": "JP",
+          "addressRegion": "東京都",
+          "addressLocality": "豊島区",
+          "streetAddress": "南池袋２丁目３３－６ 佐藤ビル３F"
+        }
+      }
+    ]
+  };
+
   return (
     <div className="flex flex-col w-full h-full overflow-hidden bg-white dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageJsonLd) }}
+      />
       
       {/* 2. Horizontal Toolbar (Search & Filter) */}
       <div className="w-full z-[9999] shadow-none lg:shadow-none bg-zinc-50 dark:bg-zinc-950 lg:bg-transparent dark:lg:bg-transparent shrink-0 relative lg:pt-2">

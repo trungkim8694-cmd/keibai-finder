@@ -53,7 +53,7 @@ export default function SidebarFooter() {
 
         <Link href="/extension" className="flex items-center gap-2 text-[12px] font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group mb-3">
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30">
-            <img src="/extension-icon.png" alt="Keibai Lens" className="w-4 h-4 rounded-[4px] opacity-80 group-hover:opacity-100 transition-opacity" />
+            <img src="/extension-icon.png" alt="Keibai Lens" className="w-4 h-4 rounded-full opacity-80 group-hover:opacity-100 transition-opacity" />
           </div>
           Keibai Lens 拡張機能
         </Link>
@@ -85,7 +85,7 @@ export default function SidebarFooter() {
         <div className="space-y-2 mb-4">
           <div className="flex items-center gap-2 text-[12px] font-bold text-zinc-700 dark:text-zinc-300">
             <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
-              <img src="/extension-icon.png" alt="Keibai Lens" className="w-3.5 h-3.5 rounded-[3px] opacity-90" />
+              <img src="/extension-icon.png" alt="Keibai Lens" className="w-3.5 h-3.5 rounded-full opacity-90" />
             </div>
             Keibai Lens 拡張機能について
           </div>
@@ -161,17 +161,20 @@ export default function SidebarFooter() {
           <div className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30">
             <span className="text-[12px] opacity-80 group-hover:opacity-100">📖</span>
           </div>
-          <span className="line-clamp-1">📖 ナレッジ & ガイド (BLOGS)</span>
+          <span className="line-clamp-1">ナレッジ & ガイド (BLOGS)</span>
         </Link>
       </div>
 
       {/* 5. Copyright & Legal */}
       <div className="px-2 pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2">
-         <div className="text-[11px] text-zinc-500 dark:text-zinc-500 font-medium leading-relaxed">
-           日本Office: 東京都豊島区<br/>
-           Email: <a href="mailto:info@keibai-koubai.com" className="hover:text-blue-600 transition-colors">info@keibai-koubai.com</a>
+         <div className="text-[11px] text-zinc-500 dark:text-zinc-500 font-medium leading-relaxed space-y-1">
+           <div>運営会社: <Link href="/company" className="hover:text-zinc-900 dark:hover:text-zinc-100 font-bold transition-colors">TQC株式会社 (TQC Corporation)</Link></div>
+           <div>所在地: 〒171-0022 東京都豊島区南池袋２丁目３３－６ 佐藤ビル３F</div>
+           <div>代表連絡先: (03) 6907-1219 / FAX (03) 6701-2399</div>
+           <div>Email: <a href="mailto:info@keibai-koubai.com" className="hover:text-blue-600 transition-colors">info@keibai-koubai.com</a></div>
          </div>
          <div className="flex gap-4 text-[11px] mt-1">
+           <Link href="/company" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer">運営会社概要</Link>
            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"><Shield className="w-3 h-3" /> 利用規約</Link>
            <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer">プライバシー</Link>
          </div>

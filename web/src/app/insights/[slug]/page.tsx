@@ -12,12 +12,12 @@ type Props = {
 }
 
 export async function generateMetadata(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   { params, searchParams }: Props,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
   const slug = resolvedParams.slug;
   const digest = await prisma.dailyDigest.findUnique({
     where: { slug }
@@ -27,9 +27,36 @@ export async function generateMetadata(
     return { title: 'Not Found' }
   }
 
+  const langKey = (resolvedSearchParams.lang as string) || 'ja';
+  let title = digest.title_ja || '市場分析レポート';
+  let description = `AIが分析する不動産競売・公売市場の掘り出し物トレンドレポート：${title}`;
+
+  if (langKey === 'en' && digest.content_en) {
+    title = digest.title_en || title;
+    description = `AI market analysis report for real estate auction listings: ${title}`;
+  } else if (langKey === 'vi' && digest.content_vi) {
+    title = digest.title_vi || title;
+    description = `Báo cáo phân tích thị trường bất động sản đấu giá bằng AI: ${title}`;
+  } else if (langKey === 'zh' && digest.content_zh) {
+    title = digest.title_zh || title;
+    description = `AI 房地产拍卖市场分析报告：${title}`;
+  }
+
+  const baseUrl = 'https://www.keibai-koubai.com';
+  const canonicalUrl = `${baseUrl}/insights/${slug}`;
+
   return {
-    title: `${digest.title_ja} | Keibai Market Insights`,
-    description: `AI Analysis report for ${digest.title_ja}`,
+    title: `${title} | Keibai Market Insights`,
+    description: description.substring(0, 160),
+    alternates: {
+      canonical: canonicalUrl,
+      languages: {
+        'ja': `${canonicalUrl}?lang=ja`,
+        'en': `${canonicalUrl}?lang=en`,
+        'vi': `${canonicalUrl}?lang=vi`,
+        'zh': `${canonicalUrl}?lang=zh`,
+      }
+    }
   }
 }
 
@@ -87,8 +114,35 @@ export default async function DigestDetailPage({ params, searchParams }: Props) 
     rawContent = digest.content_zh;
   }
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": title,
+    "description": rawContent.replace(/[#*]/g, '').substring(0, 160),
+    "image": ["https://www.keibai-koubai.com/keibaikoubai.webp"],
+    "datePublished": new Date(digest.publishDate).toISOString(),
+    "dateModified": new Date(digest.publishDate).toISOString(),
+    "author": {
+      "@type": "Organization",
+      "name": "Keibai Finder",
+      "url": "https://www.keibai-koubai.com/"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Keibai Finder",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.keibai-koubai.com/icon.png"
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-12 px-4 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
       <div className="max-w-7xl mx-auto">
         
         {/* Navigation & Language Select */}

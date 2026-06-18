@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getProperties, SearchFilters } from '@/actions/propertyActions';
+import { validateApiRequest } from '@/lib/security';
 
 // Force dynamic is often needed if searchParams are used, but we want it to be cacheable by Cloudflare
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  if (!(await validateApiRequest())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     

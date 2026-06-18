@@ -66,6 +66,17 @@ export default function PrivacyPage() {
                 本ポリシーの内容は、ユーザーに通知することなく、変更することができるものとします。変更後のプライバシーポリシーは、当サービスに掲載したときから効力を生じるものとします。
               </p>
             </section>
+
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">第6条（個人情報取扱事業者）</h2>
+              <p>
+                当サービスにおける個人情報の管理および取扱事業者は以下の通りです。<br/><br/>
+                <strong>名称：</strong>TQC株式会社<br/>
+                <strong>住所：</strong>〒171-0022 東京都豊島区南池袋２丁目３３－６ 佐藤ビル３F<br/>
+                <strong>代表連絡先：</strong>(03) 6907-1219<br/>
+                <strong>メールアドレス：</strong>info@keibai-koubai.com
+              </p>
+            </section>
           </div>
         </div>
       </div>

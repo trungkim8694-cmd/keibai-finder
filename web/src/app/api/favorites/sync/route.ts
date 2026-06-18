@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
+import { validateApiRequest } from '@/lib/security';
 
 export async function POST(req: Request) {
+  if (!(await validateApiRequest())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {

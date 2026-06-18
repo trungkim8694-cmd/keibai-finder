@@ -22,7 +22,11 @@ export const ZONING_COLORS: Record<string, string> = {
   "工業専用地域": "#49b2e8"
 };
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = (url: string) => fetch(url, {
+  headers: {
+    'x-app-client': 'keibai-finder-client'
+  }
+}).then(res => res.json());
 
 const fixLeafletIcons = () => {
   delete (L.Icon.Default.prototype as any)._getIconUrl;

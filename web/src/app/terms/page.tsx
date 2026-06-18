@@ -26,7 +26,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">第1条（目的）</h2>
               <p>
-                本利用規約（以下「本規約」といいます。）は、Keibai-Koubai Finder（以下「当サービス」といいます。）が提供するすべてのサービスおよびコンテンツの利用条件を定めるものです。ユーザーは本規約に同意した上で当サービスを利用するものとします。
+  本利用規約（以下「本規約」といいます。）は、TQC株式会社（以下「当社」といいます。）が「Keibai-Koubai Finder」（以下「当サービス」といいます。）として提供するすべてのサービスおよびコンテンツの利用条件を定めるものです。ユーザーは本規約に同意した上で当サービスを利用するものとします。
               </p>
             </section>
 

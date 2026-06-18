@@ -5,7 +5,11 @@ import useSWR from 'swr';
 import SignupModal from './SignupModal';
 import { addFavorite, removeFavorite } from '@/actions/userDashboardActions';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = (url: string) => fetch(url, {
+  headers: {
+    'x-app-client': 'keibai-finder-client'
+  }
+}).then(res => res.json());
 
 export default function FavoriteButton({ id }: { id: string }) {
    const { data: session, status } = useSession();

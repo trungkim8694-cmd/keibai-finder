@@ -7,7 +7,11 @@ import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = (url: string) => fetch(url, {
+  headers: {
+    'x-app-client': 'keibai-finder-client'
+  }
+}).then(res => res.json());
 
 export default function HeaderFavLink() {
   const { data: session, status } = useSession();
@@ -29,7 +33,10 @@ export default function HeaderFavLink() {
           // Send all Local favorites to Server API bulk insertion
           fetch('/api/favorites/sync', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'x-app-client': 'keibai-finder-client'
+            },
             body: JSON.stringify({ ids: favs })
           }).then(res => res.json())
           .then(data => {

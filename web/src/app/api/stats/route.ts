@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getFacetedStats, SearchFilters } from '@/actions/propertyActions';
+import { validateApiRequest } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  if (!(await validateApiRequest())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const filters: SearchFilters = {};

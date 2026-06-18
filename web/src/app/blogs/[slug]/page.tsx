@@ -12,11 +12,12 @@ type Props = {
 }
 
 export async function generateMetadata(
-  { params }: Props,
+  { params, searchParams }: Props,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
   const slug = resolvedParams.slug;
   const article = await prisma.dailyDigest.findUnique({
     where: { slug }
@@ -26,9 +27,37 @@ export async function generateMetadata(
     return { title: 'Not Found' }
   }
 
+  const langKey = (resolvedSearchParams.lang as string) || 'ja';
+  let title = article.title_ja || article.title_vi || 'ブログ記事';
+  let rawContent = article.content_ja || article.content_vi || '';
+
+  if (langKey === 'vi' && article.content_vi) {
+    title = article.title_vi || title;
+    rawContent = article.content_vi;
+  } else if (langKey === 'en' && article.content_en) {
+    title = article.title_en || title;
+    rawContent = article.content_en;
+  } else if (langKey === 'zh' && article.content_zh) {
+    title = article.title_zh || title;
+    rawContent = article.content_zh;
+  }
+
+  const description = rawContent.replace(/[#*]/g, '').substring(0, 160);
+  const baseUrl = 'https://www.keibai-koubai.com';
+  const canonicalUrl = `${baseUrl}/blogs/${slug}`;
+
   return {
-    title: `${article.title_ja || article.title_vi} | Keibai Finder BLOGS`,
-    description: (article.content_ja || article.content_vi).substring(0, 160).replace(/[#*]/g, ''),
+    title: `${title} | Keibai Finder BLOGS`,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+      languages: {
+        'ja': `${canonicalUrl}?lang=ja`,
+        'vi': `${canonicalUrl}?lang=vi`,
+        'en': `${canonicalUrl}?lang=en`,
+        'zh': `${canonicalUrl}?lang=zh`,
+      }
+    }
   }
 }
 
@@ -90,8 +119,35 @@ export default async function LogDetailPage({ params, searchParams }: Props) {
     rawContent = article.content_zh;
   }
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": title,
+    "description": rawContent.replace(/[#*]/g, '').substring(0, 160),
+    "image": article.featuredImage ? [article.featuredImage] : ["https://www.keibai-koubai.com/keibaikoubai.webp"],
+    "datePublished": new Date(article.publishDate).toISOString(),
+    "dateModified": new Date(article.publishDate).toISOString(),
+    "author": {
+      "@type": "Organization",
+      "name": "Keibai Finder",
+      "url": "https://www.keibai-koubai.com/"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Keibai Finder",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.keibai-koubai.com/icon.png"
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 py-12 px-4 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
       <div className="max-w-4xl mx-auto">
         
         {/* Navigation & Language Select - Clean & Structured */}

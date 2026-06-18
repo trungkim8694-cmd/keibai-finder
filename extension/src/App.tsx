@@ -84,7 +84,11 @@ function App() {
       const backendUrl = "https://www.keibai-koubai.com"; // Deploy production
       const targetUrl = `${backendUrl}/api/hazard-check?lat=${lat}&lng=${lng}`;
       
-      const hazardRes = await fetch(targetUrl);
+      const hazardRes = await fetch(targetUrl, {
+        headers: {
+          'x-app-client': 'keibai-finder-client'
+        }
+      });
       const hazardJson = await hazardRes.json();
       
       setHazardData(hazardJson);

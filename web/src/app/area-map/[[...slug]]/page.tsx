@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: { slug?: string[] }
   const prefix = region !== '全国' ? `${region}の` : '';
   
   return {
-    metadataBase: new URL('https://keibaifinder.com'),
+    metadataBase: new URL('https://www.keibai-koubai.com'),
     title: `【登録不要】${prefix}不動産エリア分析マップ｜災害・都市計画・用途地域 (Keibai Finder)`,
     description: `登録不要で完全無料！${region}の住所を入力するだけで、洪水、土砂などの自然災害リスクと、都市計画・用途地域を1画面で一括確認できます。不動産投資やマイホーム購入前の物件調査に最適。`,
     keywords: `エリア分析, 用途地域, 都市計画, ハザードマップ, 住所検索, ${region}, 不動産, 災害リスク, 面倒な登録なし`,
@@ -31,7 +31,7 @@ export default function HazardMapPage({ params }: { params: { slug?: string[] } 
       {
         "@type": "WebApplication",
         "name": `全国不動産エリア分析マップ (${region})`,
-        "url": "https://keibaifinder.com/area-map",
+        "url": "https://www.keibai-koubai.com/area-map",
         "description": "住所を入力するだけで、自然災害リスクと都市計画情報を瞬時に可視化し、物件の資産価値と安全性を確認できる不動産プロフェッショナルツールです。",
         "applicationCategory": "UtilityApplication",
         "operatingSystem": "All",
@@ -69,19 +69,19 @@ export default function HazardMapPage({ params }: { params: { slug?: string[] } 
             "@type": "ListItem",
             "position": 1,
             "name": "ホーム",
-            "item": "https://keibaifinder.com/"
+            "item": "https://www.keibai-koubai.com/"
           },
           {
             "@type": "ListItem",
             "position": 2,
             "name": "エリア分析マップ",
-            "item": "https://keibaifinder.com/area-map"
+            "item": "https://www.keibai-koubai.com/area-map"
           },
           ...(params.slug ? params.slug.map((slugPart, index) => ({
             "@type": "ListItem",
             "position": index + 3,
             "name": decodeURIComponent(slugPart),
-            "item": `https://keibaifinder.com/area-map/${params.slug!.slice(0, index + 1).join('/')}`
+            "item": `https://www.keibai-koubai.com/area-map/${params.slug!.slice(0, index + 1).join('/')}`
           })) : [])
         ]
       }

@@ -5,7 +5,7 @@ import { Metadata } from 'next';
 import { Calendar, Tag, ChevronRight } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: '市場分析ダッシュボード | Deal Hời Hôm Nay',
+  title: '市場分析ダッシュボード | Keibai Finder',
   description: 'AIが分析する最新の不動産競売・公売市場トレンドと掘り出し物物件。',
 };
 

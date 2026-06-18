@@ -24,7 +24,7 @@ export default function ExtensionLandingPage() {
           </div>
 
           <h1 className="flex items-center justify-center gap-4 text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight">
-            <img src="/extension-icon.png" alt="Keibai Lens Logo" className="w-12 h-12 md:w-20 md:h-20 rounded-2xl shadow-xl shadow-blue-500/20 ring-4 ring-white" />
+            <img src="/extension-icon.png" alt="Keibai Lens Logo" className="w-12 h-12 md:w-20 md:h-20 rounded-full shadow-xl shadow-blue-500/20 ring-4 ring-white" />
             <span>Keibai <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Lens</span></span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 font-medium max-w-2xl mx-auto">

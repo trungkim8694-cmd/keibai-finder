@@ -70,7 +70,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
      ogImage = property.images[0] || undefined;
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://keibai-finder.com';
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://www.keibai-koubai.com';
   const canonicalUrl = `${baseUrl}/property/${id}`;
 
   return {
@@ -250,7 +250,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   const auctionRound = extractAuctionRoundFromData(property.raw_display_data);
 
   // --- Sharing Info ---
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://keibai-finder.com';
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://www.keibai-koubai.com';
   const propertyUrl = `${baseUrl}/property/${property.sale_unit_id}`;
   const addressShort = property.address?.substring(0, 30) || id;
   const propertyTitle = `【${formattedStartPrice}】${addressShort} - ${property.property_type || '競売物件'}`;
@@ -344,26 +344,98 @@ export default async function PropertyDetail({ params }: { params: { id: string 
   const ogImageUrl = imagesList.length > 0 ? imagesList[0] : undefined;
   // Metadata for SEO
   const jsonLdPrice = Number(property.starting_price || 0);
+
+  let accommodationType = "Accommodation";
+  if (property.property_type === "戸建て") {
+    accommodationType = "House";
+  } else if (property.property_type === "マンション") {
+    accommodationType = "Apartment";
+  }
+
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Product",
+    "@type": "RealEstateListing",
     "name": `${property.address}の${property.property_type || '競売物件'}`,
-    "description": `${property.source_provider === 'NTA' ? '公売物件' : '競売物件'}: ${property.address}にある${property.property_type || '不動産'}です。基準価格: ${jsonLdPrice > 0 ? Math.round(jsonLdPrice / 10000).toLocaleString('ja-JP') + '万円' : '未定'}`,
+    "description": `${property.source_provider === 'NTA' ? '公売物件' : '競売物件'}: ${property.address}にある${property.property_type || '不動産'}です。基準価格: ${jsonLdPrice > 0 ? Math.round(jsonLdPrice / 10000).toLocaleString('ja-JP') + '万円' : '未定'}。AI査定と過去の取引相場から、あなたに最適な競売・公売物件を見つけます。`,
+    "url": `${baseUrl}/property/${id}`,
     "image": ogImageUrl ? [ogImageUrl] : [],
-    "brand": {
-      "@type": "Brand",
-      "name": "Keibai Finder"
+    "datePosted": property.created_at ? new Date(property.created_at).toISOString() : new Date().toISOString(),
+    "about": {
+      "@type": accommodationType,
+      "name": property.address || "競売物件",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "JP",
+        "addressRegion": property.prefecture || undefined,
+        "addressLocality": property.city || undefined,
+        "streetAddress": property.address || undefined
+      },
+      ...(property.lat && property.lng ? {
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": Number(property.lat),
+          "longitude": Number(property.lng)
+        }
+      } : {}),
+      ...(parsedArea ? {
+        "floorSize": {
+          "@type": "QuantitativeValue",
+          "value": Number(parsedArea),
+          "unitCode": "MTK"
+        }
+      } : {})
     },
-    "category": "RealEstate",
     ...(jsonLdPrice > 0 ? {
       "offers": {
         "@type": "Offer",
         "priceCurrency": "JPY",
         "price": jsonLdPrice,
         "availability": "https://schema.org/InStock",
-        "url": `https://keibai-koubai.com/property/${id}`
+        "url": `${baseUrl}/property/${id}`
       }
     } : {})
+  };
+
+  // Dynamic Breadcrumb Schema
+  const breadcrumbItems = [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "ホーム",
+      "item": `${baseUrl}/`
+    }
+  ];
+
+  let currentPosition = 2;
+  if (property.prefecture) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": currentPosition++,
+      "name": property.prefecture,
+      "item": `${baseUrl}/search/area/${encodeURIComponent(property.prefecture)}`
+    });
+  }
+
+  if (property.prefecture && property.city) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": currentPosition++,
+      "name": property.city,
+      "item": `${baseUrl}/search/area/${encodeURIComponent(property.prefecture)}/${encodeURIComponent(property.city)}`
+    });
+  }
+
+  breadcrumbItems.push({
+    "@type": "ListItem",
+    "position": currentPosition,
+    "name": property.address || "物件詳細",
+    "item": `${baseUrl}/property/${id}`
+  });
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": breadcrumbItems
   };
 
   // 5. PROCESS FINAL OBJECTS (SAFE SERIALIZATION FOR RSC)
@@ -565,6 +637,10 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans pb-20 overflow-x-hidden w-full overflow-y-auto">
         {property && (

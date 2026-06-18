@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateApiRequest } from '@/lib/security';
 
 export async function GET(request: Request) {
+  if (!(await validateApiRequest())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const { searchParams } = new URL(request.url);
   const q = searchParams.get('q');
   

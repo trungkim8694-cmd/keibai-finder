@@ -35,9 +35,18 @@ export const metadata: Metadata = {
     title: '不動産競売・公売情報の検索ポータル｜Keibai Finder',
     description: '市場価格より安く不動産を手に入れる。AI査定と過去の取引相場から、あなたに最適な競売・公売物件を見つけます。',
     siteName: 'Keibai Finder',
+    images: [
+      {
+        url: '/keibaikoubai.webp',
+        width: 1200,
+        height: 630,
+        alt: 'Keibai Finder - 競売物件・公売物件の一括検索サイト',
+      }
+    ],
   },
   twitter: {
     card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
   }
 };
 

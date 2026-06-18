@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
+import { validateApiRequest } from '@/lib/security';
 import { point } from '@turf/helpers';
 
 const CORS_HEADERS = {
@@ -53,6 +54,9 @@ async function fetchMLITGeoJSON(layerType: string, z: number, x: number, y: numb
 }
 
 export async function GET(request: NextRequest) {
+  if (!(await validateApiRequest())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: CORS_HEADERS });
+  }
   const searchParams = request.nextUrl.searchParams;
   const latStr = searchParams.get('lat');
   const lngStr = searchParams.get('lng');
