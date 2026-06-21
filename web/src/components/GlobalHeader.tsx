@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import HeaderFavLink from './HeaderFavLink';
 import UserMenu from './UserMenu';
-import GlobalHeaderMenu from './GlobalHeaderMenu';
 import HeaderTotalCount from './HeaderTotalCount';
 import { getTotalPropertiesCount } from '@/actions/propertyActions';
 
@@ -23,7 +22,6 @@ export default async function GlobalHeader() {
          <HeaderTotalCount initialCount={totalCount} />
          <HeaderFavLink />
          <UserMenu />
-         <GlobalHeaderMenu />
        </div>
     </header>
   );

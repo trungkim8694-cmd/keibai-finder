@@ -22,6 +22,7 @@ import { AiAnalysisPanel } from '@/components/Detail/AiAnalysisPanel';
 import { ImageGallery } from '@/components/Detail/ImageGallery';
 import { Metadata } from 'next';
 import { PropertyComments } from '@/components/Detail/PropertyComments';
+import { PropertyAgencies } from '@/components/Detail/PropertyAgencies';
 import { cache } from 'react';
 
 const getPropertyById = cache(async (id: string) => {
@@ -299,16 +300,40 @@ export default async function PropertyDetail({ params }: { params: { id: string 
     }
   });
 
-  // RUN ALL 5 IN PARALLEL
-  const [stationsResult, nearbyResult, soldResult, similarProps, propertyComments] = await Promise.all([
+  const agenciesPromise = property.prefecture
+    ? prisma.agencyProfile.findMany({
+        where: {
+          prefectures: {
+            has: property.prefecture
+          },
+          isVerified: true
+        },
+        include: {
+          reviews: {
+            select: {
+              rating: true
+            }
+          }
+        }
+      })
+    : Promise.resolve([]);
+
+  // RUN ALL 6 IN PARALLEL
+  const [stationsResult, nearbyResult, soldResult, similarProps, propertyComments, agenciesResult] = await Promise.all([
     stationsPromise,
     nearbyActivePromise,
     nearbySoldPromise,
     historyPromise,
-    commentsPromise
+    commentsPromise,
+    agenciesPromise
   ]);
 
   const safeComments = deepSerialize(propertyComments || []);
+  const safeAgencies = deepSerialize(
+    (agenciesResult || [])
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 3)
+  );
 
   nearestStations = stationsResult;
   nearbyActive = nearbyResult.filter((p: any) => p.sale_unit_id !== id).slice(0, 10);
@@ -694,6 +719,9 @@ export default async function PropertyDetail({ params }: { params: { id: string 
           {nodeMarketValuation}
           {nodeAiAnalysisPanel}
           <div className="mt-8">
+            <PropertyAgencies prefecture={property.prefecture || "東京都"} agencies={safeAgencies} />
+          </div>
+          <div className="mt-8">
             <PropertyComments saleUnitId={id} initialComments={safeComments} />
           </div>
         </div>
@@ -711,6 +739,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
             </section>
 
             {nodePropertySections}
+            <PropertyAgencies prefecture={property.prefecture || "東京都"} agencies={safeAgencies} />
             <PropertyComments saleUnitId={id} initialComments={safeComments} />
           </div>
 

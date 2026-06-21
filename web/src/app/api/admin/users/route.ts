@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
         email: true,
         image: true,
         role: true,
+        isBanned: true,
+        adminNotes: true,
         created_at: true
       }
     });
@@ -47,34 +49,76 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { userId, role } = await request.json();
+    const { userId, role, isBanned, adminNotes } = await request.json();
 
-    if (!userId || !role) {
+    if (!userId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     if (userId === session.user.id) {
-      return NextResponse.json({ error: "You cannot change your own role" }, { status: 400 });
+      return NextResponse.json({ error: "You cannot modify your own profile" }, { status: 400 });
     }
 
-    if (role !== "USER" && role !== "ADMIN") {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    const dataToUpdate: any = {};
+    if (role !== undefined) {
+      if (role !== "USER" && role !== "ADMIN" && role !== "AGENCY") {
+        return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+      }
+      dataToUpdate.role = role;
+    }
+    if (isBanned !== undefined) {
+      dataToUpdate.isBanned = isBanned;
+    }
+    if (adminNotes !== undefined) {
+      dataToUpdate.adminNotes = adminNotes;
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { role },
+      data: dataToUpdate,
       select: {
         id: true,
         name: true,
         email: true,
-        role: true
+        role: true,
+        isBanned: true,
+        adminNotes: true
       }
     });
 
-    return NextResponse.json({ user: updatedUser, message: "User role updated successfully" });
+    return NextResponse.json({ user: updatedUser, message: "User updated successfully" });
   } catch (error) {
-    console.error("Admin user role update error:", error);
+    console.error("Admin user update error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { userId } = await request.json();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    }
+
+    if (userId === session.user.id) {
+      return NextResponse.json({ error: "You cannot delete your own account" }, { status: 400 });
+    }
+
+    // Cascade deletes handle comments/favorites/etc
+    await prisma.user.delete({
+      where: { id: userId }
+    });
+
+    return NextResponse.json({ success: true, message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Admin user delete error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

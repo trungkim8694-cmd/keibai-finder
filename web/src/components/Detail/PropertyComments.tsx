@@ -22,6 +22,14 @@ interface PropertyCommentsProps {
   initialComments: Comment[];
 }
 
+const maskName = (name: string | null): string => {
+  if (!name) return '匿名ユーザー';
+  const trimmed = name.trim();
+  if (trimmed.length === 0) return '匿名ユーザー';
+  const firstChar = Array.from(trimmed)[0];
+  return `${firstChar}***`;
+};
+
 export function PropertyComments({ saleUnitId, initialComments }: PropertyCommentsProps) {
   const { data: session } = useSession();
   const [comments, setComments] = useState<Comment[]>(initialComments);
@@ -83,17 +91,9 @@ export function PropertyComments({ saleUnitId, initialComments }: PropertyCommen
       {session ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-start gap-3">
-            {session.user?.image ? (
-              <img 
-                src={session.user.image} 
-                alt={session.user.name || ""} 
-                className="w-9 h-9 rounded-full border border-zinc-200 shrink-0" 
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold text-sm uppercase shrink-0">
-                {session.user?.name ? session.user.name[0] : "?"}
-              </div>
-            )}
+            <div className="w-9 h-9 rounded-full border border-zinc-200 dark:border-zinc-800 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+              {Array.from(session.user?.name ? maskName(session.user.name) : '匿名ユーザー')[0]}
+            </div>
             <div className="flex-1 space-y-3">
               <textarea
                 value={content}
@@ -153,34 +153,29 @@ export function PropertyComments({ saleUnitId, initialComments }: PropertyCommen
 
       {/* Comments List */}
       <div className="space-y-4 divide-y divide-zinc-100 dark:divide-zinc-800/40">
-        {comments.map((comment, index) => (
-          <div key={comment.id} className="flex gap-3 pt-4 first:pt-0">
-            {comment.user.image ? (
-              <img 
-                src={comment.user.image} 
-                alt={comment.user.name || ""} 
-                className="w-9 h-9 rounded-full border border-zinc-200 shrink-0" 
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center font-bold text-xs uppercase shrink-0">
-                {comment.user.name ? comment.user.name[0] : "?"}
+        {comments.map((comment, index) => {
+          const commentMaskedName = maskName(comment.user.name);
+          return (
+            <div key={comment.id} className="flex gap-3 pt-4 first:pt-0">
+              <div className="w-9 h-9 rounded-full border border-zinc-200 dark:border-zinc-800 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                {Array.from(commentMaskedName)[0]}
               </div>
-            )}
-            <div className="flex-1 space-y-1.5 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-bold text-sm text-zinc-900 dark:text-white truncate">
-                  {comment.user.name || "競売会員"}
-                </span>
-                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 whitespace-nowrap">
-                  {formatCommentDate(comment.created_at)}
-                </span>
+              <div className="flex-1 space-y-1.5 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-sm text-zinc-900 dark:text-white truncate">
+                    {commentMaskedName}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 whitespace-nowrap">
+                    {formatCommentDate(comment.created_at)}
+                  </span>
+                </div>
+                <p className="text-sm text-zinc-700 dark:text-zinc-350 leading-relaxed whitespace-pre-wrap break-words">
+                  {comment.content}
+                </p>
               </div>
-              <p className="text-sm text-zinc-700 dark:text-zinc-350 leading-relaxed whitespace-pre-wrap break-words">
-                {comment.content}
-              </p>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

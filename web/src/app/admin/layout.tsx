@@ -7,7 +7,8 @@ import {
   UsersIcon, 
   ChatBubbleLeftRightIcon, 
   HomeIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  BuildingOffice2Icon
 } from "@heroicons/react/24/outline";
 
 interface AdminLayoutProps {
@@ -24,11 +25,11 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-zinc-900 text-zinc-100 flex flex-col shrink-0 border-r border-zinc-800">
+      <aside className="w-64 bg-white text-zinc-800 flex flex-col shrink-0 border-r border-zinc-200">
         {/* Header */}
-        <div className="h-16 flex items-center px-6 border-b border-zinc-800">
+        <div className="h-16 flex items-center px-6 border-b border-zinc-200">
           <Link href="/admin" className="flex items-center gap-2">
-            <span className="text-xl font-black bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+            <span className="text-xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               Keibai Admin
             </span>
           </Link>
@@ -39,45 +40,54 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
           <Link
             id="admin-nav-dashboard"
             href="/admin"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-zinc-300 hover:text-white hover:bg-zinc-800/60 transition-all"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-650 hover:text-zinc-900 hover:bg-zinc-100 transition-all"
           >
-            <ChartBarIcon className="w-5 h-5" />
-            <span>Tổng quan</span>
+            <ChartBarIcon className="w-5 h-5 text-zinc-500" />
+            <span>システム概要</span>
           </Link>
 
           <Link
             id="admin-nav-users"
             href="/admin/users"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-zinc-300 hover:text-white hover:bg-zinc-800/60 transition-all"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-650 hover:text-zinc-900 hover:bg-zinc-100 transition-all"
           >
-            <UsersIcon className="w-5 h-5" />
-            <span>Người dùng</span>
+            <UsersIcon className="w-5 h-5 text-zinc-500" />
+            <span>ユーザー管理</span>
+          </Link>
+
+          <Link
+            id="admin-nav-agencies"
+            href="/admin/agencies"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-650 hover:text-zinc-900 hover:bg-zinc-100 transition-all"
+          >
+            <BuildingOffice2Icon className="w-5 h-5 text-zinc-500" />
+            <span>サポート会社管理</span>
           </Link>
 
           <Link
             id="admin-nav-comments"
             href="/admin/comments"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-zinc-300 hover:text-white hover:bg-zinc-800/60 transition-all"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-650 hover:text-zinc-900 hover:bg-zinc-100 transition-all"
           >
-            <ChatBubbleLeftRightIcon className="w-5 h-5" />
-            <span>Bình luận</span>
+            <ChatBubbleLeftRightIcon className="w-5 h-5 text-zinc-500" />
+            <span>コメント管理</span>
           </Link>
 
-          <hr className="border-zinc-800 my-4" />
+          <hr className="border-zinc-200 my-4" />
 
           <Link
             id="admin-nav-home"
             href="/"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/30 transition-all"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/60 transition-all"
           >
-            <HomeIcon className="w-5 h-5" />
-            <span>Trang chủ chính</span>
+            <HomeIcon className="w-5 h-5 text-zinc-400" />
+            <span>メインホーム</span>
           </Link>
         </nav>
 
         {/* Footer info */}
-        <div className="p-4 border-t border-zinc-800 text-xs text-zinc-500 text-center">
-          Đăng nhập: {session.user.email}
+        <div className="p-4 border-t border-zinc-200 text-xs text-zinc-500 text-center font-medium">
+          ログインユーザー: {session.user.email}
         </div>
       </aside>
 
@@ -85,7 +95,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
         <header className="h-16 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-8 shrink-0">
-          <h2 className="font-bold text-lg">Bảng quản trị</h2>
+          <h2 className="font-bold text-lg">管理ダッシュボード</h2>
           <div className="flex items-center gap-3">
             <span className="text-xs px-2.5 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-bold rounded-full">
               ADMIN
