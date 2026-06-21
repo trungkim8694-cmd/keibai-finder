@@ -19,6 +19,10 @@ interface PropertyAgenciesProps {
 }
 
 export function PropertyAgencies({ prefecture, agencies }: PropertyAgenciesProps) {
+  if (!agencies || agencies.length === 0) {
+    return null;
+  }
+
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 sm:p-8 shadow-sm space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
