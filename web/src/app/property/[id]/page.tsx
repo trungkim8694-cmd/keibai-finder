@@ -21,6 +21,7 @@ import { StickyActionBar } from '@/components/Detail/StickyActionBar';
 import { AiAnalysisPanel } from '@/components/Detail/AiAnalysisPanel';
 import { ImageGallery } from '@/components/Detail/ImageGallery';
 import { Metadata } from 'next';
+import { PropertyComments } from '@/components/Detail/PropertyComments';
 import { cache } from 'react';
 
 const getPropertyById = cache(async (id: string) => {
@@ -284,13 +285,30 @@ export default async function PropertyDetail({ params }: { params: { id: string 
       })
     : Promise.resolve([]);
 
-  // RUN ALL 4 IN PARALLEL
-  const [stationsResult, nearbyResult, soldResult, similarProps] = await Promise.all([
+  const commentsPromise = prisma.comment.findMany({
+    where: { sale_unit_id: id },
+    orderBy: { created_at: 'desc' },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true
+        }
+      }
+    }
+  });
+
+  // RUN ALL 5 IN PARALLEL
+  const [stationsResult, nearbyResult, soldResult, similarProps, propertyComments] = await Promise.all([
     stationsPromise,
     nearbyActivePromise,
     nearbySoldPromise,
-    historyPromise
+    historyPromise,
+    commentsPromise
   ]);
+
+  const safeComments = deepSerialize(propertyComments || []);
 
   nearestStations = stationsResult;
   nearbyActive = nearbyResult.filter((p: any) => p.sale_unit_id !== id).slice(0, 10);
@@ -675,6 +693,9 @@ export default async function PropertyDetail({ params }: { params: { id: string 
           {nodeMarketComparison}
           {nodeMarketValuation}
           {nodeAiAnalysisPanel}
+          <div className="mt-8">
+            <PropertyComments saleUnitId={id} initialComments={safeComments} />
+          </div>
         </div>
 
         {/* --- DESKTOP LAYOUT (2 Columns) --- */}
@@ -690,6 +711,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
             </section>
 
             {nodePropertySections}
+            <PropertyComments saleUnitId={id} initialComments={safeComments} />
           </div>
 
           {/* RIGHT COLUMN */}
