@@ -15,6 +15,17 @@ export const authOptions = {
     async session({ session, user }: any) {
       if (session.user) {
         session.user.id = user.id;
+        
+        // Tự động gán quyền ADMIN cho email chỉ định nếu chưa được cập nhật trong DB
+        if (user.email === 'trungkim8694@gmail.com' && user.role !== 'ADMIN') {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { role: 'ADMIN' }
+          });
+          user.role = 'ADMIN';
+        }
+        
+        session.user.role = user.role || "USER";
       }
       return session;
     },

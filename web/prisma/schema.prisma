@@ -114,6 +114,7 @@ model User {
   email         String?    @unique
   emailVerified DateTime?
   image         String?
+  role          String     @default("USER")
   created_at    DateTime   @default(now())
   updated_at    DateTime   @updatedAt
   accounts      Account[]
