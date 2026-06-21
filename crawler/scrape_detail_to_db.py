@@ -9,7 +9,7 @@ from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 load_dotenv("../web/.env")
 
-from crawler_utils import get_nearest_station_from_db, get_gsi_coords, clean_area_string
+from crawler_utils import get_nearest_station_from_db, get_gsi_coords, clean_area_string, prepend_prefecture
 from supabase import create_client, Client
 import io
 
@@ -420,10 +420,6 @@ async def main():
                             address_raw = section["data"]["所在"]
                             break
                             
-                    if address_raw != "Unknown" and not address_raw.startswith("北海道"):
-                        address_raw = "北海道" + address_raw
-
-                        
                     court_name = "Unknown"
                     court_p = soup.select_one('.bit__text_big.d-sm-inline')
                     if court_p:
@@ -432,6 +428,9 @@ async def main():
                             court_name = court_text.split('　')[0].replace("本庁", "")
                         elif ' ' in court_text:
                             court_name = court_text.split(' ')[0].replace("本庁", "")
+
+                    if address_raw != "Unknown":
+                        address_raw = prepend_prefecture(address_raw, court_name)
                     has_land = False
                     has_building = False
                     is_condo = False
