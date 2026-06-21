@@ -607,15 +607,16 @@ export default async function PropertyDetail({ params }: { params: { id: string 
               <tbody className="divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
                 {Object.entries(section.data).map(([key, value], vIdx) => {
                   const isMissing = !value || value === '-' || value.trim() === '-';
+                  const isLong = value && (value.includes('\n') || (value.length > 160 && !value.startsWith('http')));
                   return (
                   <tr key={vIdx} className="even:bg-zinc-50/80 odd:bg-white dark:even:bg-zinc-800/30 dark:odd:bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors">
                     <th scope="row" className="px-3 py-2.5 sm:px-4 sm:py-3 md:px-6 md:py-4 font-semibold text-zinc-600 dark:text-zinc-400 bg-transparent w-1/3 min-w-[115px] align-top">
                       {key}
                     </th>
                     <td className={`px-3 py-2.5 sm:px-4 sm:py-3 md:px-6 md:py-4 whitespace-pre-wrap break-words ${isMissing ? 'text-zinc-400 dark:text-zinc-600 italic' : 'text-zinc-900 dark:text-zinc-100'} align-top`}>
-                      {key === '公法上の規制' || key === '接道状況' || (value && value.length > 200) ? (
-                          <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar border-l-4 border-zinc-200 dark:border-zinc-700 pl-3">
-                              {value || '-'}
+                      {isLong ? (
+                          <div className="max-h-[6em] overflow-y-auto pr-2 custom-scrollbar border-l-4 border-zinc-200 dark:border-zinc-700 pl-3">
+                              {value}
                           </div>
                       ) : (value || '-')}
                     </td>
