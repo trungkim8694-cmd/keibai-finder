@@ -25,9 +25,9 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-white text-zinc-800 flex flex-col shrink-0 border-r border-zinc-200">
+      <aside className="w-64 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 flex flex-col shrink-0 border-r border-zinc-200 dark:border-zinc-800">
         {/* Header */}
-        <div className="h-16 flex items-center px-6 border-b border-zinc-200">
+        <div className="h-16 flex items-center px-6 border-b border-zinc-200 dark:border-zinc-800">
           <Link href="/admin" className="flex items-center gap-2">
             <span className="text-xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               Keibai Admin
@@ -40,53 +40,53 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
           <Link
             id="admin-nav-dashboard"
             href="/admin"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-650 hover:text-zinc-900 hover:bg-zinc-100 transition-all"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-all"
           >
-            <ChartBarIcon className="w-5 h-5 text-zinc-500" />
+            <ChartBarIcon className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
             <span>システム概要</span>
           </Link>
 
           <Link
             id="admin-nav-users"
             href="/admin/users"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-650 hover:text-zinc-900 hover:bg-zinc-100 transition-all"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-all"
           >
-            <UsersIcon className="w-5 h-5 text-zinc-500" />
+            <UsersIcon className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
             <span>ユーザー管理</span>
           </Link>
 
           <Link
             id="admin-nav-agencies"
             href="/admin/agencies"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-650 hover:text-zinc-900 hover:bg-zinc-100 transition-all"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-all"
           >
-            <BuildingOffice2Icon className="w-5 h-5 text-zinc-500" />
+            <BuildingOffice2Icon className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
             <span>サポート会社管理</span>
           </Link>
 
           <Link
             id="admin-nav-comments"
             href="/admin/comments"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-650 hover:text-zinc-900 hover:bg-zinc-100 transition-all"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-all"
           >
-            <ChatBubbleLeftRightIcon className="w-5 h-5 text-zinc-500" />
+            <ChatBubbleLeftRightIcon className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
             <span>コメント管理</span>
           </Link>
 
-          <hr className="border-zinc-200 my-4" />
+          <hr className="border-zinc-200 dark:border-zinc-800 my-4" />
 
           <Link
             id="admin-nav-home"
             href="/"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/60 transition-all"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-all"
           >
-            <HomeIcon className="w-5 h-5 text-zinc-400" />
+            <HomeIcon className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
             <span>メインホーム</span>
           </Link>
         </nav>
 
         {/* Footer info */}
-        <div className="p-4 border-t border-zinc-200 text-xs text-zinc-500 text-center font-medium">
+        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 text-center font-medium">
           ログインユーザー: {session.user.email}
         </div>
       </aside>
