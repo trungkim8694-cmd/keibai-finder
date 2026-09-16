@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 
 import { type SharedProperty } from '../types';
@@ -38,6 +38,38 @@ export default function PropertyCard({
       cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [isHovered]);
+
+  // Intelligent thumbnail resolution: prefer permanent storage (R2, Supabase)
+  const resolveInitialThumb = () => {
+    const images = property.images || [];
+    const permanent = images.find(img => img && (img.includes('r2.dev') || img.includes('supabase.co')));
+    if (permanent) return permanent;
+    if (property.thumbnailUrl) return property.thumbnailUrl;
+    if (images.length > 0) return images[0];
+    return '/no-image.png';
+  };
+
+  const [imgSrc, setImgSrc] = useState<string>(resolveInitialThumb);
+  const [triedFallback, setTriedFallback] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(resolveInitialThumb());
+    setTriedFallback(false);
+  }, [property.thumbnailUrl, property.images]);
+
+  const handleImageError = () => {
+    if (!triedFallback) {
+      setTriedFallback(true);
+      // Try to find an alternate image in images that is not the current failed imgSrc and not a dead BIT link
+      const alt = (property.images || []).find(img => img && img !== imgSrc && !img.includes('bit.courts.go.jp') && !img.includes('bit.sikkou.jp'));
+      if (alt) {
+        setImgSrc(alt);
+        return;
+      }
+    }
+    setImgSrc('/no-image.png');
+  };
+
   let formattedPrice = '未定';
   if (property.starting_price) {
     formattedPrice = `${(Number(property.starting_price) / 10000).toLocaleString('ja-JP')}万円`;
@@ -113,9 +145,10 @@ export default function PropertyCard({
       {/* Thumbnail */}
       <div className={`relative w-full ${layout === 'horizontal' ? 'sm:w-1/3 lg:w-1/4 h-32 sm:h-auto' : 'h-32'} shrink-0 bg-zinc-100 dark:bg-zinc-800 pointer-events-none`}>
         <Image
-          src={property.thumbnailUrl || (property.images && property.images.length > 0 ? property.images[0] : '/no-image.png')}
+          src={imgSrc}
           alt="物件の写真"
           fill
+          onError={handleImageError}
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         

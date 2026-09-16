@@ -66,10 +66,11 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const title = `【${priceFormatted}】${address}の${typeStr}｜${property.court_name ? property.court_name + ' ' : ''}${tagStr}情報`;
   const description = `${property.address}の${typeStr}（${tagStr}）。基準価格は${priceFormatted}です。市場価格より安い不動産をお探しならKeibai Finder. 過去の落札相場やAIによる価格査定データを公開中。`;
   
-  // Use first image as openGraph image
+  // Use first permanent image as openGraph image (fallback to first image)
   let ogImage = undefined;
   if (property.images && Array.isArray(property.images) && property.images.length > 0) {
-     ogImage = property.images[0] || undefined;
+     const isPerm = (u: string) => Boolean(u && (u.includes('r2.dev') || u.includes('supabase.co')));
+     ogImage = property.images.find(isPerm) || property.images[0] || undefined;
   }
 
   const baseUrl = process.env.NEXTAUTH_URL || 'https://www.keibai-koubai.com';
@@ -536,8 +537,18 @@ export default async function PropertyDetail({ params }: { params: { id: string 
     </div>
   );
 
-  const ImageGalleryUI = (property as any).images && Array.isArray((property as any).images) && (property as any).images.length > 0 ? (
-    <ImageGallery images={(property as any).images as string[]} />
+  const isPerm = (u: string) => Boolean(u && (u.includes('r2.dev') || u.includes('supabase.co')));
+  const rawPropImages = Array.isArray((property as any).images) ? (property as any).images as string[] : [];
+  const sortedGalleryImages = [...rawPropImages].sort((a, b) => {
+    const aP = isPerm(a);
+    const bP = isPerm(b);
+    if (aP && !bP) return -1;
+    if (!aP && bP) return 1;
+    return 0;
+  });
+
+  const ImageGalleryUI = sortedGalleryImages.length > 0 ? (
+    <ImageGallery images={sortedGalleryImages} />
   ) : null;
 
   const CourtValuationUI = (
@@ -582,7 +593,14 @@ export default async function PropertyDetail({ params }: { params: { id: string 
           globalImages.forEach((img: string) => { 
              if (!arr.includes(img) && !img.toLowerCase().endsWith('.pdf')) arr.push(img) 
           });
-          mergedImages = arr;
+          const isPerm = (u: string) => Boolean(u && (u.includes('r2.dev') || u.includes('supabase.co')));
+          mergedImages = arr.sort((a, b) => {
+             const aP = isPerm(a);
+             const bP = isPerm(b);
+             if (aP && !bP) return -1;
+             if (!aP && bP) return 1;
+             return 0;
+          });
         } else {
           mergedImages = rawImages.filter(img => !img.toLowerCase().endsWith('.pdf'));
         }
@@ -691,7 +709,7 @@ export default async function PropertyDetail({ params }: { params: { id: string 
           <ViewTracker 
             id={id} 
             label={property.address || property.court_name || id} 
-            image={property.thumbnailUrl} 
+            image={sortedGalleryImages.find(isPerm) || property.thumbnailUrl} 
           />
         )}
       {/* Sticky Sub-Header Action Bar */}

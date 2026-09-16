@@ -37,11 +37,26 @@ export async function getUserFavorites(userId: string) {
       const mappedImages = rawImages.map((img: string) => 
           img.startsWith('./') ? `https://www.koubai.nta.go.jp/auctionx/public${img.substring(1)}` : img
       );
-      sanitizedProperty.images = mappedImages;
 
-      const mappedThumbnail = sanitizedProperty.source_provider === 'NTA' && mappedImages.length > 0
-        ? mappedImages[0]
-        : sanitizedProperty.thumbnailUrl ? sanitizedProperty.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp') : null;
+      // Sort images so permanent storage (Cloudflare R2, Supabase) comes first
+      const isPermanent = (url: string) => Boolean(url && (url.includes('r2.dev') || url.includes('supabase.co')));
+      const sortedImages = [...mappedImages].sort((a, b) => {
+          const aPerm = isPermanent(a);
+          const bPerm = isPermanent(b);
+          if (aPerm && !bPerm) return -1;
+          if (!aPerm && bPerm) return 1;
+          return 0;
+      });
+      sanitizedProperty.images = sortedImages;
+
+      const permanentImage = sortedImages.find(isPermanent);
+      const mappedThumbnail = permanentImage
+        ? permanentImage
+        : (sanitizedProperty.source_provider === 'NTA' && sortedImages.length > 0
+            ? sortedImages[0]
+            : (sanitizedProperty.thumbnailUrl 
+                ? sanitizedProperty.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp') 
+                : (sortedImages.length > 0 ? sortedImages[0] : null)));
       sanitizedProperty.thumbnailUrl = mappedThumbnail;
 
       // Extract contact_url if needed

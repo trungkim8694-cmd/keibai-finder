@@ -540,7 +540,19 @@ export default function KeibaiMapInner({
                className="p-0 w-[240px] sm:w-[260px] cursor-pointer hover:opacity-90 transition-opacity block group outline-none focus:outline-none bg-white dark:bg-zinc-900 rounded-lg overflow-hidden"
              >
                <div className="w-full h-[120px] bg-zinc-100 dark:bg-zinc-800 rounded-t-lg mb-2 overflow-hidden border-b border-zinc-200 dark:border-zinc-700 relative">
-                  {p.thumbnailUrl ? <img src={p.thumbnailUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Thumbnail" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🏠</div>}
+                   {p.thumbnailUrl ? (
+                     <img 
+                       src={p.thumbnailUrl} 
+                       onError={(e) => {
+                         e.currentTarget.onerror = null;
+                         e.currentTarget.src = '/no-image.png';
+                       }}
+                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                       alt="Thumbnail" 
+                     />
+                   ) : (
+                     <div className="w-full h-full flex items-center justify-center text-3xl">🏠</div>
+                   )}
                   <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">
                      {p.status === 'ACTIVE' ? '公開中' : p.status}
                   </div>

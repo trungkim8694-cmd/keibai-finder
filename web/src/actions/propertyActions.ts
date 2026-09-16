@@ -684,9 +684,29 @@ async function mapPropertiesWithStations(data: any[]) {
             img.startsWith('./') ? `https://www.koubai.nta.go.jp/auctionx/public${img.substring(1)}` : img
         );
 
-        const mappedThumbnail = p.source_provider === 'NTA' && mappedImages.length > 0
-          ? mappedImages[0]
-          : p.thumbnailUrl ? p.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp') : null;
+        // Sort images so permanent storage (Cloudflare R2, Supabase) comes first
+        const isPermanent = (url: string) => Boolean(url && (url.includes('r2.dev') || url.includes('supabase.co')));
+        const sortedImages = [...mappedImages].sort((a, b) => {
+            const aPerm = isPermanent(a);
+            const bPerm = isPermanent(b);
+            if (aPerm && !bPerm) return -1;
+            if (!aPerm && bPerm) return 1;
+            return 0;
+        });
+
+        // Priority for thumbnail:
+        // 1. Permanent image in images (Cloudflare R2 / Supabase)
+        // 2. NTA first image if NTA
+        // 3. thumbnailUrl if exists (with bit.sikkou.jp domain fix)
+        // 4. First image in sortedImages
+        const permanentImage = sortedImages.find(isPermanent);
+        const mappedThumbnail = permanentImage
+          ? permanentImage
+          : (p.source_provider === 'NTA' && sortedImages.length > 0
+              ? sortedImages[0]
+              : (p.thumbnailUrl 
+                  ? p.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp') 
+                  : (sortedImages.length > 0 ? sortedImages[0] : null)));
 
         return {
           sale_unit_id: p.sale_unit_id,
@@ -713,7 +733,7 @@ async function mapPropertiesWithStations(data: any[]) {
           auctionSchedule: auctionSchedule,
           auctionRound: auctionRound,
           thumbnailUrl: mappedThumbnail,
-          images: mappedImages,
+          images: sortedImages,
           source_provider: p.source_provider || 'BIT',
           source_url: p.source_url || null,
           managing_authority: p.managing_authority || null,

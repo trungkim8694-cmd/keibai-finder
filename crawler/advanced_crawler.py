@@ -453,11 +453,12 @@ async def process_listing_page(page, prefecture, state, save_state, memory_cache
                 except Exception as e: print(f"  PDF ERR: {e}")
                 
             final_images = []
+            # Ưu tiên ảnh chụp thực tế trích xuất từ PDF (lưu trữ vĩnh viễn trên R2/Supabase)
+            for p_img in pdf_images:
+                if p_img not in final_images: final_images.append(p_img)
             if summary_images:
                 for s_img in summary_images:
                     if s_img not in final_images: final_images.append(s_img)
-            for p_img in pdf_images:
-                if p_img not in final_images: final_images.append(p_img)
                     
             thumbnail_url = final_images[0] if final_images else None
         

@@ -11,8 +11,17 @@ export function ImageGallery({ images }: ImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Filter out PDF references
-  const validImages = images.filter(url => !url.toLowerCase().endsWith('.pdf'));
+  // Filter out PDF references and sort permanent images (R2, Supabase) first
+  const isPermanent = (url: string) => Boolean(url && (url.includes('r2.dev') || url.includes('supabase.co')));
+  const validImages = images
+    .filter(url => url && !url.toLowerCase().endsWith('.pdf'))
+    .sort((a, b) => {
+      const aPerm = isPermanent(a);
+      const bPerm = isPermanent(b);
+      if (aPerm && !bPerm) return -1;
+      if (!aPerm && bPerm) return 1;
+      return 0;
+    });
 
   const openLightbox = (index: number) => {
     setActiveIndex(index);
@@ -89,6 +98,10 @@ export function ImageGallery({ images }: ImageGalleryProps) {
           >
             <img
               src={img}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/no-image.png';
+              }}
               alt={`Thumbnail ${i + 1}`}
               className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
               loading="lazy"

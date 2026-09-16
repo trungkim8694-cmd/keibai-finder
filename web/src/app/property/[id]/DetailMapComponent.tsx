@@ -82,7 +82,18 @@ export default function DetailMapComponent({ property, nearestStations, nearbyAc
                >
                  <a href={`/property/${p.sale_unit_id}`} target="_blank" rel="noopener noreferrer" className="flex gap-3 h-full">
                    <div className="w-16 h-16 md:w-20 md:h-20 bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden shrink-0 border border-zinc-100 dark:border-zinc-800 relative">
-                      {p.thumbnailUrl ? <img src={p.thumbnailUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl bg-zinc-100">🏠</div>}
+                       {p.thumbnailUrl ? (
+                         <img 
+                           src={p.thumbnailUrl} 
+                           onError={(e) => {
+                             e.currentTarget.onerror = null;
+                             e.currentTarget.src = '/no-image.png';
+                           }}
+                           className="w-full h-full object-cover" 
+                         />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-xl bg-zinc-100">🏠</div>
+                       )}
                    </div>
                    <div className="min-w-0 flex-1 flex flex-col justify-center">
                       <p className="font-bold text-sm text-zinc-900 dark:text-white truncate" title={p.address}>{p.address}</p>
