@@ -63,16 +63,20 @@ export async function generateMetadata(
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const digests = await prisma.dailyDigest.findMany({
-    where: {
-      category: 'MARKET_REPORT'
-    },
-    select: { slug: true }
-  });
+  try {
+    const digests = await prisma.dailyDigest.findMany({
+      where: {
+        category: 'MARKET_REPORT'
+      },
+      select: { slug: true }
+    });
 
-  return digests.map((digest) => ({
-    slug: digest.slug,
-  }));
+    return digests.map((digest) => ({
+      slug: digest.slug,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export default async function DigestDetailPage({ params, searchParams }: Props) {

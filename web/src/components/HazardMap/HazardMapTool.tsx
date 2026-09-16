@@ -414,8 +414,8 @@ export default function HazardMapTool({
 
           {/* Base Map */}
           <TileLayer 
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" 
-              attribution='&copy; <a href="https://carto.com/">CartoDB</a>' 
+              url="https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png" 
+              attribution='&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院</a>' 
               maxZoom={18}
           />
 
