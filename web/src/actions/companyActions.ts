@@ -91,9 +91,18 @@ export interface SubmitDelistParams {
   details?: string;
 }
 
+const REGION_MAP: Record<string, string[]> = {
+  '関東': ['東京都', '神奈川県', '埼玉県', '千葉県', '茨城県', '栃木県', '群馬県'],
+  '関西': ['大阪府', '兵庫県', '京都府', '滋賀県', '奈良県', '和歌山県'],
+  '東海・中部': ['愛知県', '静岡県', '岐阜県', '三重県', '新潟県', '長野県', '山梨県', '富山県', '石川県', '福井県'],
+  '九州・沖縄': ['福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'],
+  '北海道・東北': ['北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県'],
+  '中国・四国': ['広島県', '岡山県', '山口県', '鳥取県', '島根県', '香川県', '愛媛県', '徳島県', '高知県'],
+};
+
 /**
- * Lấy danh sách các công ty bất động sản Takken thực tế từ Kigyoulist API (kigyoulist.com)
- * Đồng thời kết hợp trạng thái Official Partner đã xác minh tại CSDL keibai_finder_db
+ * Lấy danh sách các công ty bất động sản Takken trực tiếp từ PostgreSQL nội bộ
+ * Truy vấn siêu tốc, không phụ thuộc kết nối HTTP ra ngoài, đồng bộ trạng thái Official Partner
  */
 export async function getRealEstateCompanies(params: GetCompaniesParams = {}) {
   try {
@@ -109,100 +118,72 @@ export async function getRealEstateCompanies(params: GetCompaniesParams = {}) {
       limit = 24,
     } = params;
 
-    // 1. Fetch real Takken licenses from kigyoulist.com API
-    const apiUrl = new URL(`${KIGYOULIST_API_BASE}/api/external/takken-agencies`);
+    const where: any = {
+      status: 'ACTIVE',
+    };
+
     if (prefecture && prefecture !== 'ALL' && prefecture !== '全国') {
-      apiUrl.searchParams.set('prefecture', prefecture);
+      where.prefecture = prefecture;
     } else if (region && region !== 'ALL' && region !== '全国') {
-      apiUrl.searchParams.set('region', region);
-    }
-    if (city) {
-      apiUrl.searchParams.set('city', city);
-    }
-    if (query) {
-      apiUrl.searchParams.set('query', query);
-    }
-    apiUrl.searchParams.set('page', String(page));
-    apiUrl.searchParams.set('limit', String(limit));
-
-    const apiRes = await fetch(apiUrl.toString(), {
-      next: { revalidate: 1800 },
-    });
-
-    let rawAgencies: any[] = [];
-    let totalCount = 0;
-
-    if (apiRes.ok) {
-      const apiData = await apiRes.json();
-      if (apiData.success && Array.isArray(apiData.agencies)) {
-        rawAgencies = apiData.agencies;
-        totalCount = apiData.total || rawAgencies.length;
+      const prefsInRegion = REGION_MAP[region];
+      if (prefsInRegion && prefsInRegion.length > 0) {
+        where.prefecture = { in: prefsInRegion };
       }
-    } else {
-      console.warn(`[Kigyoulist API] Request returned status ${apiRes.status}`);
     }
 
-    // 2. Query verified companies from local keibai_finder_db to reflect verified status
-    const corpNumbers = rawAgencies.map((a: any) => a.corporateNumber).filter(Boolean);
-    const localVerified = await (prisma as any).realEstateCompany.findMany({
-      where: {
-        status: 'ACTIVE',
-        OR: [
-          { isVerified: true },
-          { isClaimed: true },
-          { houjinNumber: { in: corpNumbers } },
-        ],
-      },
-    });
+    if (city && city.trim() !== '') {
+      where.city = { contains: city.trim() };
+    }
 
-    const localMap = new Map<string, any>();
-    localVerified.forEach((lv: any) => {
-      if (lv.houjinNumber) localMap.set(lv.houjinNumber, lv);
-      localMap.set(lv.id, lv);
-    });
+    if (query && query.trim() !== '') {
+      const q = query.trim();
+      where.OR = [
+        { companyName: { contains: q, mode: 'insensitive' } },
+        { address: { contains: q, mode: 'insensitive' } },
+        { licenseNumber: { contains: q, mode: 'insensitive' } },
+        { houjinNumber: { contains: q } },
+      ];
+    }
 
-    // 3. Merge local verified status into kigyoulist agencies
-    let mergedCompanies = rawAgencies.map((a: any) => {
-      const matchedLocal = localMap.get(a.corporateNumber) || localMap.get(a.id);
-      if (matchedLocal) {
-        return {
-          ...a,
-          id: matchedLocal.id,
-          isVerified: matchedLocal.isVerified,
-          isClaimed: matchedLocal.isClaimed,
-          specialties: matchedLocal.specialties?.length ? matchedLocal.specialties : a.specialties,
-          phone: matchedLocal.phone || a.phone,
-          website: matchedLocal.website || a.website,
-        };
-      }
-      return a;
-    });
-
-    // 4. Apply in-memory filters for verified / specialty if requested
     if (typeof isVerified === 'boolean') {
-      mergedCompanies = mergedCompanies.filter((c: any) => c.isVerified === isVerified);
+      where.isVerified = isVerified;
     }
     if (typeof isClaimed === 'boolean') {
-      mergedCompanies = mergedCompanies.filter((c: any) => c.isClaimed === isClaimed);
+      where.isClaimed = isClaimed;
     }
+
     if (specialty && specialty !== 'すべて') {
-      mergedCompanies = mergedCompanies.filter((c: any) => 
-        c.specialties?.some((s: string) => s.includes(specialty))
-      );
+      where.specialties = {
+        has: specialty,
+      };
     }
+
+    const [totalCount, companies] = await Promise.all([
+      (prisma as any).realEstateCompany.count({ where }),
+      (prisma as any).realEstateCompany.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: [
+          { isVerified: 'desc' },
+          { isClaimed: 'desc' },
+          { created_at: 'desc' },
+        ],
+      }),
+    ]);
 
     const totalPages = Math.ceil(totalCount / limit) || 1;
 
     return {
       success: true,
-      companies: mergedCompanies,
+      companies,
       total: totalCount,
       page,
       totalPages,
       limit,
     };
   } catch (error: any) {
-    console.error('Error fetching real estate companies from kigyoulist API:', error);
+    console.error('Error fetching real estate companies from DB:', error);
     return {
       success: false,
       error: '不動産業者リストの取得中にエラーが発生しました。',
@@ -216,7 +197,7 @@ export async function getRealEstateCompanies(params: GetCompaniesParams = {}) {
 }
 
 /**
- * Đề xuất danh sách công ty bất động sản theo ngữ cảnh bất động sản (prefecture, city) từ Kigyoulist API
+ * Đề xuất danh sách công ty bất động sản theo ngữ cảnh bất động sản (prefecture, city) từ DB nội bộ
  */
 export async function getCompaniesForProperty(params: {
   prefecture?: string | null;
@@ -227,43 +208,52 @@ export async function getCompaniesForProperty(params: {
     const { prefecture, city, limit = 4 } = params;
     const targetLimit = Math.min(20, Math.max(1, limit));
 
-    const apiUrl = new URL(`${KIGYOULIST_API_BASE}/api/external/takken-agencies`);
-    if (prefecture) apiUrl.searchParams.set('prefecture', prefecture);
-    if (city) apiUrl.searchParams.set('city', city);
-    apiUrl.searchParams.set('limit', String(targetLimit));
-
-    const apiRes = await fetch(apiUrl.toString(), {
-      next: { revalidate: 3600 },
-    });
-
-    if (apiRes.ok) {
-      const apiData = await apiRes.json();
-      if (apiData.success && Array.isArray(apiData.agencies) && apiData.agencies.length > 0) {
-        return {
-          success: true,
-          companies: apiData.agencies,
-        };
-      }
+    let where: any = { status: 'ACTIVE' };
+    if (prefecture) {
+      where.prefecture = prefecture;
+    }
+    if (city) {
+      where.city = { contains: city };
     }
 
-    // Fallback: search nationwide if city/pref had 0
-    const fallbackRes = await fetch(`${KIGYOULIST_API_BASE}/api/external/takken-agencies?limit=${targetLimit}`, {
-      next: { revalidate: 3600 },
+    let companies = await (prisma as any).realEstateCompany.findMany({
+      where,
+      take: targetLimit,
+      orderBy: [
+        { isVerified: 'desc' },
+        { isClaimed: 'desc' },
+        { created_at: 'desc' },
+      ],
     });
-    if (fallbackRes.ok) {
-      const fallbackData = await fallbackRes.json();
-      if (fallbackData.success && Array.isArray(fallbackData.agencies)) {
-        return {
-          success: true,
-          companies: fallbackData.agencies,
-        };
-      }
+
+    // Fallback nếu không có công ty theo city -> tìm theo prefecture
+    if (companies.length === 0 && prefecture) {
+      companies = await (prisma as any).realEstateCompany.findMany({
+        where: { status: 'ACTIVE', prefecture },
+        take: targetLimit,
+        orderBy: [
+          { isVerified: 'desc' },
+          { isClaimed: 'desc' },
+          { created_at: 'desc' },
+        ],
+      });
+    }
+
+    // Fallback toàn quốc nếu vẫn rỗng
+    if (companies.length === 0) {
+      companies = await (prisma as any).realEstateCompany.findMany({
+        where: { status: 'ACTIVE' },
+        take: targetLimit,
+        orderBy: [
+          { isVerified: 'desc' },
+          { isClaimed: 'desc' },
+        ],
+      });
     }
 
     return {
-      success: false,
-      error: '物件周辺の不動産会社取得に失敗しました。',
-      companies: [],
+      success: true,
+      companies,
     };
   } catch (error: any) {
     console.error('Error fetching companies for property:', error);
@@ -286,7 +276,6 @@ export async function getCompanyById(idOrHoujin: string) {
 
     const trimmed = idOrHoujin.trim();
     
-    // 1. Check local DB first
     const company = await (prisma as any).realEstateCompany.findFirst({
       where: {
         status: 'ACTIVE',
@@ -299,19 +288,6 @@ export async function getCompanyById(idOrHoujin: string) {
 
     if (company) {
       return { success: true, company };
-    }
-
-    // 2. Fetch from Kigyoulist API if not in local DB
-    const corpNum = trimmed.replace(/^kigyou_/, '');
-    const apiRes = await fetch(`${KIGYOULIST_API_BASE}/api/external/takken-agencies?keyword=${corpNum}&limit=1`, {
-      next: { revalidate: 3600 }
-    });
-
-    if (apiRes.ok) {
-      const data = await apiRes.json();
-      if (data.success && data.agencies?.length > 0) {
-        return { success: true, company: data.agencies[0] };
-      }
     }
 
     return { success: false, error: '該当する不動産業者が見つかりませんでした。' };
@@ -540,25 +516,30 @@ export async function submitDelistRequest(params: SubmitDelistParams) {
 
 /**
  * Thống kê số lượng công ty theo Tỉnh (Phục vụ SEO Hub / Navigation)
- * Lấy trực tiếp số liệu thời gian thực từ Kigyoulist API (kigyoulist.com)
+ * Truy vấn trực tiếp từ cơ sở dữ liệu nội bộ PostgreSQL
  */
 export async function getCompanyCountByPrefecture() {
   try {
-    const res = await fetch(`${KIGYOULIST_API_BASE}/api/external/takken-agencies?action=counts`, {
-      next: { revalidate: 3600 },
-    });
+    const rawCounts: Array<{ prefecture: string; count: bigint | number }> = await prisma.$queryRaw`
+      SELECT "prefecture", COUNT(*)::int as count 
+      FROM "RealEstateCompany" 
+      WHERE "status" = 'ACTIVE' 
+      GROUP BY "prefecture" 
+      ORDER BY count DESC;
+    `;
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.counts) && data.counts.length > 0) {
-        return {
-          success: true,
-          counts: data.counts,
-        };
-      }
+    if (Array.isArray(rawCounts) && rawCounts.length > 0) {
+      const counts = rawCounts.map((r) => ({
+        prefecture: r.prefecture,
+        count: Number(r.count),
+      }));
+      return {
+        success: true,
+        counts,
+      };
     }
   } catch (error: any) {
-    console.warn('Error fetching company count from kigyoulist API, using static fallback:', error);
+    console.warn('Error fetching company count from DB, using static fallback:', error);
   }
 
   return {
