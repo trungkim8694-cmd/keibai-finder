@@ -20,7 +20,7 @@ import FavoriteButton from './FavoriteButton';
 import { resolvePropertyAiAnalysis } from '../lib/aiRiskExtractor';
 import { getSourceProviderMeta, isPublicAuctionProvider } from '../lib/sourceProviderConfig';
 import { extractTotalArea, cleanAddress } from '../lib/utils';
-import { createPricePillIcon, createClusterCustomIcon, syncHoveredMarkerDOM, formatMarkerPrice } from './MapPriceMarker';
+import { createPricePillIcon, createSoldPricePillIcon, createClusterCustomIcon, syncHoveredMarkerDOM, formatMarkerPrice } from './MapPriceMarker';
 import { MapLayerControl, BaseMapMode } from './MapLayerControl';
 import { StreetViewModal } from './StreetViewModal';
 import { Compass } from 'lucide-react';
@@ -875,25 +875,49 @@ export default function KeibaiMapInner({
             <Marker
                key={"sold-" + d.id}
                position={[d.lat, d.lng]}
-               icon={soldIcon}
-               zIndexOffset={0}
+               icon={createSoldPricePillIcon(d.winningPrice)}
+               zIndexOffset={80}
             >
                <Popup>
-                 <div className="p-1 min-w-[140px]">
-                   <div className="font-bold text-sm text-zinc-800 mb-2 border-b border-zinc-200 pb-1 flex justify-between">
-                     <span>📍 売却済</span>
-                     <span className="text-xs text-zinc-500">{d.distance.toFixed(1)}km</span>
+                 <div className="p-1 min-w-[160px] text-zinc-800 dark:text-zinc-100 font-sans">
+                   <div className="font-bold text-xs mb-1.5 border-b border-zinc-200 dark:border-zinc-700 pb-1 flex justify-between items-center">
+                     <span className="flex items-center gap-1 text-rose-600 font-black">
+                       <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                       落札物件
+                     </span>
+                     <span className="text-[10px] text-zinc-500 font-mono">{d.distance.toFixed(1)}km</span>
                    </div>
-                   <div className="text-xs text-zinc-700 space-y-1.5">
-                     <div className="flex justify-between items-center">
-                       <span>落札価格</span>
-                       <span className="font-black text-green-600">
-                         {d.winningPrice ? "¥" + d.winningPrice.toLocaleString() : '不明'}
+                   <div className="text-[11px] space-y-1">
+                     <div className="font-semibold truncate text-zinc-700 dark:text-zinc-200 max-w-[150px]">
+                       {d.address || '近隣エリア'}
+                     </div>
+                     {(d.sqm || d.age) && (
+                       <div className="text-[10px] text-zinc-500">
+                         {d.grp ? `${d.grp} ` : ''}{d.sqm ? `${d.sqm}m² ` : ''}{d.age ? `築${d.age}年` : ''}
+                       </div>
+                     )}
+                     <div className="flex justify-between items-center pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                       <span className="text-zinc-500 text-[10px]">基準価額</span>
+                       <span className="text-zinc-600 dark:text-zinc-300 font-mono text-[10px]">
+                         {d.basePrice ? `¥${d.basePrice.toLocaleString()}` : '-'}
                        </span>
                      </div>
                      <div className="flex justify-between items-center">
-                       <span>落札日</span>
-                       <span>{d.completionDate ? new Date(d.completionDate).toLocaleDateString('ja-JP') : '-'}</span>
+                       <span className="text-zinc-500 text-[10px]">落札価額</span>
+                       <span className="font-bold font-mono text-rose-600 text-xs">
+                         {d.winningPrice ? `¥${d.winningPrice.toLocaleString()}` : '不明'}
+                       </span>
+                     </div>
+                     <div className="flex justify-between items-center text-[10px]">
+                       <span className="text-zinc-500">入札数 / 乖離</span>
+                       <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                         {d.bidderCount ? `${d.bidderCount}名` : '-'}
+                         {d.marginRate !== null && d.marginRate !== undefined && (
+                           <span className="ml-1 text-rose-600 font-bold">
+                             ({d.marginRate > 0 ? '+' : ''}{Math.round(d.marginRate)}%)
+                           </span>
+                         )}
+                       </span>
                      </div>
                    </div>
                  </div>

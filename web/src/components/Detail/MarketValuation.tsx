@@ -102,9 +102,31 @@ export async function MarketValuation({
   })).filter(d => d.price > 0 || d.pricePerSqm > 0);
 
   const hasDbCalculation = !!dbMlitEstimatedPrice && dbMlitEstimatedPrice > 0;
-  const estimatedMarketPrice = hasDbCalculation ? dbMlitEstimatedPrice : null;
-  const investmentGapPercent = hasDbCalculation ? (dbMlitInvestmentGap ?? 0) : null;
-  const isHighPotential = hasDbCalculation && investmentGapPercent && investmentGapPercent > 30;
+
+  // Live fallback from already-fetched MLIT marketData if DB cache hasn't been calculated yet
+  const computeFallbackValuation = () => {
+    const avgPrice = marketData?.avgTradePrice || 0;
+    const avgSqm = marketData?.avgPricePerSqm || 0;
+    const avgArea = marketData?.avgArea || 0;
+    const refArea = (propertyArea && propertyArea > 0) ? propertyArea : avgArea;
+
+    let baseEst = avgPrice;
+    if (avgSqm > 0 && refArea > 0) {
+      baseEst = avgSqm * refArea;
+    }
+    if (!baseEst || baseEst <= 0) return null;
+
+    const factor = propertyType === '土地' ? 1.0 : (propertyType === 'マンション' ? 0.8 : 0.65);
+    return Math.round(baseEst * factor);
+  };
+
+  const estimatedMarketPrice = hasDbCalculation ? dbMlitEstimatedPrice : computeFallbackValuation();
+  const investmentGapPercent = hasDbCalculation
+    ? (dbMlitInvestmentGap ?? 0)
+    : (estimatedMarketPrice && basePriceNum > 0
+        ? ((estimatedMarketPrice - basePriceNum) / estimatedMarketPrice) * 100
+        : null);
+  const isHighPotential = Boolean(investmentGapPercent !== null && investmentGapPercent > 30);
 
   const manYenFormat = (val: number) => {
     return `${Math.round(val / 10000).toLocaleString('ja-JP')}万円`;

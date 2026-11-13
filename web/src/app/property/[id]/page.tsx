@@ -187,16 +187,49 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
             
             ntaMapLink = rawObj.nta_map_link || null;
             eTaxLink = rawObj.etax_link || null;
+        } else if (rawObj.summary && typeof rawObj.summary === 'object') {
+            // KSI / Public auction dictionary format with nested summary
+            const summaryData: Record<string, string> = {};
+            for (const [k, v] of Object.entries(rawObj.summary)) {
+              if (v !== null && v !== undefined) {
+                summaryData[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
+              }
+            }
+            propertySections.push({
+              asset_title: "物件概要・公売情報",
+              asset_type: property.source_provider || "KSI",
+              data: summaryData
+            });
+
+            const extraData: Record<string, string> = {};
+            for (const [k, v] of Object.entries(rawObj)) {
+              if (!['summary', 'title', 'source_url', 'bidding_period', 'nta_map_link', 'etax_link'].includes(k) && v !== null && v !== undefined) {
+                extraData[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
+              }
+            }
+            if (Object.keys(extraData).length > 0) {
+              propertySections.push({
+                asset_title: "補足情報",
+                asset_type: property.source_provider || "KSI",
+                data: extraData
+              });
+            }
+            ntaMapLink = rawObj.nta_map_link || null;
+            eTaxLink = rawObj.etax_link || null;
         } else {
-            const sanitizedData = { ...rawObj };
-            ntaMapLink = sanitizedData['nta_map_link'] || null;
-            eTaxLink = sanitizedData['etax_link'] || null;
-            delete sanitizedData['nta_map_link'];
-            delete sanitizedData['etax_link'];
+            const sanitizedData: Record<string, string> = {};
+            for (const [k, v] of Object.entries(rawObj)) {
+              if (['nta_map_link', 'etax_link'].includes(k)) continue;
+              if (v !== null && v !== undefined) {
+                sanitizedData[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
+              }
+            }
+            ntaMapLink = rawObj.nta_map_link || null;
+            eTaxLink = rawObj.etax_link || null;
             
             propertySections = [{
               asset_title: "公売物件詳細",
-              asset_type: "NTA",
+              asset_type: property.source_provider || "NTA",
               data: sanitizedData
             }];
         }
@@ -631,11 +664,11 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
 
         // 1. Specialized B2B Layout for Contact Information
         if (isContactSection) {
-          const contactOrg = section.data['お問い合せ先'] || section.data['お問い合わせ先'] || property.managing_authority || property.court_name || '管轄機関';
+          const contactOrg = String(section.data['お問い合せ先'] || section.data['お問い合わせ先'] || property.managing_authority || property.court_name || '管轄機関');
           const dept = section.data['担当部署名'];
-          const phone = section.data['電話番号'];
+          const phone = section.data['電話番号'] || section.data['電話'];
           const extension = section.data['内線'];
-          const hours = section.data['電話受付時間'];
+          const hours = section.data['電話受付時間'] || section.data['受付時間'];
           const addr = section.data['所在地'];
           const zip = section.data['郵便番号'];
 
@@ -647,7 +680,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
                   <span>{displayTitle}</span>
                 </h2>
                 <span className="text-[11px] font-medium px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800">
-                  {property.source_provider === 'NTA' ? '国税局・税務署' : '管轄裁判所'}
+                  {property.source_provider === 'NTA' ? '国税局・税務署' : (property.source_provider === 'KSI' ? '公売実施機関' : '管轄裁判所')}
                 </span>
               </div>
 
@@ -660,7 +693,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
                     </div>
                     {dept && (
                       <div className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-                        {dept}
+                        {String(dept)}
                       </div>
                     )}
                   </div>
@@ -668,11 +701,11 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
                   {phone && (
                     <div className="flex items-center gap-2">
                       <a
-                        href={`tel:${phone.replace(/[^0-9]/g, '')}`}
+                        href={`tel:${String(phone).replace(/[^0-9]/g, '')}`}
                         className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md bg-[#1B4F8A] hover:bg-[#153e6d] text-white text-xs font-bold shadow-2xs transition-colors"
                       >
                         <Phone className="w-3.5 h-3.5" />
-                        <span>{phone}</span>
+                        <span>{String(phone)}</span>
                       </a>
                       {extension && (
                         <span className="px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-zinc-700 tabular-nums">

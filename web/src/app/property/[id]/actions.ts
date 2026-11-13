@@ -5,37 +5,52 @@ import { prisma } from '@/lib/prisma';
 export async function getNearbyAuctionResults(lat: number, lng: number, radiusKm: number = 20) {
   if (!lat || !lng) return [];
   
-  console.log(`[getNearbyAuctionResults] Querying DB for Lat: ${lat}, Lng: ${lng}, Max Radius: ${radiusKm}km`);
-
   try {
     const results = await prisma.$queryRaw`
       SELECT * FROM (
         SELECT 
           "id", "caseNumber", "address", "lat", "lng", 
-          "basePrice", "winningPrice", "bidderCount", "marginRate", "completionDate", "winnerType",
+          "basePrice", "winningPrice", "bidderCount", "marginRate", "completionDate", "winnerType", "raw_data",
           ( 6371 * acos( cos( radians(${lat}) ) * cos( radians( "lat" ) ) * cos( radians( "lng" ) - radians(${lng}) ) + sin( radians(${lat}) ) * sin( radians( "lat" ) ) ) ) AS distance
         FROM "AuctionResult"
         WHERE "lat" IS NOT NULL AND "lng" IS NOT NULL
       ) AS derivedTable
       WHERE distance <= ${radiusKm}
       ORDER BY distance ASC
-      LIMIT 10
+      LIMIT 15
     `;
     
-    const parsedResults = (results as any[]).map(row => ({
-      id: row.id,
-      caseNumber: row.caseNumber,
-      address: row.address,
-      lat: row.lat,
-      lng: row.lng,
-      basePrice: row.basePrice ? Number(row.basePrice) : null,
-      winningPrice: row.winningPrice ? Number(row.winningPrice) : null,
-      bidderCount: row.bidderCount,
-      marginRate: row.marginRate !== null ? Number(row.marginRate) * 100 : null,
-      completionDate: row.completionDate,
-      winnerType: row.winnerType,
-      distance: Number(row.distance)
-    }));
+    const parsedResults = (results as any[]).map(row => {
+      const raw = typeof row.raw_data === 'string' ? JSON.parse(row.raw_data || '{}') : (row.raw_data || {});
+      const station = raw.nearest_station;
+      const grp = raw.grp;
+      const fallbackAddr = station ? `${station}駅周辺` : (grp ? `${grp}物件` : '近隣エリア');
+      
+      let margin = null;
+      if (row.marginRate !== null && row.marginRate !== undefined) {
+        const num = Number(row.marginRate);
+        margin = Math.abs(num) <= 5 ? Math.round(num * 100 * 10) / 10 : Math.round(num * 10) / 10;
+      }
+
+      return {
+        id: row.id,
+        caseNumber: row.caseNumber,
+        address: row.address || fallbackAddr,
+        lat: row.lat,
+        lng: row.lng,
+        basePrice: row.basePrice ? Number(row.basePrice) : null,
+        winningPrice: row.winningPrice ? Number(row.winningPrice) : null,
+        bidderCount: row.bidderCount,
+        marginRate: margin,
+        completionDate: row.completionDate,
+        winnerType: row.winnerType,
+        distance: Number(row.distance),
+        sqm: raw.sqm || null,
+        age: raw.age || null,
+        grp: raw.grp || null,
+        endYear: raw.end_year || (row.completionDate ? new Date(row.completionDate).getFullYear() : null)
+      };
+    });
 
     return parsedResults;
   } catch (error) {

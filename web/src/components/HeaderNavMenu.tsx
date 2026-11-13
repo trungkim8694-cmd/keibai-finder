@@ -95,32 +95,9 @@ export default function HeaderNavMenu() {
                   <p className="text-[10px] text-slate-400">主要鉄道・駅徒歩圏内</p>
                 </div>
               </Link>
-              <Link
-                href="/auction/schedule"
-                onClick={() => setOpenDropdown(null)}
-                className="flex items-center gap-2.5 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-[#1B4F8A] border-t border-slate-100 dark:border-zinc-800/60 pt-2 mt-1"
-              >
-                <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">売却スケジュール</p>
-                    <span className="text-[9px] font-bold px-1 rounded bg-blue-50 text-[#1B4F8A] dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60">カレンダー</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400">入札締切・開札期日一覧</p>
-                </div>
-              </Link>
             </div>
           )}
         </div>
-
-        {/* Direct Link to Auction Schedule Calendar */}
-        <Link
-          href="/auction/schedule"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-zinc-800/80 hover:text-[#1B4F8A] transition-colors"
-        >
-          <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-          <span>売却スケジュール</span>
-        </Link>
 
         {/* 2. Market Analysis & Tools Dropdown */}
         <div className="relative" ref={toolsMenuRef}>
@@ -217,6 +194,15 @@ export default function HeaderNavMenu() {
           )}
         </div>
 
+        {/* 3. Direct Link to Auction Schedule Calendar */}
+        <Link
+          href="/auction/schedule"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-zinc-800/80 hover:text-[#1B4F8A] transition-colors"
+        >
+          <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+          <span>売却スケジュール</span>
+        </Link>
+
         {/* 3. Real Estate Companies Directory Link */}
         <Link
           href="/agencies"
@@ -276,14 +262,6 @@ export default function HeaderNavMenu() {
                     <Train className="w-3.5 h-3.5 text-purple-600" />
                     <span>沿線・駅から探す</span>
                   </Link>
-                  <Link
-                    href="/auction/schedule"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-1.5 p-2 rounded bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 font-semibold border border-blue-200/60"
-                  >
-                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                    <span>売却スケジュール</span>
-                  </Link>
                 </div>
               </div>
 
@@ -341,6 +319,17 @@ export default function HeaderNavMenu() {
                     Keibai Lens 拡張機能
                   </Link>
                 </div>
+              </div>
+
+              <div className="border-t border-slate-100 dark:border-zinc-800 pt-3">
+                <Link
+                  href="/auction/schedule"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 p-2 rounded bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 font-semibold border border-blue-200/60"
+                >
+                  <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>売却スケジュール（カレンダー）</span>
+                </Link>
               </div>
 
               <div className="border-t border-slate-100 dark:border-zinc-800 pt-3 flex flex-col gap-2">

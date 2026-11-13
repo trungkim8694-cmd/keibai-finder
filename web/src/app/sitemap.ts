@@ -145,18 +145,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const areaRoutes: MetadataRoute.Sitemap = [];
     
     // Extract distinct prefectures
-    const prefectures = Array.from(new Set(distinctLocations.map(loc => loc.prefecture).filter(Boolean)));
+    const prefectures: string[] = Array.from(
+      new Set(
+        distinctLocations
+          .map((loc) => loc.prefecture)
+          .filter((p): p is string => typeof p === 'string' && p.length > 0)
+      )
+    );
     
     prefectures.forEach(pref => {
       areaRoutes.push({
-        url: `${baseUrl}/search/area/${encodeURIComponent(pref!)}`,
+        url: `${baseUrl}/search/area/${encodeURIComponent(pref)}`,
         lastModified: new Date(),
         changeFrequency: 'daily' as const,
         priority: 0.8, // prefectures have higher priority than cities
       });
       // Add area-map specific routes
       areaRoutes.push({
-        url: `${baseUrl}/area-map/${encodeURIComponent(pref!)}`,
+        url: `${baseUrl}/area-map/${encodeURIComponent(pref)}`,
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.8, 
@@ -165,17 +171,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Extract cities
     distinctLocations
-      .filter(loc => loc.prefecture && loc.city)
+      .filter((loc): loc is typeof loc & { prefecture: string; city: string } => 
+        typeof loc.prefecture === 'string' && loc.prefecture.length > 0 &&
+        typeof loc.city === 'string' && loc.city.length > 0
+      )
       .forEach((loc) => {
         areaRoutes.push({
-          url: `${baseUrl}/search/area/${encodeURIComponent(loc.prefecture!)}/${encodeURIComponent(loc.city!)}`,
+          url: `${baseUrl}/search/area/${encodeURIComponent(loc.prefecture)}/${encodeURIComponent(loc.city)}`,
           lastModified: new Date(),
           changeFrequency: 'daily' as const,
           priority: 0.7,
         });
         // Add area-map specific routes
         areaRoutes.push({
-          url: `${baseUrl}/area-map/${encodeURIComponent(loc.prefecture!)}/${encodeURIComponent(loc.city!)}`,
+          url: `${baseUrl}/area-map/${encodeURIComponent(loc.prefecture)}/${encodeURIComponent(loc.city)}`,
           lastModified: new Date(),
           changeFrequency: 'weekly' as const,
           priority: 0.7,

@@ -67,9 +67,10 @@ export interface FormattedDataRow {
  * Zenkaku to Hankaku character & number converter (Japanese NFKC)
  * Converts full-width digits, letters, and punctuation (，．：／％（）〜).
  */
-export function normalizeZenkaku(str: string | null | undefined): string {
-  if (!str) return '';
-  return str
+export function normalizeZenkaku(str: any): string {
+  if (str === null || str === undefined) return '';
+  const val = typeof str === 'string' ? str : (typeof str === 'object' ? JSON.stringify(str) : String(str));
+  return val
     .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
     .replace(/[Ａ-Ｚ]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
     .replace(/[ａ-ｚ]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
@@ -295,6 +296,7 @@ export function extractDualAreasAndYear(property: any): DualAreasAndYear {
  */
 export function extractValuationSummary(property: any): ValuationSummary {
   const isNta = property?.source_provider === 'NTA';
+  const isKsi = property?.source_provider === 'KSI' || property?.source_provider === 'KOKUYU';
   const startPriceYen = property?.starting_price ? Number(property.starting_price) : 0;
   const rawData = property?.raw_display_data;
 
@@ -319,6 +321,31 @@ export function extractValuationSummary(property: any): ValuationSummary {
       openDate: overview['開札期日'] ? normalizeZenkaku(overview['開札期日']).trim() : null,
       saleDivisionNo: overview['売却区分番号'] ? normalizeZenkaku(overview['売却区分番号']).trim() : null,
       method: overview['公売の方法'] || '期間入札'
+    };
+  }
+
+  if (isKsi && rawData && typeof rawData === 'object' && !Array.isArray(rawData) && rawData.summary) {
+    const summary = rawData.summary || {};
+    let depositYen: number | null = null;
+    const depStr = summary['入札 保証金'] || summary['入札保証金'] || summary['公売保証金'];
+    if (depStr) {
+      const cl = normalizeZenkaku(depStr).replace(/[^0-9]/g, '');
+      if (cl) depositYen = parseInt(cl, 10);
+    }
+
+    return {
+      isNta: true,
+      priceLabel: '入札開始価格',
+      priceSubLabel: '官公庁公売（行政財産売却）',
+      startPriceYen,
+      minimumBidPriceYen: null,
+      depositYen,
+      depositDeadline: summary['売払 代金納付期限'] ? normalizeZenkaku(summary['売払 代金納付期限']).trim() : null,
+      bidStartDate: summary['入札期間'] || (property.bid_start_date ? new Date(property.bid_start_date).toLocaleDateString('ja-JP') : null),
+      bidEndDate: summary['入札期間'] || (property.bid_end_date ? new Date(property.bid_end_date).toLocaleDateString('ja-JP') : null),
+      openDate: summary['開札期日'] ? normalizeZenkaku(summary['開札期日']).trim() : null,
+      saleDivisionNo: summary['売却区分番号'] ? normalizeZenkaku(summary['売却区分番号']).trim() : null,
+      method: summary['実施方法'] || '公有財産売却（入札）'
     };
   }
 
@@ -576,9 +603,10 @@ export function resolveAuctionRelistHistory(currentProperty: any, rawCandidates:
 /**
  * Normalizes text formatting for structured legal display
  */
-export function formatJapaneseLegalText(key: string, value: string): { formatted: string; isParagraph: boolean } {
-  if (!value) return { formatted: '-', isParagraph: false };
-  let cleaned = normalizeZenkaku(value).trim();
+export function formatJapaneseLegalText(key: string, value: any): { formatted: string; isParagraph: boolean } {
+  if (value === null || value === undefined) return { formatted: '-', isParagraph: false };
+  const rawStr = typeof value === 'string' ? value : (typeof value === 'object' ? JSON.stringify(value) : String(value));
+  let cleaned = normalizeZenkaku(rawStr).trim();
 
   // 1. If key is 床面積 with multiple floors, format each floor on its own line
   if (key.includes('床面積') && (cleaned.includes('階') || cleaned.includes('地下'))) {
@@ -722,15 +750,16 @@ const CONTACT_KEY_PRIORITY: Record<string, number> = {
 /**
  * Filters out raw technical keys and sorts data entries according to Japanese B2B domain standards.
  */
-export function sortAndFormatSectionData(sectionTitle: string, rawDataDict: Record<string, string>): FormattedDataRow[] {
+export function sortAndFormatSectionData(sectionTitle: string, rawDataDict: Record<string, any>): FormattedDataRow[] {
   if (!rawDataDict || typeof rawDataDict !== 'object') return [];
 
   // Filter out internal/technical keys
   const entries = Object.entries(rawDataDict).filter(([key, val]) => {
     if (!key) return false;
     if (['contact_url', 'nta_map_link', 'etax_link'].includes(key)) return false;
+    const sVal = typeof val === 'string' ? val : (val ? String(val) : '');
     // Hide BIT redundant empty entries
-    if (key.includes('（現況）') && (!val || val.trim() === '' || val.trim() === '-')) return false;
+    if (key.includes('（現況）') && (!sVal || sVal.trim() === '' || sVal.trim() === '-')) return false;
     return true;
   });
 
@@ -755,9 +784,9 @@ export function sortAndFormatSectionData(sectionTitle: string, rawDataDict: Reco
   });
 
   return entries.map(([key, val]) => {
-    let displayVal = val;
+    let displayVal = typeof val === 'string' ? val : (typeof val === 'object' ? JSON.stringify(val) : String(val ?? ''));
     // Resolve 種別 clash in multi-asset sales (一括換価)
-    if (isDetails && hasBuildingSpecs && key === '種別' && (val === '土地' || val.trim() === '土地')) {
+    if (isDetails && hasBuildingSpecs && key === '種別' && (val === '土地' || String(val).trim() === '土地')) {
       displayVal = '土地・建物（一括換価）';
     }
 

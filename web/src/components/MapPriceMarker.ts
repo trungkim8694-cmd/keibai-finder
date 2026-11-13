@@ -72,6 +72,41 @@ export function createPricePillIcon(property: PropertyMarkerData): L.DivIcon {
 }
 
 /**
+ * High-density Japanese B2B Sold/Auction Winning Price Marker (落札価格マーカー)
+ */
+export function createSoldPricePillIcon(winningPrice?: number | null): L.DivIcon {
+  const priceText = formatMarkerPrice(winningPrice);
+  const cacheKey = `sold_${priceText}`;
+  const cached = iconCache.get(cacheKey);
+  if (cached) return cached;
+
+  const html = `
+    <div class="sold-marker-pill group relative flex flex-col items-center cursor-pointer transition-transform duration-150 pointer-events-auto select-none hover:scale-110">
+      <div class="relative flex items-center shadow-md rounded-sm border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 overflow-hidden text-[11px] font-mono tabular-nums">
+        <span class="bg-rose-600 text-white text-[9px] font-bold px-1 py-0.5 leading-none flex items-center justify-center">
+          落
+        </span>
+        <span class="px-1.5 py-0.5 font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap leading-none">
+          ${priceText}
+        </span>
+      </div>
+      <div class="w-0 h-0 border-x-4 border-x-transparent border-t-[5px] border-t-slate-300 dark:border-t-zinc-700 -mt-[0.5px]"></div>
+    </div>
+  `;
+
+  const icon = L.divIcon({
+    className: 'bg-transparent border-0',
+    html,
+    iconSize: [60, 24],
+    iconAnchor: [30, 24],
+    popupAnchor: [0, -24],
+  });
+
+  iconCache.set(cacheKey, icon);
+  return icon;
+}
+
+/**
  * High-performance Leaflet MarkerCluster custom icon with corporate Navy theme
  */
 export function createClusterCustomIcon(cluster: any): L.DivIcon {
