@@ -5,7 +5,7 @@ import { getRealEstateCompanies, getCompanyCountByPrefecture } from '@/actions/c
 import { AgenciesDirectoryClient } from '@/components/Agency/AgenciesDirectoryClient';
 import { Building2, ChevronRight, Home, ShieldCheck } from 'lucide-react';
 
-export const revalidate = 3600; // Cache for 1 hour
+export const revalidate = 60; // Dynamic revalidation every 60s
 
 export const metadata: Metadata = {
   title: '全国不動産会社データベース（宅建免許保有企業）｜keibai-koubai.com',
