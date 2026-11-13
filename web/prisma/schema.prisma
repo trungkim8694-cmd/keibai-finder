@@ -56,6 +56,13 @@ model Property {
   @@index([created_at])
   @@index([mlit_investment_gap], map: "idx_property_mlit_gap")
   @@index([status, source_provider])
+  @@index([status, property_type], map: "idx_property_status_type")
+  @@index([status, starting_price], map: "idx_property_status_price")
+  @@index([status, prefecture, city], map: "idx_property_status_pref_city")
+  @@index([status, source_provider, court_name], map: "idx_property_status_prov_court")
+  @@index([status, created_at(sort: Desc)], map: "idx_property_status_created_desc")
+  @@index([status, mlit_investment_gap(sort: Desc)], map: "idx_property_status_gap_desc")
+  @@index([status, bid_end_date], map: "idx_property_status_bid_end")
 }
 
 model AuctionHistory {
@@ -95,6 +102,8 @@ model AuctionResult {
   created_at       DateTime  @default(now())
 
   @@index([lat, lng])
+  @@index([completionDate(sort: Desc)], map: "idx_auction_result_completion_desc")
+  @@index([competitionLevel], map: "idx_auction_result_comp_level")
 }
 
 model RailwayStation {
@@ -125,9 +134,11 @@ model User {
   sessions      Session[]
   memos         UserMemo[]
 
-  agencyProfile AgencyProfile?
-  agencyReviews AgencyReview[]
-  agencyReports AgencyReport[]
+  agencyProfile    AgencyProfile?
+  agencyReviews    AgencyReview[]
+  agencyReports    AgencyReport[]
+  claimedCompanies RealEstateCompany[]
+  claimRequests    CompanyClaimRequest[]
 }
 
 model Account {
@@ -164,10 +175,26 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model AuthOtpToken {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  otpCode      String?
+  otpExpires   DateTime?
+  token        String?   @unique
+  tokenExpires DateTime?
+  attempts     Int       @default(0)
+  lastSentAt   DateTime  @default(now())
+  created_at   DateTime  @default(now())
+
+  @@index([email])
+  @@index([token])
+}
+
 model Favorite {
   id           String   @id @default(cuid())
   userId       String
   sale_unit_id String
+  stage        String   @default("CONSIDERING") // CONSIDERING, INSPECTED, BID_PREPARING, BID_SUBMITTED, SKIPPED
   created_at   DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -300,4 +327,104 @@ model AgencyReport {
   agency          AgencyProfile @relation(fields: [agencyProfileId], references: [id], onDelete: Cascade)
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model AgencyLead {
+  id                   String   @id @default(cuid())
+  sale_unit_id         String?
+  agencyProfileId      String?
+  customerName         String
+  contactMethod        String   @default("PHONE")
+  contactValue         String
+  inquiryType          String   @default("BIDDING_ASSIST")
+  message              String?  @db.Text
+  dispatchedCompanyIds String[] @default([])
+  partnerNotes         String?  @db.Text
+  status               String   @default("NEW") // NEW, CONTACTED, IN_CONSULTATION, WON, CLOSED
+  created_at           DateTime @default(now())
+
+  @@index([sale_unit_id])
+  @@index([agencyProfileId])
+  @@index([created_at])
+}
+
+model RealEstateCompany {
+  id              String   @id @default(cuid())
+  houjinNumber    String?  @unique
+  companyName     String
+  licenseNumber   String
+  prefecture      String
+  city            String
+  address         String
+  postalCode      String?
+  phone           String?
+  fax             String?
+  email           String?
+  website         String?
+  logoUrl         String?
+  description     String?  @db.Text
+  isClaimed       Boolean  @default(false)
+  isVerified      Boolean  @default(false)
+  claimedUserId   String?
+  specialties     String[]
+  status          String   @default("ACTIVE") // ACTIVE, DELISTED, PENDING_REVIEW
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  claimedUser     User?    @relation(fields: [claimedUserId], references: [id], onDelete: SetNull)
+  claimRequests   CompanyClaimRequest[]
+  delistRequests  CompanyDelistRequest[]
+
+  @@index([prefecture, city])
+  @@index([status])
+  @@index([isVerified])
+  @@index([isClaimed])
+  @@index([companyName])
+  @@index([prefecture, status])
+}
+
+model CompanyClaimRequest {
+  id                 String   @id @default(cuid())
+  companyId          String
+  applicantName      String
+  applicantEmail     String
+  applicantPhone     String
+  position           String
+  corporateEmail     String?
+  verificationMethod String   @default("EMAIL_DOMAIN") // EMAIL_DOMAIN, DOCUMENT
+  documentUrl        String?
+  documentType       String?  // TOHON, MEISHI, TAKKEN_LICENSE, OTHER
+  notes              String?  @db.Text
+  status             String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason    String?  @db.Text
+  reviewedAt         DateTime?
+  userId             String?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  company         RealEstateCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user            User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([status])
+  @@index([userId])
+}
+
+model CompanyDelistRequest {
+  id              String   @id @default(cuid())
+  companyId       String
+  reason          String
+  contactEmail    String
+  contactPhone    String?
+  details         String?  @db.Text
+  status          String   @default("PENDING") // PENDING, PROCESSED, REJECTED
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  company         RealEstateCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+}
+
+
 

@@ -2,25 +2,15 @@ import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Map, ArrowRight, Layers, Sparkles, AlertTriangle, Building2, MousePointer2 } from 'lucide-react';
-import LanguageBanner from '@/components/LanguageBanner';
 
 export const metadata: Metadata = {
   title: 'エリア分析マップ（災害・都市計画）｜Keibai Finder機能紹介',
   description: '国土地理院と国土交通省の公式データを統合した、究極のエリア分析マップ。不動産投資やマイホーム購入前に、洪水・土砂などの自然災害リスクと用途地域の建ぺい率・容積率を一画面で徹底調査できます。',
-  alternates: {
-    languages: {
-      'ja': '/features/area-map',
-      'en': '/en/features/area-map',
-      'vi': '/vi/features/area-map',
-      'zh': '/zh/features/area-map'
-    }
-  }
 };
 
 export default function AreaMapFeatureLandingPage() {
   return (
     <div className="min-h-[100dvh] bg-white dark:bg-zinc-950 font-sans pb-20">
-      <LanguageBanner />
       {/* 1. Hero Section */}
       <section className="relative overflow-hidden pt-24 pb-16 sm:pt-32 sm:pb-24 lg:pb-32 px-4 sm:px-6 lg:px-8 text-center max-w-7xl mx-auto">
         <div className="absolute top-0 inset-x-0 h-64 bg-gradient-to-b from-rose-50/50 dark:from-rose-950/20 to-transparent pointer-events-none" />

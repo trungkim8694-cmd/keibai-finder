@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Keibai Weekly Auction Results on Saturday at 03:00 JST
+After=time-sync.target
+
+[Timer]
+# 03:00 Tokyo Time (JST) every Saturday morning
+OnCalendar=Sat *-*-* 03:00:00 Asia/Tokyo
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
+

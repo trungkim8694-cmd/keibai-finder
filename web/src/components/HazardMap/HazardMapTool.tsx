@@ -5,6 +5,11 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, GeoJSON }
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import useSWR from 'swr';
+import japanMaskData from '@/data/japanMask.json';
+import { StreetViewModal } from '@/components/StreetViewModal';
+import { Compass, ExternalLink, X, AlertTriangle, ShieldCheck, MapPin, Building, Waves } from 'lucide-react';
+
+export type BaseMapMode = 'pale' | 'standard' | 'satellite';
 
 export const ZONING_COLORS: Record<string, string> = {
   "第一種低層住居専用地域": "#00b285",
@@ -22,18 +27,55 @@ export const ZONING_COLORS: Record<string, string> = {
   "工業専用地域": "#49b2e8"
 };
 
+// Strictly restrict camera viewport to Japan's territory (Okinawa/Yonaguni to Hokkaido/Wakkanai)
+export const JAPAN_MAX_BOUNDS: [[number, number], [number, number]] = [
+  [20.0, 120.0], // Southwest: South of Okinawa & Yonaguni Island
+  [46.5, 154.0], // Northeast: North of Hokkaido (Cape Soya) & Kuril Islands
+];
+
+// Nationwide bounding box of Japan (Okinawa to Hokkaido)
+export const JAPAN_NATIONWIDE_BOUNDS: [[number, number], [number, number]] = [
+  [25.8, 127.0], // Southwest: Okinawa & Kyushu
+  [45.6, 145.8], // Northeast: Cape Soya (Hokkaido) & Shiretoko
+];
+
+export function fitToNationwideJapan(map: L.Map, animate = true) {
+  try {
+    map.closePopup();
+  } catch {}
+  map.fitBounds(JAPAN_NATIONWIDE_BOUNDS, {
+    paddingTopLeft: [65, 30],     // Clears top floating regional pill & header
+    paddingBottomRight: [45, 30], // Clears bottom navigation & controls
+    maxZoom: 5,                   // Strictly caps zoom at 5 so Japan fits inside viewport
+    animate,
+    duration: 0.8,
+  });
+}
+
+const REGIONAL_HOTSPOTS = [
+  { name: '全国', center: [36.0, 137.0] as [number, number], zoom: 5 },
+  { name: '関東', center: [35.6895, 139.6917] as [number, number], zoom: 9 },
+  { name: '近畿', center: [34.6937, 135.5023] as [number, number], zoom: 9 },
+  { name: '中部', center: [35.1815, 136.9066] as [number, number], zoom: 8 },
+  { name: '九州', center: [33.5904, 130.4017] as [number, number], zoom: 8 },
+  { name: '東北', center: [38.2682, 140.8694] as [number, number], zoom: 8 },
+  { name: '北海道', center: [43.2, 142.8] as [number, number], zoom: 7 },
+  { name: '中四国', center: [34.3853, 132.4553] as [number, number], zoom: 8 },
+];
+
 const fetcher = (url: string) => fetch(url, {
   headers: {
     'x-app-client': 'keibai-finder-client'
   }
 }).then(res => res.json());
 
+// Zero CDN Dependency - strictly use local public icons
 const fixLeafletIcons = () => {
   delete (L.Icon.Default.prototype as any)._getIconUrl;
   L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+    iconRetinaUrl: '/leaflet/marker-icon-2x.png',
+    iconUrl: '/leaflet/marker-icon.png',
+    shadowUrl: '/leaflet/marker-shadow.png',
   });
 };
 
@@ -50,52 +92,220 @@ function MapResizeObserver() {
   return null;
 }
 
+function MapInitialBoundsHandler({
+  externalPoint,
+  flyPoint,
+  initialCenter,
+  initialZoom,
+}: {
+  externalPoint: [number, number] | null;
+  flyPoint?: [number, number] | null;
+  initialCenter?: [number, number];
+  initialZoom?: number;
+}) {
+  const map = useMap();
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    if (externalPoint) {
+      map.setView(externalPoint, 15);
+    } else if (flyPoint) {
+      map.setView(flyPoint, 15);
+    } else if (initialCenter && (initialZoom ?? 13) > 5) {
+      map.setView(initialCenter, initialZoom);
+    } else {
+      fitToNationwideJapan(map, false);
+    }
+  }, [map, externalPoint, flyPoint, initialCenter, initialZoom]);
+
+  return null;
+}
+
 function CustomMapControls() {
   const map = useMap();
   const handleZoomIn = (e: React.MouseEvent) => { e.stopPropagation(); map.zoomIn(); };
   const handleZoomOut = (e: React.MouseEvent) => { e.stopPropagation(); map.zoomOut(); };
+  const handleResetJapan = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fitToNationwideJapan(map, true);
+  };
   const handleLocate = (e: React.MouseEvent) => {
     e.stopPropagation();
     map.locate().on("locationfound", (e) => {
-      map.flyTo(e.latlng, 14, { duration: 1.5 });
+      const { lat, lng } = e.latlng;
+      // If user's GPS/IP is inside Japan, fly to their position
+      if (lat >= 20.0 && lat <= 46.5 && lng >= 120.0 && lng <= 154.0) {
+        map.flyTo(e.latlng, 15, { duration: 1.2 });
+      } else {
+        // If user is accessing from abroad, fly to Tokyo rather than foreign country
+        map.flyTo([35.6812, 139.7671], 13, { duration: 1.2 });
+      }
     });
   };
 
   const controlRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (controlRef.current) {
-      L.DomEvent.disableClickPropagation(controlRef.current);
-      L.DomEvent.disableScrollPropagation(controlRef.current);
+    const el = controlRef.current;
+    if (el) {
+      L.DomEvent.disableClickPropagation(el);
+      L.DomEvent.disableScrollPropagation(el);
     }
   }, []);
 
   return (
     <div 
       ref={controlRef}
-      className="absolute lg:bottom-[40px] lg:right-6 bottom-20 right-4 z-[1000] flex flex-col gap-3 pointer-events-auto"
+      className="absolute lg:bottom-8 lg:right-6 bottom-20 right-4 z-[1000] flex flex-col gap-2 pointer-events-auto select-none"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
-      <button onClick={handleLocate} className="w-10 h-10 bg-white/95 backdrop-blur-md border border-gray-200 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center text-lg text-zinc-700 hover:bg-zinc-50 hover:text-blue-600 transition-all active:scale-95" title="現在地">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      {/* Reset to Entire Japan View */}
+      <button 
+        onClick={handleResetJapan}
+        className="w-9 h-9 bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-lg shadow-md flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#1B4F8A] dark:hover:text-blue-400 transition-colors active:scale-95 cursor-pointer"
+        title="全国表示に戻す (日本全体を表示)"
+      >
+        <span className="text-sm">🗾</span>
       </button>
-      <div className="flex flex-col bg-white/95 backdrop-blur-md border border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.15)] rounded-full overflow-hidden">
-        <button onClick={handleZoomIn} className="w-10 h-10 flex items-center justify-center text-xl text-zinc-700 hover:bg-zinc-50 hover:text-blue-600 transition-all active:bg-zinc-100 font-medium border-b border-gray-200" title="ズームイン">+</button>
-        <button onClick={handleZoomOut} className="w-10 h-10 flex items-center justify-center text-2xl text-zinc-700 hover:bg-zinc-50 hover:text-blue-600 transition-all active:bg-zinc-100 font-medium pb-0.5" title="ズームアウト">−</button>
+
+      {/* GPS Location Button */}
+      <button 
+        onClick={handleLocate} 
+        className="w-9 h-9 bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-lg shadow-md flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-[#1B4F8A] dark:hover:text-blue-400 transition-colors active:scale-95 cursor-pointer" 
+        title="現在地を表示 (日本国内)"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      </button>
+
+      {/* Zoom Controls */}
+      <div className="flex flex-col bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-md rounded-lg overflow-hidden">
+        <button 
+          onClick={handleZoomIn} 
+          className="w-9 h-9 flex items-center justify-center text-base text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#1B4F8A] transition-colors border-b border-slate-100 dark:border-slate-800 font-semibold cursor-pointer" 
+          title="拡大"
+        >
+          +
+        </button>
+        <button 
+          onClick={handleZoomOut} 
+          className="w-9 h-9 flex items-center justify-center text-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#1B4F8A] transition-colors font-semibold cursor-pointer" 
+          title="縮小"
+        >
+          −
+        </button>
       </div>
     </div>
   );
 }
 
-// 5 Hazard Controls (Japanese)
-function HazardControls({ 
-  state, setState 
-}: { 
-  state: any; 
-  setState: any;
+function MapRegionalQuickJumps() {
+  const map = useMap();
+  const [activeRegion, setActiveRegion] = useState<string>('全国');
+
+  const handleJump = (r: typeof REGIONAL_HOTSPOTS[0], e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveRegion(r.name);
+    if (r.name === '全国') {
+      fitToNationwideJapan(map, true);
+    } else {
+      map.flyTo(r.center, r.zoom, { duration: 1.0 });
+    }
+  };
+
+  const controlRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = controlRef.current;
+    if (el) {
+      L.DomEvent.disableClickPropagation(el);
+      L.DomEvent.disableScrollPropagation(el);
+    }
+  }, []);
+
+  return (
+    <div
+      ref={controlRef}
+      className="absolute top-3.5 left-4 z-[1000] pointer-events-auto max-w-[calc(100%-190px)] select-none"
+      onDoubleClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center gap-1 bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md px-2 py-1 rounded-full border border-slate-200/90 dark:border-slate-800/90 shadow-md overflow-x-auto no-scrollbar">
+        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 pl-1 pr-1 shrink-0 flex items-center gap-1">
+          <span>🗾</span>
+          <span className="hidden sm:inline">地域:</span>
+        </span>
+        {REGIONAL_HOTSPOTS.map((r) => {
+          const isActive = activeRegion === r.name;
+          return (
+            <button
+              key={r.name}
+              type="button"
+              data-region-jump={r.name}
+              title={`${r.name}エリアを表示`}
+              onClick={(e) => handleJump(r, e)}
+              className={`px-2 py-0.5 text-[11px] font-semibold rounded-full transition-all shrink-0 cursor-pointer ${
+                isActive
+                  ? 'bg-[#1B4F8A] text-white shadow-xs font-bold'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+              }`}
+            >
+              {r.name}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Unified Minimalist Japanese B2B Map Layer Panel (Map Type + Hazard/Zoning Layers)
+function UnifiedMapLayerPanel({
+  baseMapMode,
+  setBaseMapMode,
+  focusJapan,
+  setFocusJapan,
+  mapMode,
+  hazardState,
+  setHazardState,
+  zoningOpacity,
+  setZoningOpacity,
+}: {
+  baseMapMode: BaseMapMode;
+  setBaseMapMode: (mode: BaseMapMode) => void;
+  focusJapan: boolean;
+  setFocusJapan: (v: boolean) => void;
+  mapMode: 'hazard' | 'zoning';
+  hazardState: {
+    flood: boolean;
+    landslide: boolean;
+    tsunami: boolean;
+    stormSurge: boolean;
+    shelter: boolean;
+  };
+  setHazardState: React.Dispatch<React.SetStateAction<any>>;
+  zoningOpacity: number;
+  setZoningOpacity: (v: number) => void;
 }) {
-  const [showLegends, setShowLegends] = useState(true);
-  const isAllOff = !state.flood && !state.landslide && !state.tsunami && !state.stormSurge && !state.shelter;
-  
+  const [showLegends, setShowLegends] = useState(false);
+  const isAllOff = !hazardState.flood && !hazardState.landslide && !hazardState.tsunami && !hazardState.stormSurge && !hazardState.shelter;
+
+  const layers = [
+    { key: 'flood', label: '洪水浸水想定', dotColor: 'bg-blue-500' },
+    { key: 'landslide', label: '土砂災害警戒', dotColor: 'bg-amber-500' },
+    { key: 'tsunami', label: '津波浸水想定', dotColor: 'bg-cyan-500' },
+    { key: 'stormSurge', label: '高潮浸水想定', dotColor: 'bg-purple-500' },
+    { key: 'shelter', label: '指定避難場所', dotColor: 'bg-emerald-500' },
+  ];
+
   const floodLegend = [
     { color: '#f7f5a9', label: '0.5m未満' },
     { color: '#ffd3a3', label: '0.5m 〜 3.0m未満' },
@@ -110,142 +320,199 @@ function HazardControls({
     { color: '#b30000', label: '地滑り危険区域' }
   ];
 
-  const tsunamiLegend = [
-    { color: '#f7f5a9', label: '0.3m未満' },
-    { color: '#ffd3a3', label: '0.3m 〜 1.0m未満' },
-    { color: '#ff9999', label: '1.0m 〜 3.0m未満' },
-    { color: '#ff5050', label: '3.0m 〜 5.0m未満' },
-    { color: '#b30000', label: '5.0m 〜 10.0m未満' },
-    { color: '#cc00cc', label: '10.0m以上' }
-  ];
-  
   const controlRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (controlRef.current) {
-      L.DomEvent.disableClickPropagation(controlRef.current);
-      L.DomEvent.disableScrollPropagation(controlRef.current);
+    const el = controlRef.current;
+    if (el) {
+      L.DomEvent.disableClickPropagation(el);
+      L.DomEvent.disableScrollPropagation(el);
     }
   }, []);
 
   return (
     <div 
       ref={controlRef}
-      className="absolute top-[80px] lg:top-4 right-4 lg:right-6 z-[1000] pointer-events-auto flex flex-col items-end gap-2"
+      className="absolute top-3.5 right-4 lg:right-6 z-[1000] pointer-events-auto flex flex-col items-end gap-2 select-none"
+      onDoubleClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
-      <div className="bg-white/90 backdrop-blur-md border border-zinc-200 shadow-lg rounded-lg overflow-hidden p-[2px] flex flex-col transition-all gap-[1px] w-[76px]">
-        <button 
-          onClick={() => {
-            if (isAllOff) {
-              setState({ flood: true, landslide: true, tsunami: true, stormSurge: true, shelter: true });
-            } else {
-              setState({ flood: false, landslide: false, tsunami: false, stormSurge: false, shelter: false });
-            }
-          }}
-          className={`px-0 py-1 text-[9px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 ${isAllOff ? 'bg-zinc-800 text-white shadow-sm hover:bg-zinc-700' : 'bg-red-50 text-red-600 hover:bg-red-100'} w-full text-center hover:scale-[0.98] active:scale-95`}
-          title={isAllOff ? "すべて表示" : "すべて非表示"}
-        >
-          {isAllOff ? 'ON全て' : 'OFF全て'}
-        </button>
+      <div className="bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-md rounded-lg p-2 flex flex-col gap-2 w-44">
         
-        <div className="w-full h-[1px] bg-zinc-200 my-[1px]" />
+        {/* Base Map Switcher: Standard / Satellite / Pale */}
+        <div>
+          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 px-1 flex items-center justify-between">
+            <span>地図タイプ</span>
+            <span className="text-[9px] font-mono text-slate-400">GSI/地理院</span>
+          </div>
+          <div className="grid grid-cols-3 gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
+            <button
+              type="button"
+              onClick={() => setBaseMapMode('pale')}
+              className={`py-1 text-[11px] font-semibold rounded transition-colors text-center cursor-pointer ${
+                baseMapMode === 'pale'
+                  ? 'bg-white dark:bg-[#151B22] text-[#1B4F8A] dark:text-blue-400 shadow-xs font-bold'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              }`}
+              title="淡色地図（ハザード推奨）"
+            >
+              淡色
+            </button>
+            <button
+              type="button"
+              onClick={() => setBaseMapMode('standard')}
+              className={`py-1 text-[11px] font-semibold rounded transition-colors text-center cursor-pointer ${
+                baseMapMode === 'standard'
+                  ? 'bg-white dark:bg-[#151B22] text-[#1B4F8A] dark:text-blue-400 shadow-xs font-bold'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              }`}
+              title="標準地図"
+            >
+              標準
+            </button>
+            <button
+              type="button"
+              onClick={() => setBaseMapMode('satellite')}
+              className={`py-1 text-[11px] font-semibold rounded transition-colors text-center cursor-pointer ${
+                baseMapMode === 'satellite'
+                  ? 'bg-white dark:bg-[#151B22] text-[#1B4F8A] dark:text-blue-400 shadow-xs font-bold'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              }`}
+              title="航空写真（シームレス写真）"
+            >
+              航空写真
+            </button>
+          </div>
 
-        <button onClick={() => setState({...state, flood: !state.flood})} className={`px-1 py-1 text-[10px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${state.flood ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700' : 'bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'} w-full`}>
-          <span className={`text-[11px] leading-none flex-shrink-0 ${!state.flood && 'grayscale opacity-70'}`}>🌊</span> 洪水
-        </button>
-        <button onClick={() => setState({...state, landslide: !state.landslide})} className={`px-1 py-1 text-[10px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${state.landslide ? 'bg-orange-600 text-white shadow-sm hover:bg-orange-700' : 'bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'} w-full`}>
-          <span className={`text-[11px] leading-none flex-shrink-0 ${!state.landslide && 'grayscale opacity-70'}`}>⛰️</span> 土砂災害
-        </button>
-        <button onClick={() => setState({...state, tsunami: !state.tsunami})} className={`px-1 py-1 text-[10px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${state.tsunami ? 'bg-cyan-600 text-white shadow-sm hover:bg-cyan-700' : 'bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'} w-full`}>
-          <span className={`text-[11px] leading-none flex-shrink-0 ${!state.tsunami && 'grayscale opacity-70'}`}>🌊</span> 津波
-        </button>
-        <button onClick={() => setState({...state, stormSurge: !state.stormSurge})} className={`px-1 py-1 text-[10px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${state.stormSurge ? 'bg-purple-600 text-white shadow-sm hover:bg-purple-700' : 'bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'} w-full`}>
-          <span className={`text-[11px] leading-none flex-shrink-0 ${!state.stormSurge && 'grayscale opacity-70'}`}>🌀</span> 高潮
-        </button>
-        <div className="w-full h-[1px] bg-zinc-200 my-[1px]" />
-        <button onClick={() => setState({...state, shelter: !state.shelter})} className={`px-1 py-1 text-[10px] font-bold tracking-tighter whitespace-nowrap rounded-[4px] transition-all duration-200 flex items-center justify-start gap-1 ${state.shelter ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700' : 'bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'} w-full`}>
-          <span className={`text-[11px] leading-none flex-shrink-0 ${!state.shelter && 'grayscale opacity-70'}`}>🏃‍♂️</span> 避難所
-        </button>
+          {/* Japan Area Focus Mask Toggle */}
+          <button
+            type="button"
+            onClick={() => setFocusJapan(!focusJapan)}
+            className={`w-full mt-1.5 px-2 py-1 text-[10.5px] font-semibold rounded transition-all flex items-center justify-between border cursor-pointer ${
+              focusJapan
+                ? 'bg-blue-50/80 dark:bg-blue-950/40 text-[#1B4F8A] dark:text-blue-300 border-[#1B4F8A]/30 font-bold'
+                : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
+            title="日本国外エリアを減光し、国内を鮮明に強調します"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="text-[12px] leading-none">🗾</span>
+              <span>日本強調</span>
+            </span>
+            <span className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded leading-none ${
+              focusJapan ? 'bg-[#1B4F8A] text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+            }`}>
+              {focusJapan ? 'ON' : 'OFF'}
+            </span>
+          </button>
+        </div>
+
+        <div className="w-full h-px bg-slate-200/80 dark:bg-slate-800" />
+
+        {/* Hazard Layers or Zoning Controls */}
+        {mapMode === 'hazard' ? (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between px-1 py-0.5">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">災害レイヤー</span>
+              <button 
+                type="button"
+                onClick={() => {
+                  if (isAllOff) {
+                    setHazardState({ flood: true, landslide: true, tsunami: true, stormSurge: true, shelter: true });
+                  } else {
+                    setHazardState({ flood: false, landslide: false, tsunami: false, stormSurge: false, shelter: false });
+                  }
+                }}
+                className="text-[10px] font-semibold text-[#1B4F8A] dark:text-blue-400 hover:underline cursor-pointer"
+              >
+                {isAllOff ? '全表示' : '全解除'}
+              </button>
+            </div>
+
+            {layers.map(({ key, label, dotColor }) => {
+              const isActive = (hazardState as any)[key];
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setHazardState((prev: any) => ({ ...prev, [key]: !isActive }))}
+                  className={`px-2 py-1 text-[11px] font-medium rounded flex items-center justify-between transition-colors cursor-pointer ${
+                    isActive 
+                      ? 'bg-slate-100 dark:bg-slate-800 text-[#1B4F8A] dark:text-blue-300 font-semibold' 
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${isActive ? dotColor : 'bg-slate-300 dark:bg-slate-600'}`} />
+                    {label}
+                  </span>
+                  <span className="text-[10px] tabular-nums font-mono opacity-80">
+                    {isActive ? 'ON' : 'OFF'}
+                  </span>
+                </button>
+              );
+            })}
+
+            <button 
+              type="button"
+              onClick={() => setShowLegends(!showLegends)}
+              className="mt-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-center py-1 border-t border-slate-100 dark:border-slate-800 transition-colors cursor-pointer"
+            >
+              {showLegends ? '凡例を閉じる ▲' : '凡例を表示 ▼'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">都市計画レイヤー</span>
+              <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-300 font-mono font-bold tabular-nums">{zoningOpacity}%</span>
+            </div>
+            <div className="px-1">
+              <div className="text-[10px] text-slate-500 mb-1">透過度</div>
+              <input 
+                type="range" 
+                min="10" 
+                max="100" 
+                step="10" 
+                value={zoningOpacity} 
+                onChange={(e) => setZoningOpacity(parseInt(e.target.value))}
+                className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#1B4F8A]"
+              />
+            </div>
+          </div>
+        )}
+
       </div>
-
-      {/* Dynamic Legends Toggle Button */}
-      {!isAllOff && (
-        <button 
-          onClick={() => setShowLegends(!showLegends)}
-          className="bg-white/90 backdrop-blur-md border border-zinc-200 shadow-md rounded-[4px] py-1.5 text-[9px] font-bold text-zinc-600 hover:bg-zinc-50 flex items-center justify-center mt-1 transition-all w-[76px]"
-          title="凡例の表示/非表示"
-        >
-          {showLegends ? '凡例を隠す ▲' : '凡例を表示 ▼'}
-        </button>
-      )}
 
       {/* Dynamic Legends Container */}
-      <div className={`flex flex-col gap-2 mt-1 overflow-y-auto no-scrollbar pointer-events-auto transition-all origin-top ${showLegends ? 'max-h-[40vh] opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-0'}`}>
-        {state.flood && (
-          <div className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg rounded-xl p-3 w-48 text-xs animate-in slide-in-from-top-2 fade-in duration-200 shrink-0">
-            <div className="font-bold text-zinc-800 mb-2 border-b pb-1">浸水想定区域 (洪水)</div>
-            <div className="flex flex-col gap-1.5">
+      {showLegends && mapMode === 'hazard' && (
+        <div className="bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-md rounded-lg p-3 w-48 text-xs flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 max-h-[50vh] overflow-y-auto">
+          <div>
+            <div className="font-semibold text-slate-800 dark:text-slate-200 mb-1.5 border-b border-slate-100 dark:border-slate-800 pb-1">浸水想定区域（洪水）</div>
+            <div className="flex flex-col gap-1">
               {floodLegend.map((item, idx) => (
                 <div key={`flood-${idx}`} className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-sm border border-black/10 shrink-0" style={{ backgroundColor: item.color }}></div>
-                  <span className="text-zinc-600 font-medium">{item.label}</span>
+                  <div className="w-3.5 h-3.5 rounded-sm border border-black/10 shrink-0" style={{ backgroundColor: item.color }}></div>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">{item.label}</span>
                 </div>
               ))}
             </div>
           </div>
-        )}
-
-        {state.landslide && (
-          <div className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg rounded-xl p-3 w-48 text-xs animate-in slide-in-from-top-2 fade-in duration-200 shrink-0">
-            <div className="font-bold text-zinc-800 mb-2 border-b pb-1">土砂災害警戒区域</div>
-            <div className="flex flex-col gap-1.5">
+          <div>
+            <div className="font-semibold text-slate-800 dark:text-slate-200 mb-1.5 border-b border-slate-100 dark:border-slate-800 pb-1">土砂災害警戒区域</div>
+            <div className="flex flex-col gap-1">
               {landslideLegend.map((item, idx) => (
                 <div key={`land-${idx}`} className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-sm border border-black/10 shrink-0" style={{ backgroundColor: item.color }}></div>
-                  <span className="text-zinc-600 font-medium">{item.label}</span>
+                  <div className="w-3.5 h-3.5 rounded-sm border border-black/10 shrink-0" style={{ backgroundColor: item.color }}></div>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">{item.label}</span>
                 </div>
               ))}
             </div>
           </div>
-        )}
-
-        {state.tsunami && (
-          <div className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg rounded-xl p-3 w-48 text-xs animate-in slide-in-from-top-2 fade-in duration-200 shrink-0">
-            <div className="font-bold text-zinc-800 mb-2 border-b pb-1">津波浸水想定</div>
-            <div className="flex flex-col gap-1.5">
-              {tsunamiLegend.map((item, idx) => (
-                <div key={`tsunami-${idx}`} className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-sm border border-black/10 shrink-0" style={{ backgroundColor: item.color }}></div>
-                  <span className="text-zinc-600 font-medium">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {state.stormSurge && (
-          <div className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg rounded-xl p-3 w-48 text-xs animate-in slide-in-from-top-2 fade-in duration-200 shrink-0">
-            <div className="font-bold text-zinc-800 mb-2 border-b pb-1">高潮浸水想定区域</div>
-            <div className="flex flex-col gap-1.5">
-              {floodLegend.map((item, idx) => (
-                <div key={`storm-${idx}`} className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-sm border border-black/10 shrink-0" style={{ backgroundColor: item.color }}></div>
-                  <span className="text-zinc-600 font-medium">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {state.shelter && (
-          <div className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg rounded-xl p-3 w-48 text-xs animate-in slide-in-from-top-2 fade-in duration-200 shrink-0">
-            <div className="font-bold text-zinc-800 mb-2 border-b pb-1">指定緊急避難場所</div>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm">🏃‍♂️</span>
-              <span className="text-zinc-600 font-medium">各市町村が指定する避難所</span>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -268,65 +535,73 @@ function FlyToCoords({ point }: { point: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
     if (point) {
-      map.flyTo(point, 17, { duration: 1.5 });
+      map.flyTo(point, 16, { duration: 1.2 });
     }
   }, [point, map]);
   return null;
 }
 
-// Controls for Zoning Mode
-function ZoningControls({ opacity, setOpacity }: { opacity: number, setOpacity: (v: number) => void }) {
-  const controlRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (controlRef.current) {
-      L.DomEvent.disableClickPropagation(controlRef.current);
-      L.DomEvent.disableScrollPropagation(controlRef.current);
-    }
-  }, []);
-
-  return (
-    <div 
-      ref={controlRef}
-      className="absolute top-[80px] lg:top-4 right-4 lg:right-6 z-[1000] pointer-events-auto flex flex-col items-end gap-2"
-    >
-      <div className="bg-white/95 backdrop-blur-md border border-zinc-200 shadow-lg rounded-[8px] p-3 flex flex-col gap-2 w-[160px]">
-        <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-zinc-700">濃さ (Opacity)</span>
-            <span className="text-[10px] bg-zinc-100 px-1.5 rounded text-zinc-600 font-mono font-bold">{opacity}%</span>
-        </div>
-        <input 
-          type="range" 
-          min="10" 
-          max="100" 
-          step="10" 
-          value={opacity} 
-          onChange={(e) => setOpacity(parseInt(e.target.value))}
-          className="w-full h-1.5 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-        />
-      </div>
-    </div>
-  );
-}
-
 export default function HazardMapTool({
   externalPoint,
   flyPoint,
-  mapMode = 'hazard'
+  mapMode = 'hazard',
+  setMapMode,
+  initialCenter,
+  initialZoom = 5,
+  onLocationSelected,
+  regionName = '全国',
+  selectedAddressTitle = ''
 }: {
   externalPoint: [number, number] | null;
   flyPoint?: [number, number] | null;
   mapMode?: 'hazard' | 'zoning';
+  setMapMode?: (mode: 'hazard' | 'zoning') => void;
+  initialCenter?: [number, number];
+  initialZoom?: number;
+  onLocationSelected?: (lat: number, lng: number, title?: string) => void;
+  regionName?: string;
+  selectedAddressTitle?: string;
 }) {
+  // Address name for selected coordinate
+  const [currentAddress, setCurrentAddress] = useState<string>(selectedAddressTitle || '');
+
+  useEffect(() => {
+    if (selectedAddressTitle) {
+      setCurrentAddress(selectedAddressTitle);
+    }
+  }, [selectedAddressTitle]);
+
+  // Base map mode: 'pale' (Recommended default for hazard layers), 'standard', or 'satellite'
+  const [baseMapMode, setBaseMapMode] = useState<BaseMapMode>('pale');
+  // Japan area highlight mask (dimming exterior countries)
+  const [focusJapan, setFocusJapan] = useState<boolean>(true);
+
+  // Active panel tab ('hazard' or 'zoning')
+  const [activeTab, setActiveTab] = useState<'hazard' | 'zoning'>(mapMode);
+
+  useEffect(() => {
+    setActiveTab(mapMode);
+  }, [mapMode]);
+
+  // Hazard overlays state
   const [layers, setLayers] = useState({
     flood: true,
     landslide: true,
-    tsunami: true,
-    stormSurge: true,
+    tsunami: false,
+    stormSurge: false,
     shelter: true
   });
 
   const [activePoint, setActivePoint] = useState<[number, number] | null>(null);
   const [zoningOpacity, setZoningOpacity] = useState<number>(40);
+
+  // Google Street View 360° modal state
+  const [streetViewTarget, setStreetViewTarget] = useState<{
+    lat: number;
+    lng: number;
+    title: string;
+    address?: string;
+  } | null>(null);
 
   useEffect(() => {
     fixLeafletIcons();
@@ -341,241 +616,451 @@ export default function HazardMapTool({
   const targetIcon = useMemo(() => L.divIcon({
     className: 'bg-transparent border-0',
     html: `<div class="relative flex items-center justify-center">
-             <div class="absolute inline-flex h-12 w-12 rounded-full bg-red-400 opacity-50 animate-ping"></div>
-             <div class="relative inline-flex flex items-center justify-center w-10 h-10 rounded-full border-[3px] border-white shadow-xl bg-red-600 z-50">
-               <span class="text-lg">📍</span>
+             <div class="absolute inline-flex h-11 w-11 rounded-full bg-red-400 opacity-40 animate-ping"></div>
+             <div class="relative inline-flex flex items-center justify-center w-9 h-9 rounded-full border-2 border-white shadow-lg bg-red-600 text-white z-50">
+               <span class="text-base">📍</span>
              </div>
            </div>`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
-    popupAnchor: [0, -20],
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -18],
   }), []);
 
+  // Fetch Hazard Info when activePoint is set
   const { data: hazardInfo, isLoading: isHazardLoading } = useSWR(
-    activePoint && mapMode === 'hazard' ? `/api/hazard-check?lat=${activePoint[0]}&lng=${activePoint[1]}` : null,
+    activePoint ? `/api/hazard-check?lat=${activePoint[0].toFixed(4)}&lng=${activePoint[1].toFixed(4)}` : null,
     fetcher,
     { dedupingInterval: 300000, revalidateOnFocus: false }
   );
 
+  // Fetch Zoning Info when activePoint is set
   const { data: zoningInfo, isLoading: isZoningLoading } = useSWR(
-    activePoint && mapMode === 'zoning' ? `/api/zoning-check?lat=${activePoint[0]}&lng=${activePoint[1]}` : null,
+    activePoint ? `/api/zoning-check?lat=${activePoint[0].toFixed(4)}&lng=${activePoint[1].toFixed(4)}` : null,
     fetcher,
     { dedupingInterval: 300000, revalidateOnFocus: false }
   );
+
+  const handlePointSelect = (lat: number, lng: number) => {
+    setActivePoint([lat, lng]);
+    setCurrentAddress(''); // Clicked on custom coordinate
+    if (onLocationSelected) {
+      onLocationSelected(lat, lng);
+    }
+  };
+
+  const centerCoords = initialCenter || [36.0, 137.0];
+
+  const handleOpenStreetView = () => {
+    if (!activePoint) return;
+    setStreetViewTarget({
+      lat: activePoint[0],
+      lng: activePoint[1],
+      title: currentAddress || `解析地点: 北緯 ${activePoint[0].toFixed(4)}°, 東経 ${activePoint[1].toFixed(4)}°`,
+      address: currentAddress || (zoningInfo?.land_use ? `${zoningInfo.land_use}（${zoningInfo.plan_zone || '都市計画区域'}）` : undefined),
+    });
+  };
 
   return (
-    <>
+    <div className="w-full h-full relative">
       <style>{`
         .leaflet-tile-pane {
-          filter: saturate(1.2) contrast(1.05); 
-        }
-        @media print {
-          @page {
-            size: landscape;
-            margin: 0.5cm;
-          }
-          body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .leaflet-control-zoom,
-          .leaflet-control-attribution,
-          .map-resize-observer {
-            display: none !important;
-          }
-          .leaflet-container {
-            width: 100% !important;
-            height: 100% !important;
-            max-height: 85vh !important;
-          }
-          /* Hide UI overlay buttons when printing */
-          .pointer-events-auto button {
-             display: none !important;
-          }
+          filter: saturate(1.15) contrast(1.05);
         }
       `}</style>
-      <div className="w-full h-full relative print:h-[80vh] print:w-full print:border print:border-zinc-300">
-        <MapContainer 
-          center={[35.681236, 139.767125]} // Default Tokyo
-          zoom={13} 
-          maxZoom={18}
-          minZoom={5}
-          maxBounds={[[20.0, 122.0], [46.0, 154.0]]}
-          maxBoundsViscosity={1.0}
-          zoomControl={false}
-          className="w-full h-full relative z-0"
-        >
-          <MapResizeObserver />
-          <CustomMapControls />
-          {mapMode === 'hazard' && <HazardControls state={layers} setState={setLayers} />}
-          {mapMode === 'zoning' && <ZoningControls opacity={zoningOpacity} setOpacity={setZoningOpacity} />}
-          <MapClickMarker onLocationSelected={(lat, lng) => setActivePoint([lat, lng])} />
-          <FlyToCoords point={externalPoint || flyPoint || null} />
 
-          {/* Base Map */}
+      <MapContainer 
+        center={centerCoords} 
+        zoom={initialZoom} 
+        maxZoom={18}
+        minZoom={5}
+        maxBounds={JAPAN_MAX_BOUNDS}
+        maxBoundsViscosity={1.0}
+        zoomControl={false}
+        className="w-full h-full relative z-0"
+      >
+        <MapResizeObserver />
+        <MapInitialBoundsHandler 
+          externalPoint={externalPoint} 
+          flyPoint={flyPoint} 
+          initialCenter={initialCenter} 
+          initialZoom={initialZoom} 
+        />
+        <CustomMapControls />
+        <MapRegionalQuickJumps />
+        <UnifiedMapLayerPanel 
+          baseMapMode={baseMapMode}
+          setBaseMapMode={setBaseMapMode}
+          focusJapan={focusJapan}
+          setFocusJapan={setFocusJapan}
+          mapMode={mapMode}
+          hazardState={layers}
+          setHazardState={setLayers}
+          zoningOpacity={zoningOpacity}
+          setZoningOpacity={setZoningOpacity}
+        />
+        <MapClickMarker onLocationSelected={handlePointSelect} />
+        <FlyToCoords point={externalPoint || flyPoint || null} />
+
+        {/* Dynamic Base Map Layers */}
+        {baseMapMode === 'standard' && (
           <TileLayer 
-              url="https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png" 
-              attribution='&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院</a>' 
-              maxZoom={18}
+            url="https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png" 
+            attribution='&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院 (標準地図)</a>' 
+            maxZoom={18}
           />
+        )}
+        {baseMapMode === 'satellite' && (
+          <TileLayer 
+            url="https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg" 
+            attribution='&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院 (航空写真)</a>' 
+            maxZoom={18}
+          />
+        )}
+        {baseMapMode === 'pale' && (
+          <TileLayer 
+            url="https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png" 
+            attribution='&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院 (淡色地図)</a>' 
+            maxZoom={18}
+          />
+        )}
 
-          {/* Single Highlighted Polygon for Zoning Map */}
-          {mapMode === 'zoning' && zoningInfo?.feature && (
-             <GeoJSON 
-               key={`zoning-layer-${zoningInfo.feature.properties?.use_area_ja || "default"}-${zoningOpacity}`}
-               data={zoningInfo.feature} 
-               style={() => {
-                 const useType = zoningInfo.feature?.properties?.use_area_ja || "未指定";
-                 const color = ZONING_COLORS[useType] || "#9e9e9e";
-                 return {
-                   color: color,
-                   weight: 2,
-                   fillOpacity: zoningOpacity / 100,
-                   fillColor: color,
-                   opacity: 0.8
-                 };
-               }} 
-             />
-          )}
+        {/* Japan Focus Mask: Dim exterior areas (China, Russia, Korea) while keeping Japan 100% vibrant */}
+        {focusJapan && (
+          <GeoJSON 
+            key={`japan-mask-${baseMapMode}`}
+            data={japanMaskData as any}
+            style={() => ({
+              fillColor: baseMapMode === 'satellite' ? '#090D16' : '#F1F5F9',
+              fillOpacity: baseMapMode === 'satellite' ? 0.6 : 0.75,
+              color: baseMapMode === 'satellite' ? '#60A5FA' : '#1B4F8A',
+              weight: 1.2,
+              opacity: 0.35,
+              interactive: false,
+            })}
+          />
+        )}
 
-          {/* Hazard Mapped Layers directly to GSI Disaportal */}
-          {mapMode === 'hazard' && layers.flood && (
-            <TileLayer url="https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png" opacity={0.65} maxNativeZoom={17} maxZoom={18} zIndex={500} keepBuffer={2} />
-          )}
-          {mapMode === 'hazard' && layers.landslide && (
-            <TileLayer url="https://disaportaldata.gsi.go.jp/raster/05_dosyakikennet_data/{z}/{x}/{y}.png" opacity={0.65} maxNativeZoom={17} maxZoom={18} zIndex={500} keepBuffer={2} />
-          )}
-          {mapMode === 'hazard' && layers.tsunami && (
-            <TileLayer url="https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlevel_data/{z}/{x}/{y}.png" opacity={0.65} maxNativeZoom={17} maxZoom={18} zIndex={500} keepBuffer={2} />
-          )}
-          {mapMode === 'hazard' && layers.stormSurge && (
-            <TileLayer url="https://disaportaldata.gsi.go.jp/raster/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png" opacity={0.65} maxNativeZoom={17} maxZoom={18} zIndex={500} keepBuffer={2} />
-          )}
+        {/* Highlighted Polygon for Zoning Map */}
+        {mapMode === 'zoning' && zoningInfo?.feature && (
+           <GeoJSON 
+             key={`zoning-layer-${zoningInfo.feature.properties?.use_area_ja || "default"}-${zoningOpacity}`}
+             data={zoningInfo.feature} 
+             style={() => {
+               const useType = zoningInfo.feature?.properties?.use_area_ja || "未指定";
+               const color = ZONING_COLORS[useType] || "#94a3b8";
+               return {
+                 color: color,
+                 weight: 2,
+                 fillOpacity: zoningOpacity / 100,
+                 fillColor: color,
+                 opacity: 0.8
+               };
+             }} 
+           />
+        )}
 
-          {activePoint && (
-            <Marker 
-              position={activePoint} 
-              icon={targetIcon} 
-              zIndexOffset={2000}
-              ref={(r: any) => { r && r.openPopup(); }}
-            >
-              <Popup autoPan={true} closeButton={true} className="hazard-popup w-[260px] p-0 font-sans">
-                <div className="bg-white rounded-lg overflow-hidden shadow-sm m-[-14px]">
-                  <div className={`w-full text-white p-2 ${mapMode === 'hazard' ? 'bg-red-600' : 'bg-blue-600'}`}>
-                    <h3 className="font-bold text-[13px] flex items-center gap-1.5 leading-tight">
-                      <span className="text-sm">📍</span> 解析結果 ({mapMode === 'hazard' ? 'Hazard Data' : 'Zoning Data'})
-                    </h3>
-                  </div>
-                  
-                  <div className="p-3">
-                    {(mapMode === 'hazard' ? isHazardLoading : isZoningLoading) ? (
-                      <div className="flex flex-col gap-2 animate-pulse">
-                        <div className="h-4 bg-zinc-200 rounded w-full"></div>
-                        <div className="h-4 bg-zinc-200 rounded w-5/6"></div>
-                        <div className="h-4 bg-zinc-200 rounded w-4/6"></div>
-                        <div className="mt-2 text-xs text-zinc-500 font-bold">データ取得中...</div>
-                      </div>
-                    ) : mapMode === 'hazard' && hazardInfo ? (
-                      <div className="flex flex-col gap-2 text-[12px]">
-                        <div className="flex items-start gap-1">
-                          <span className="shrink-0 text-base leading-none">🌊</span>
-                          <div className="flex-1">
-                            <span className="text-zinc-500 font-semibold block text-[10px]">洪水 (Flood)</span>
-                            <span className={`font-bold block mt-0.5 ${hazardInfo.flood === '危険なし' ? 'text-emerald-600' : 'text-red-600'}`}>
-                              {hazardInfo.flood}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-1">
-                          <span className="shrink-0 text-base leading-none">⛰️</span>
-                          <div className="flex-1">
-                            <span className="text-zinc-500 font-semibold block text-[10px]">土砂災害 (Landslide)</span>
-                            <span className={`font-bold block mt-0.5 ${hazardInfo.landslide === '危険なし' ? 'text-emerald-600' : 'text-orange-600'}`}>
-                              {hazardInfo.landslide}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-1">
-                          <span className="shrink-0 text-base leading-none">🌊</span>
-                          <div className="flex-1">
-                            <span className="text-zinc-500 font-semibold block text-[10px]">津波 (Tsunami)</span>
-                            <span className={`font-bold block mt-0.5 ${hazardInfo.tsunami === '危険なし' ? 'text-emerald-600' : 'text-blue-600'}`}>
-                              {hazardInfo.tsunami}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-1">
-                          <span className="shrink-0 text-base leading-none">🌀</span>
-                          <div className="flex-1">
-                            <span className="text-zinc-500 font-semibold block text-[10px]">高潮 (Storm Surge)</span>
-                            <span className={`font-bold block mt-0.5 ${hazardInfo.storm_surge === '危険なし' ? 'text-emerald-600' : 'text-purple-600'}`}>
-                              {hazardInfo.storm_surge}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="w-full h-px bg-zinc-100 my-1" />
-                        <div className="flex items-start gap-1">
-                          <span className="shrink-0 text-base leading-none">🏕</span>
-                          <div className="flex-1">
-                            <span className="text-zinc-500 font-semibold block text-[10px]">指定避難所</span>
-                            <span className="font-bold text-emerald-700 block mt-0.5">{hazardInfo.shelter}</span>
-                          </div>
-                        </div>
-                        <div className="w-full text-right mt-2">
-                           <span className="text-[9px] text-zinc-400">
-                             出典：<a href="https://www.reinfolib.mlit.go.jp/" target="_blank" rel="noopener noreferrer" className="hover:underline">国土交通省地価公示</a>
-                           </span>
-                        </div>
-                      </div>
-                    ) : mapMode === 'zoning' && zoningInfo ? (
-                      <div className="flex flex-col gap-2 text-[12px]">
-                        <div className="flex items-start gap-1">
-                          <span className="shrink-0 text-base leading-none">📍</span>
-                          <div className="flex-1">
-                            <span className="text-zinc-500 font-semibold block text-[10px]">都市計画区域 (City Planning)</span>
-                            <span className="font-bold text-zinc-800 block mt-0.5">{zoningInfo.plan_zone}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-1 mt-1">
-                          <span className="shrink-0 text-base leading-none">🏢</span>
-                          <div className="flex-1">
-                            <span className="text-zinc-500 font-semibold block text-[10px]">用途地域 (Land Use)</span>
-                            <span 
-                              className="font-bold block mt-0.5"
-                              style={{ color: ZONING_COLORS[zoningInfo.land_use] || (zoningInfo.land_use.includes('未指定') ? '#71717a' : '#2563eb') }}
-                            >
-                              {zoningInfo.land_use}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3 mt-1 bg-zinc-50 p-2 rounded border border-zinc-100">
-                          <div className="flex-1">
-                            <span className="text-zinc-400 font-medium block text-[9px]">建蔽率 (Coverage)</span>
-                            <span className="font-bold text-zinc-700 block mt-0.5">{zoningInfo.coverage}</span>
-                          </div>
-                          <div className="flex-1">
-                            <span className="text-zinc-400 font-medium block text-[9px]">容積率 (FAR)</span>
-                            <span className="font-bold text-zinc-700 block mt-0.5">{zoningInfo.far}</span>
-                          </div>
-                        </div>
-                        <div className="w-full text-right mt-2">
-                           <span className="text-[9px] text-zinc-400">
-                             出典：<a href="https://www.reinfolib.mlit.go.jp/" target="_blank" rel="noopener noreferrer" className="hover:underline">国土交通省地価公示</a>
-                           </span>
-                        </div>
-                      </div>
-                    ) : (
-                       <div className="text-xs text-red-500 font-bold py-2">
-                          データの取得に失敗しました。
-                       </div>
-                    )}
-                  </div>
+        {/* Hazard Mapped Layers directly to GSI Disaportal */}
+        {mapMode === 'hazard' && layers.flood && (
+          <TileLayer url="https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png" opacity={0.65} maxNativeZoom={17} maxZoom={18} zIndex={500} keepBuffer={2} />
+        )}
+        {mapMode === 'hazard' && layers.landslide && (
+          <TileLayer url="https://disaportaldata.gsi.go.jp/raster/05_dosyakikennet_data/{z}/{x}/{y}.png" opacity={0.65} maxNativeZoom={17} maxZoom={18} zIndex={500} keepBuffer={2} />
+        )}
+        {mapMode === 'hazard' && layers.tsunami && (
+          <TileLayer url="https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlevel_data/{z}/{x}/{y}.png" opacity={0.65} maxNativeZoom={17} maxZoom={18} zIndex={500} keepBuffer={2} />
+        )}
+        {mapMode === 'hazard' && layers.stormSurge && (
+          <TileLayer url="https://disaportaldata.gsi.go.jp/raster/03_hightide_l2_shinsuishin_data/{z}/{x}/{y}.png" opacity={0.65} maxNativeZoom={17} maxZoom={18} zIndex={500} keepBuffer={2} />
+        )}
+
+        {/* Active Analysis Pin Point */}
+        {activePoint && (
+          <Marker 
+            position={activePoint} 
+            icon={targetIcon} 
+            zIndexOffset={2000}
+          />
+        )}
+      </MapContainer>
+
+      {/* Floating Guidance Tip when no location is selected */}
+      {!activePoint && (
+        <div className="absolute top-14 left-4 z-[1000] pointer-events-auto bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-md rounded-xl p-3 max-w-sm hidden sm:flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 animate-in fade-in select-none">
+          <span className="text-xl shrink-0">📍</span>
+          <div>
+            <span className="text-slate-900 dark:text-slate-100 font-bold block text-[12px]">地点診断ツール（災害・都市計画）</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+              地図上をクリック、または上部検索バーに住所を入力して、その地点の自然災害リスクと都市計画情報を一括解析します。
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Comprehensive Due Diligence Analysis Report Card (Bảng Báo Cáo Thẩm Định Địa Điểm) */}
+      {activePoint && (
+        <div 
+          className="absolute top-14 left-4 z-[1000] w-[360px] sm:w-[380px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-130px)] overflow-y-auto bg-white/98 dark:bg-[#151B22]/98 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-2xl rounded-xl p-3.5 flex flex-col gap-3 pointer-events-auto select-none animate-in fade-in slide-in-from-left-2"
+          onDoubleClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Card Header: Title & Close Button */}
+          <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 tracking-tight">
+                  地点総合診断レポート
+                </h3>
+              </div>
+              {currentAddress && (
+                <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-0.5 truncate max-w-[260px]">
+                  📍 {currentAddress}
                 </div>
-              </Popup>
-            </Marker>
+              )}
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+                北緯 {activePoint[0].toFixed(4)}° / 東経 {activePoint[1].toFixed(4)}°
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActivePoint(null)}
+              className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+              title="レポートを閉じる"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Sub-Tabs: 災害リスク vs 都市計画 */}
+          <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('hazard');
+                if (setMapMode) setMapMode('hazard');
+              }}
+              className={`py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'hazard'
+                  ? 'bg-white dark:bg-[#151B22] text-[#1B4F8A] dark:text-blue-400 shadow-xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <Waves className="w-3.5 h-3.5 text-blue-500" />
+              <span>自然災害リスク</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('zoning');
+                if (setMapMode) setMapMode('zoning');
+              }}
+              className={`py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'zoning'
+                  ? 'bg-white dark:bg-[#151B22] text-[#1B4F8A] dark:text-blue-400 shadow-xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <Building className="w-3.5 h-3.5 text-[#1B4F8A]" />
+              <span>都市計画・用途地域</span>
+            </button>
+          </div>
+
+          {/* TAB 1: NATURAL HAZARD DETAILS */}
+          {activeTab === 'hazard' && (
+            <div className="flex flex-col gap-2.5">
+              {isHazardLoading ? (
+                <div className="flex flex-col gap-2 py-3 animate-pulse">
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-4/6"></div>
+                  <span className="text-xs text-slate-400 mt-1">国土交通省ハザードデータを照会中...</span>
+                </div>
+              ) : hazardInfo ? (
+                <div className="flex flex-col gap-2 text-xs">
+                  {/* 洪水 */}
+                  <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        洪水浸水想定
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        hazardInfo.flood === '危険なし' || hazardInfo.flood?.includes('想定区域外')
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                          : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                      }`}>
+                        {hazardInfo.flood === '危険なし' ? '想定区域外（安全）' : '浸水想定あり'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-800 dark:text-slate-200 font-medium">
+                      {hazardInfo.flood}
+                    </p>
+                  </div>
+
+                  {/* 土砂災害 */}
+                  <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        土砂災害警戒区域
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        hazardInfo.landslide === '危険なし' || hazardInfo.landslide?.includes('警戒区域外')
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                          : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                      }`}>
+                        {hazardInfo.landslide === '危険なし' ? '警戒区域外（安全）' : '土砂警戒区域'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-800 dark:text-slate-200 font-medium">
+                      {hazardInfo.landslide}
+                    </p>
+                  </div>
+
+                  {/* 津波 & 高潮 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5 font-medium">津波浸水想定</span>
+                      <span className={`text-[11px] font-bold ${hazardInfo.tsunami === '危険なし' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                        {hazardInfo.tsunami}
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5 font-medium">高潮浸水想定</span>
+                      <span className={`text-[11px] font-bold ${hazardInfo.storm_surge === '危険なし' ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'}`}>
+                        {hazardInfo.storm_surge}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 指定緊急避難場所 */}
+                  <div className="p-2 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/60">
+                    <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-semibold block mb-0.5 flex items-center gap-1">
+                      <span>🏃‍♂️</span> 最寄りの指定緊急避難場所
+                    </span>
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                      {hazardInfo.shelter}
+                    </p>
+                  </div>
+
+                  <span className="text-[9.5px] text-slate-400 text-right">
+                    出典：国土交通省・国土地理院 重ねるハザードマップ
+                  </span>
+                </div>
+              ) : (
+                <div className="text-xs text-rose-500 py-2">
+                  ハザード情報の取得に失敗しました。
+                </div>
+              )}
+            </div>
           )}
-        </MapContainer>
-      </div>
-    </>
+
+          {/* TAB 2: ZONING & URBAN PLANNING DETAILS */}
+          {activeTab === 'zoning' && (
+            <div className="flex flex-col gap-2.5">
+              {isZoningLoading ? (
+                <div className="flex flex-col gap-2 py-3 animate-pulse">
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-4/6"></div>
+                  <span className="text-xs text-slate-400 mt-1">国土交通省 都市計画API照会中...</span>
+                </div>
+              ) : zoningInfo ? (
+                <div className="flex flex-col gap-2 text-xs">
+                  {/* 都市計画区分 */}
+                  <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span className="font-semibold text-slate-600 dark:text-slate-400 text-[11px]">都市計画区域区分</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                      {zoningInfo.plan_zone}
+                    </span>
+                  </div>
+
+                  {/* 用途地域 */}
+                  <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1 font-medium">用途地域（13分類）</span>
+                    <div className="flex items-center gap-2">
+                      <span 
+                        className="w-3.5 h-3.5 rounded-sm border border-black/10 shrink-0" 
+                        style={{ backgroundColor: ZONING_COLORS[zoningInfo.land_use] || '#94a3b8' }}
+                      />
+                      <span 
+                        className="font-bold text-sm"
+                        style={{ color: ZONING_COLORS[zoningInfo.land_use] || (zoningInfo.land_use?.includes('未指定') ? '#94a3b8' : '#1B4F8A') }}
+                      >
+                        {zoningInfo.land_use}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 建蔽率 & 容積率 */}
+                  <div className="grid grid-cols-2 gap-2 bg-blue-50/40 dark:bg-blue-950/30 p-2.5 rounded-lg border border-blue-200/60 dark:border-blue-900/40">
+                    <div>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">指定建蔽率</span>
+                      <span className="font-bold text-base text-[#1B4F8A] dark:text-blue-300 tabular-nums">
+                        {zoningInfo.coverage}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">指定容積率</span>
+                      <span className="font-bold text-base text-[#1B4F8A] dark:text-blue-300 tabular-nums">
+                        {zoningInfo.far}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-[9.5px] text-slate-400 text-right">
+                    出典：国土交通省 不動産情報ライブラリ
+                  </span>
+                </div>
+              ) : (
+                <div className="text-xs text-rose-500 py-2">
+                  都市計画情報の取得に失敗しました。
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons: Street View 360° & Search Properties on /map */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={handleOpenStreetView}
+              className="w-full py-2 px-3 rounded-lg bg-amber-50 hover:bg-amber-100/90 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/60 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] cursor-pointer shadow-xs"
+              title="Google Street View 360°で現地の接道・街並みを確認"
+            >
+              <Compass className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span>360°現地ストリートビューを確認</span>
+            </button>
+
+            <a
+              href={`/map?keyword=${encodeURIComponent(currentAddress || (regionName !== '全国' ? regionName : ''))}`}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full py-2 px-3 rounded-lg bg-[#1B4F8A] hover:bg-[#143D6C] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] cursor-pointer shadow-xs"
+              title="この周辺の競売・公売物件をマップ検索で探す"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>この周辺の競売・公売物件をマップで探す →</span>
+            </a>
+          </div>
+
+        </div>
+      )}
+
+      {/* Google Street View 360° Modal */}
+      {streetViewTarget && (
+        <StreetViewModal 
+          isOpen={Boolean(streetViewTarget)}
+          onClose={() => setStreetViewTarget(null)}
+          lat={streetViewTarget.lat}
+          lng={streetViewTarget.lng}
+          propertyTitle={streetViewTarget.title}
+          address={streetViewTarget.address}
+        />
+      )}
+    </div>
   );
 }

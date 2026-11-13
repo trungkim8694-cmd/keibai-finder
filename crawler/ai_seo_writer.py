@@ -8,9 +8,15 @@ from psycopg2.extras import RealDictCursor
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# Load env variables from web/.env
-dotenv_path = os.path.join(os.path.dirname(__file__), '..', 'web', '.env')
-load_dotenv(dotenv_path)
+# Import Keibai Hot Trend Tool for AI Agent Integration
+try:
+    from keibai_trend_tool import get_next_recommended_topic
+except ImportError:
+    from crawler.keibai_trend_tool import get_next_recommended_topic
+
+# Load env variables from web/.env & web/.env.local
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'web', '.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'web', '.env.local'))
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -21,7 +27,7 @@ if not GEMINI_API_KEY or not DATABASE_URL:
 
 genai.configure(api_key=GEMINI_API_KEY)
 # Switch to valid model name
-model = genai.GenerativeModel('gemini-2.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 PROMPT_TEMPLATES = [
     {
@@ -74,16 +80,31 @@ def generate_japanese_content(properties):
     template = random.choice(PROMPT_TEMPLATES)
     print(f"Selected Template: {template['type']}")
     
+    # Tích hợp Hot Trend Keyword từ Keibai Trend Tool
+    try:
+        hot_trend = get_next_recommended_topic()
+        trend_keyword = hot_trend.get("keyword", "東京 競売 物件 格安")
+        trend_intent = hot_trend.get("agentPrompt", "市場価格より大幅に割安な物件を徹底解説せよ。")
+        print(f"[TrendIntegration] Targeting Hot Keyword: {trend_keyword}")
+    except Exception as e:
+        trend_keyword = "不動産競売 格安物件"
+        trend_intent = "市場の割安物件を分析せよ。"
+    
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     
     props_json = json.dumps(properties, ensure_ascii=False, indent=2, default=str)
     
     prompt = f"""
     Bạn là một chuyên gia phân tích Bất Động Sản Đấu Giá (Keibai) tại Nhật Bản.
-    Hôm nay là ngày {date_str}. Tôi có danh sách các tài sản đấu giá đang rớt giá thảm hại (Biên lợi nhuận / Margin cao hơn 20% so với giá thị trường MLIT).
+    Hôm nay là ngày {date_str}.
+    TỪ KHÓA HOT TREND CẦN TẬP TRUNG SEO: 「{trend_keyword}」
+    ĐỊNH HƯỚNG TỪ KHÓA CHO AGENT: {trend_intent}
+
+    Tôi có danh sách các tài sản đấu giá đang rớt giá thảm hại (Biên lợi nhuận / Margin cao hơn 20% so với giá thị trường MLIT).
     
     Văn phong yêu cầu: {template['description']}
     Giọng điệu: Hấp dẫn, khơi gợi FOMO, số liệu rõ ràng. Đóng vai trò là bản báo cáo hàng ngày (Daily Digest).
+    Tiêu đề bài viết H1: BẮT BUỘC chứa từ khóa Hot Trend 「{trend_keyword}」.
     
     Dữ liệu tài sản (JSON):
     {props_json}

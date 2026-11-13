@@ -1,28 +1,32 @@
 import { Metadata } from 'next';
-// Since Next.js dynamic components need client boundary separation, 
-// we'll create a simple client component to manage state between search and map.
 import ClientWrapper from './ClientWrapper';
-import { TradeSocialShare } from '@/components/Trade/TradeSocialShare';
-import { PrintButton } from '@/components/PrintButton';
+
+type Props = {
+  params: Promise<{ slug?: string[] }>;
+};
 
 // Define Programmatic Metadata SEO
-export async function generateMetadata({ params }: { params: { slug?: string[] } }): Promise<Metadata> {
-  const region = params.slug ? params.slug.join(' ') : '全国';
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const resolvedParams = await params;
+  const decodedParts = resolvedParams.slug ? resolvedParams.slug.map(decodeURIComponent) : [];
+  const region = decodedParts.length > 0 ? decodedParts.join(' ') : '全国';
   const prefix = region !== '全国' ? `${region}の` : '';
   
   return {
     metadataBase: new URL('https://www.keibai-koubai.com'),
-    title: `【登録不要】${prefix}不動産エリア分析マップ｜災害・都市計画・用途地域 (Keibai Finder)`,
-    description: `登録不要で完全無料！${region}の住所を入力するだけで、洪水、土砂などの自然災害リスクと、都市計画・用途地域を1画面で一括確認できます。不動産投資やマイホーム購入前の物件調査に最適。`,
-    keywords: `エリア分析, 用途地域, 都市計画, ハザードマップ, 住所検索, ${region}, 不動産, 災害リスク, 面倒な登録なし`,
+    title: `【登録不要】${prefix}不動産エリア分析マップ｜災害・都市計画・競売物件 (Keibai Finder)`,
+    description: `登録不要で完全無料！${region}の住所を入力するだけで、洪水、土砂などの自然災害リスクと、都市計画・用途地域、周辺の競売・公売物件を1画面で一括確認できます。不動産投資やマイホーム購入前の物件調査に最適。`,
+    keywords: `エリア分析, 用途地域, 都市計画, ハザードマップ, 住所検索, ${region}, 不動産, 災害リスク, 競売物件, 面倒な登録なし`,
     alternates: {
-      canonical: params.slug ? `/area-map/${params.slug.join('/')}` : '/area-map',
+      canonical: resolvedParams.slug ? `/area-map/${resolvedParams.slug.join('/')}` : '/area-map',
     }
   };
 }
 
-export default function HazardMapPage({ params }: { params: { slug?: string[] } }) {
-  const region = params.slug?.join(' ') || '全国';
+export default async function HazardMapPage({ params }: Props) {
+  const resolvedParams = await params;
+  const decodedParts = resolvedParams.slug ? resolvedParams.slug.map(decodeURIComponent) : [];
+  const region = decodedParts.length > 0 ? decodedParts.join(' ') : '全国';
 
   // Schema.org structured data (JSON-LD)
   const jsonLd = {
@@ -77,11 +81,11 @@ export default function HazardMapPage({ params }: { params: { slug?: string[] } 
             "name": "エリア分析マップ",
             "item": "https://www.keibai-koubai.com/area-map"
           },
-          ...(params.slug ? params.slug.map((slugPart, index) => ({
+          ...(resolvedParams.slug ? resolvedParams.slug.map((slugPart, index) => ({
             "@type": "ListItem",
             "position": index + 3,
             "name": decodeURIComponent(slugPart),
-            "item": `https://www.keibai-koubai.com/area-map/${params.slug!.slice(0, index + 1).join('/')}`
+            "item": `https://www.keibai-koubai.com/area-map/${resolvedParams.slug!.slice(0, index + 1).join('/')}`
           })) : [])
         ]
       }
@@ -89,7 +93,7 @@ export default function HazardMapPage({ params }: { params: { slug?: string[] } 
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] w-full overflow-hidden bg-white">
+    <div className="flex flex-col h-[calc(100vh-64px)] w-full overflow-hidden bg-[#F8FAFC] dark:bg-[#0D1117]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       
       {/* Programmatic SEO Text Block - Visually hidden but readable by Googlebot and Screen Readers */}
@@ -98,7 +102,7 @@ export default function HazardMapPage({ params }: { params: { slug?: string[] } 
         <p>
           {region !== '全国' ? `このページは${region}周辺の` : 'このページは日本全国の'}
           不動産情報を調査するための専門マップツールです。洪水浸水想定区域、土砂災害警戒区域、津波、高潮などの自然災害ハザードマップをはじめ、
-          建蔽率（\%）や容積率（\%）を含む都市計画・用途地域情報を1つの地図上でシームレスに確認できます。
+          建蔽率（%）や容積率（%）を含む都市計画・用途地域情報を1つの地図上でシームレスに確認できます。
           不動産投資、マイホーム購入、土地の資産価値評価の前の地盤・環境調査として完全無料でご利用いただけます。面倒な会員登録は一切不要です。
         </p>
         <h2>{region}のハザードマップ（洪水・土砂・津波）</h2>
@@ -120,7 +124,7 @@ export default function HazardMapPage({ params }: { params: { slug?: string[] } 
         </ul>
       </div>
 
-      <ClientWrapper />
+      <ClientWrapper initialSlug={decodedParts} regionName={region} />
     </div>
   );
 }

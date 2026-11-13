@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import useSWR from 'swr';
-import SignupModal from './SignupModal';
+import SignupModal from '@/components/SignupModal';
 import { addFavorite, removeFavorite } from '@/actions/userDashboardActions';
+import { Bookmark } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url, {
   headers: {
@@ -11,13 +12,20 @@ const fetcher = (url: string) => fetch(url, {
   }
 }).then(res => res.json());
 
-export default function FavoriteButton({ id }: { id: string }) {
+export default function FavoriteButton({ 
+  id,
+  compact = false,
+  className = ''
+}: { 
+  id: string;
+  compact?: boolean;
+  className?: string;
+}) {
    const { data: session, status } = useSession();
    const [isFavLocal, setIsFavLocal] = useState(false);
    const [isAnimating, setIsAnimating] = useState(false);
    const [showModal, setShowModal] = useState(false);
 
-   // For authenticated users, SWR shares global state for all FavoriteButtons automatically based on the URL key
    const { data: serverFavs, mutate } = useSWR(
      status === 'authenticated' ? '/api/favorites' : null, 
      fetcher
@@ -37,7 +45,7 @@ export default function FavoriteButton({ id }: { id: string }) {
    }, [id, status]);
 
    const toggleFav = async (e: React.MouseEvent) => {
-      e.preventDefault(); // prevent navigation if wrapped in link
+      e.preventDefault();
       e.stopPropagation();
 
       const newFavState = !isFav;
@@ -48,10 +56,9 @@ export default function FavoriteButton({ id }: { id: string }) {
         
         if (newFavState) {
            if (currentFavs.length >= 20) {
-             alert('お気に入り登録は最大20件までです。(Giới hạn 20 tài sản)\n不要な物件を削除するか、有料プランをご検討ください。');
+             alert('お気に入り登録は最大20件までです。\n不要な物件を整理してください。');
              return;
            }
-           // Optimistic update
            mutate({ favorites: [...currentFavs, id] }, false);
            setIsAnimating(true);
            setTimeout(() => setIsAnimating(false), 300);
@@ -59,41 +66,33 @@ export default function FavoriteButton({ id }: { id: string }) {
            const res = await addFavorite(userId, id);
            if (!res.success) {
              if (res.error === 'LIMIT_REACHED') alert('制限に達しました。');
-             mutate(); // Re-fetch correct state on failure
+             mutate();
            }
         } else {
            mutate({ favorites: currentFavs.filter((f: string) => f !== id) }, false);
            await removeFavorite(userId, id);
         }
       } else {
-        // Guest User - Directly show Auth Modal instead of using LocalStorage
         setShowModal(true);
       }
    };
 
    return (
-     <button 
-        onClick={toggleFav}
-        className={`relative rounded-full flex items-center justify-center transition-all duration-300 z-20 group shrink-0 ` + 
-        (isFav 
-            ? `bg-white/90 backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.15)] ${isAnimating ? 'scale-125' : 'scale-100 hover:scale-110'}` 
-            : `bg-black/30 backdrop-blur-sm border border-white/50 text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] hover:bg-black/40 hover:scale-110`)}
-        style={{ width: '36px', height: '36px' }}
-        aria-label="お気に入り"
-     >
-        {isFav ? (
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="#E11D48" className="drop-shadow-sm">
-             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-           </svg>
-        ) : (
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white/60 drop-shadow-md group-hover:text-white transition-colors">
-             <path fillRule="evenodd" clipRule="evenodd" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35zM12 19.9l1.1-1.02c4.9-4.51 8-7.39 8-10.38 0-2.22-1.78-4-4-4-1.54 0-3.04.88-3.79 2.22h-2.62c-.75-1.34-2.25-2.22-3.79-2.22-2.22 0-4 1.78-4 4 0 2.99 3.1 5.87 8 10.38l1.1 1.02z" />
-           </svg>
-        )}
-        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 bg-zinc-800 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap transition-opacity pointer-events-none drop-shadow-md">
-          {isFav ? 'お気に入り解除' : 'お気に入り登録'}
-        </span>
-        <SignupModal isOpen={showModal} onClose={() => setShowModal(false)} />
-     </button>
-   )
+     <>
+       <button 
+          onClick={toggleFav}
+          className={`${compact ? 'h-7 px-2 text-[11px]' : 'h-8 px-2.5 text-xs'} rounded-md border flex items-center justify-center gap-1.5 transition-colors font-medium shadow-2xs ${
+            isFav 
+              ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/40 dark:border-blue-800 dark:text-blue-300' 
+              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800'
+          } ${isAnimating ? 'scale-105' : 'scale-100'} ${className}`}
+          title={isFav ? 'お気に入り解除' : 'お気に入り登録'}
+          aria-label={isFav ? 'お気に入り解除' : 'お気に入り登録'}
+       >
+          <Bookmark className={`w-3.5 h-3.5 ${isFav ? 'fill-blue-600 text-blue-600' : 'text-slate-500'}`} />
+          {!compact && <span className="hidden sm:inline">{isFav ? '保存済み' : 'お気に入り'}</span>}
+       </button>
+       <SignupModal isOpen={showModal} onClose={() => setShowModal(false)} />
+     </>
+   );
 }

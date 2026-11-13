@@ -1,4 +1,6 @@
 import React from 'react';
+import Link from 'next/link';
+import { FileText, Download, ExternalLink, HelpCircle, Phone, MapPin } from 'lucide-react';
 
 interface PdfLinksProps {
   saleUnitId?: string;
@@ -25,7 +27,6 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
     }
   }
 
-  // Khôi phục CourtId từ contactUrl để phục vụ cho tính năng link trực tiếp PDF (Bypass Hotlink)
   if (!finalCourtId && bitContactUrl) {
     const match = bitContactUrl.match(/info_([A-Za-z0-9_]+)\.html/);
     if (match) {
@@ -42,7 +43,6 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
     }
   }
 
-  // Tái tạo link tải trực tiếp giống đối thủ: `.../pd001/h04?courtId=xxx&saleUnitId=xxx`
   const bitDirectDownloadUrl = (sourceProvider !== 'NTA' && finalCourtId && saleUnitId) 
     ? `https://www.bit.courts.go.jp/app/detail/pd001/h04?courtId=${finalCourtId}&saleUnitId=${saleUnitId}` 
     : null;
@@ -57,16 +57,17 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
   const eTaxLink = rawDisplayData?.etax_link;
 
   return (
-    <div className="mt-8 border-t border-zinc-100 dark:border-zinc-800 pt-6 overflow-hidden">
-      <h3 className="font-bold mb-4 flex items-center gap-2 text-lg">
-        📄 アクション (手続き・問い合わせ)
+    <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-5">
+      <h3 className="font-bold mb-3.5 flex items-center gap-2 text-sm text-slate-800 dark:text-slate-200">
+        <FileText className="w-4 h-4 text-[#1B4F8A] dark:text-blue-400" />
+        <span>物件資料・入札手続き</span>
       </h3>
       
       {/* Action Bar Container */}
-      <div className="flex flex-col lg:flex-row flex-wrap items-stretch lg:items-start gap-3 w-full">
+      <div className="flex flex-col sm:flex-row flex-wrap items-stretch gap-2.5 w-full">
         
-        {/* Primary Action (3点セット) */}
-        <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 w-full">
+        {/* Primary Action (3点セット / 物件資料PDF) */}
+        <div className="flex-1 flex flex-wrap gap-2">
           {(() => {
              if (sourceProvider === 'NTA') {
                let ntaPdfs: string[] = [];
@@ -80,27 +81,44 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                  if (pdfUrl) ntaPdfs = [pdfUrl];
                }
 
-               const ntaLabels = ['物件情報PDF', '公売公告PDF', 'その他情報PDF'];
+               const resolveNtaDoc = (url: string, index: number) => {
+                 const u = url.toLowerCase();
+                 if (u.includes('_k.pdf')) return { label: '公売公告・財産明細 (PDF)', isPrimary: true };
+                 if (u.includes('so04') || url.includes('ＳＯ04')) return { label: '公売のしおり・注意事項①', isPrimary: false };
+                 if (u.includes('so05') || url.includes('ＳＯ05')) return { label: '入札手続・注意事項②', isPrimary: false };
+                 if (u.includes('doc=3')) return { label: '入札書・保証金納付書様式', isPrimary: false };
+                 if (u.includes('doc=4')) return { label: '陳述書様式（必須書類）', isPrimary: false };
+                 if (u.includes('ininjou')) return { label: '委任状様式 (PDF)', isPrimary: false };
+                 return { label: `公売資料 ${index + 1}`, isPrimary: index === 0 };
+               };
+
                if (ntaPdfs.length > 0) {
                  return (
                    <>
-                     {ntaPdfs.map((url, i) => (
-                        <a 
-                          key={i}
-                          href={url} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="flex-auto inline-flex items-center justify-center px-1.5 py-2.5 sm:py-0 min-h-[48px] bg-white dark:bg-zinc-900 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold rounded-lg transition-all active:scale-95 text-xs sm:text-sm"
-                        >
-                          <span className="text-sm shrink-0">📄</span> 
-                          <span className="ml-1 text-[11px] sm:text-xs leading-tight text-center line-clamp-2">{ntaLabels[i] || `PDF ${i + 1}`}</span>
-                        </a>
-                     ))}
+                     {ntaPdfs.map((url, i) => {
+                       const doc = resolveNtaDoc(url, i);
+                       return (
+                         <a 
+                           key={i}
+                           href={url} 
+                           target="_blank" 
+                           rel="noreferrer"
+                           className={`inline-flex items-center justify-center gap-1.5 px-3 py-2.5 font-semibold rounded-md transition-colors text-xs shadow-2xs ${
+                             doc.isPrimary
+                               ? 'bg-[#1B4F8A] hover:bg-[#153e6d] text-white flex-1 min-w-[170px]'
+                               : 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-700'
+                           }`}
+                         >
+                           <Download className="w-3.5 h-3.5" />
+                           <span>{doc.label}</span>
+                         </a>
+                       );
+                     })}
                    </>
                  );
                } else {
                  return (
-                   <div className="flex-1 inline-flex items-center justify-center px-4 py-3 sm:py-0 min-h-[56px] bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600 font-bold rounded-xl border border-zinc-200 dark:border-zinc-700 cursor-not-allowed">
+                   <div className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-medium rounded-md border border-slate-200 dark:border-slate-700 text-xs cursor-not-allowed">
                      PDF準備中
                    </div>
                  );
@@ -113,10 +131,10 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                       target="_blank" 
                       rel="nofollow noopener noreferrer"
                       download=""
-                      className="flex-1 inline-flex items-center justify-center px-2 sm:px-4 py-2 sm:py-0 min-h-[44px] sm:min-h-[56px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.4)] border border-blue-500 transition-all active:scale-95"
+                      className="flex-1 min-w-[160px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1B4F8A] hover:bg-[#153e6d] text-white font-semibold rounded-md transition-colors text-xs shadow-2xs"
                     >
-                      <span className="text-lg sm:text-xl shrink-0">📥</span> 
-                      <span className="ml-1.5 sm:ml-2 whitespace-nowrap text-[13px] sm:text-base">物件資料PDF</span>
+                      <Download className="w-4 h-4" />
+                      <span>3点セット一括ダウンロード</span>
                     </a>
                  );
                } else if (pdfFiles.length > 0) {
@@ -128,10 +146,10 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                           href={pdfStr} 
                           target="_blank" 
                           rel="noreferrer"
-                          className="flex-1 inline-flex items-center justify-center px-2 sm:px-4 py-2 sm:py-0 min-h-[44px] sm:min-h-[56px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.4)] border border-blue-500 transition-all active:scale-95"
+                          className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-[#1B4F8A] hover:bg-[#153e6d] text-white font-semibold rounded-md transition-colors text-xs shadow-2xs"
                         >
-                          <span className="text-lg sm:text-xl shrink-0">📥</span> 
-                          <span className="ml-1.5 sm:ml-2 whitespace-nowrap text-[13px] sm:text-base">3点セット {index > 0 ? index + 1 : ''}</span>
+                          <Download className="w-4 h-4" />
+                          <span>3点セット {index > 0 ? index + 1 : ''}</span>
                         </a>
                      ))}
                    </>
@@ -142,16 +160,16 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                       href={pdfUrl} 
                       target="_blank" 
                       rel="noreferrer"
-                      className="flex-1 inline-flex items-center justify-center px-2 sm:px-4 py-2 sm:py-0 min-h-[44px] sm:min-h-[56px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.4)] border border-blue-500 transition-all active:scale-95"
+                      className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1B4F8A] hover:bg-[#153e6d] text-white font-semibold rounded-md transition-colors text-xs shadow-2xs"
                     >
-                      <span className="text-lg sm:text-xl shrink-0">📥</span> 
-                      <span className="ml-1.5 sm:ml-2 whitespace-nowrap text-[13px] sm:text-base">3点セット</span>
+                      <Download className="w-4 h-4" />
+                      <span>3点セットPDF</span>
                     </a>
                  );
                } else {
                  return (
-                    <div className="flex-1 inline-flex items-center justify-center px-4 py-3 sm:py-0 min-h-[56px] bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600 font-bold rounded-xl border border-zinc-200 dark:border-zinc-700 cursor-not-allowed">
-                      PDF準備中
+                    <div className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-medium rounded-md border border-slate-200 dark:border-slate-700 text-xs cursor-not-allowed">
+                      3点セットPDF準備中
                     </div>
                  );
                }
@@ -159,25 +177,27 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
           })()}
         </div>
 
-        {/* Secondary Actions (Row on Mobile, Stack on Desktop) */}
-        <div className="flex flex-col md:flex-row lg:flex-col flex-wrap items-stretch gap-2 sm:gap-3 w-full lg:w-auto mt-2 lg:mt-0 lg:ml-auto">
+        {/* Secondary Actions */}
+        <div className="flex flex-wrap items-center gap-2">
           {sourceProvider === 'NTA' ? (
             <>
               <a 
                 href={eTaxLink || "https://www.koubai.nta.go.jp/auctionx/mngr/MngrLoginInit.action"}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-[2] sm:flex-none inline-flex items-center justify-center px-3 py-2.5 sm:py-0 min-h-[48px] bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all active:scale-95 shadow-sm"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-rose-700 hover:bg-rose-800 text-white font-semibold rounded-md text-xs transition-colors shadow-2xs"
               >
-                <span className="whitespace-nowrap text-xs sm:text-sm">電子で入札される方はこちらからログイン ↗</span>
+                <span>国税庁e-Tax入札システム</span>
+                <ExternalLink className="w-3 h-3" />
               </a>
               <a 
                 href={ntaMapUrl || sourceUrl || 'https://www.nta.go.jp/'}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-2.5 sm:py-0 min-h-[48px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold rounded-lg transition-all active:scale-95"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200 font-medium rounded-md text-xs transition-colors shadow-2xs"
               >
-                <span className="whitespace-nowrap text-xs sm:text-sm font-semibold">📍 所在地図 ・ 📞 問い合わせ</span>
+                <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                <span>所在地図・詳細</span>
               </a>
             </>
           ) : (
@@ -186,19 +206,19 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                 href="https://www.bit.courts.go.jp/guidance/guidance03/index.html"
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-2.5 sm:py-0 min-h-[48px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold rounded-lg transition-all active:scale-95"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200 font-medium rounded-md text-xs transition-colors shadow-2xs"
               >
-                <span className="text-lg">🔨</span>
-                <span className="ml-1.5 whitespace-nowrap text-xs sm:text-sm">入札方法</span>
+                <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
+                <span>入札手順ガイド</span>
               </a>
               <a 
                 href={contactUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-2.5 sm:py-0 min-h-[48px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold rounded-lg transition-all active:scale-95"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200 font-medium rounded-md text-xs transition-colors shadow-2xs"
               >
-                <span className="text-lg">📞</span>
-                <span className="ml-1 whitespace-nowrap text-xs sm:text-sm">問い合わせ</span>
+                <Phone className="w-3.5 h-3.5 text-slate-500" />
+                <span>管轄裁判所連絡先</span>
               </a>
             </>
           )}
@@ -206,8 +226,8 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
         
       </div>
 
-      <p className="text-[12px] text-zinc-400 dark:text-zinc-500 mt-4 max-w-2xl font-medium">
-        「※入札前に必ず3点セットの内容を十分にご確認ください。」詳細な仕様や寸法については必ずご自身でダウンロードしてご確認ください。
+      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3 leading-relaxed">
+        ※ 入札参加にあたっては、必ず管轄裁判所または国税庁が公示する公式「3点セット（現況調査報告書・評価書・物件明細書）」の原本をご確認ください。
       </p>
     </div>
   );

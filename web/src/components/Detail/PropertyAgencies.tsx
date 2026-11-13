@@ -1,147 +1,233 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Building2, Phone, Star, ArrowRight, Info } from 'lucide-react';
+import { 
+  Building2, 
+  Phone, 
+  ShieldCheck, 
+  ArrowRight, 
+  Info, 
+  CheckCircle2, 
+  MessageSquare,
+  Sparkles,
+  ExternalLink,
+  MapPin,
+  HelpCircle
+} from 'lucide-react';
+import { CompanyClaimModal } from '@/components/Agency/CompanyClaimModal';
+import { AgencyLeadModal } from '@/components/Detail/AgencyLeadModal';
 
-interface Agency {
+export interface PropertyCompanyItem {
   id: string;
   companyName: string;
   licenseNumber: string;
-  phone: string;
-  logoUrl: string | null;
-  reviews: { rating: number }[];
+  houjinNumber?: string | null;
+  phone?: string | null;
+  prefecture: string;
+  city: string;
+  address: string;
+  isVerified: boolean;
+  isClaimed: boolean;
+  specialties?: string[];
+  logoUrl?: string | null;
+  description?: string | null;
 }
 
 interface PropertyAgenciesProps {
   prefecture: string;
-  agencies: Agency[];
+  city?: string;
+  agencies: PropertyCompanyItem[];
 }
 
-export function PropertyAgencies({ prefecture, agencies }: PropertyAgenciesProps) {
+export function PropertyAgencies({ prefecture, city, agencies }: PropertyAgenciesProps) {
+  const [claimTarget, setClaimTarget] = useState<PropertyCompanyItem | null>(null);
+  const [leadTarget, setLeadTarget] = useState<{ id: string; name: string } | null>(null);
+
   if (!agencies || agencies.length === 0) {
     return null;
   }
 
+  const locationLabel = city ? `${prefecture} ${city}` : prefecture;
+
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 sm:p-8 shadow-sm space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
-        <div>
-          <h2 className="text-xl font-bold text-zinc-950 dark:text-zinc-50 flex items-center gap-2">
-            💼 {prefecture} エリアの競売サポート会社
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
-            {prefecture}エリアのサポートに対応している競売サポート会社
-          </p>
+    <>
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-slate-200 dark:border-zinc-800 p-5 md:p-6 shadow-xs space-y-5">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-zinc-800 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300">
+                <ShieldCheck className="w-3 h-3" />
+                宅建免許データベース連携
+              </span>
+              <span className="text-[10px] text-slate-400">公的登記データ</span>
+            </div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 mt-1">
+              <Building2 className="w-4 h-4 text-[#1B4F8A] dark:text-blue-400" />
+              <span>{locationLabel}周辺の不動産会社（入札・売買サポート）</span>
+            </h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              この物件の入札代行、現地権利調査、占有者との明渡し交渉を相談できる近隣の宅建免許保有業者です。
+            </p>
+          </div>
+          
+          <Link
+            href={`/agencies?prefecture=${encodeURIComponent(prefecture)}`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[#1B4F8A] dark:text-blue-400 hover:underline shrink-0"
+          >
+            <span>{prefecture}の不動産会社をもっと探す</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-        
-        <Link
-          href="/dashboard/agency"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
-        >
-          掲載ご希望の不動産会社様はこちら
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
 
-      {agencies.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {agencies.map((agency) => {
-            const totalReviews = agency.reviews.length;
-            const avgRating = totalReviews > 0
-              ? (agency.reviews.reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
-              : '0.0';
-
+        {/* Company Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {agencies.map((company) => {
             return (
               <div
-                key={agency.id}
-                className="flex flex-col justify-between p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 hover:border-blue-500/30 dark:hover:border-blue-500/20 shadow-sm transition-all group"
+                key={company.id}
+                className={`flex flex-col justify-between p-4 rounded-lg bg-slate-50/70 dark:bg-zinc-950 border transition-all ${
+                  company.isVerified
+                    ? 'border-blue-200/90 dark:border-blue-900/60 shadow-xs'
+                    : 'border-slate-200 dark:border-zinc-800'
+                }`}
               >
-                <div className="space-y-4">
-                  {/* Agency Logo & Name */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
-                      {agency.logoUrl ? (
-                        <img src={agency.logoUrl} alt={agency.companyName} className="w-full h-full object-cover" />
-                      ) : (
-                        <Building2 className="w-6 h-6 text-blue-500" />
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {agency.companyName}
-                      </h4>
-                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5">
-                        免許: {agency.licenseNumber}
-                      </p>
-                    </div>
+                <div className="space-y-3">
+                  {/* Verification Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    {company.isVerified ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        公式認証企業
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400">
+                        <Info className="w-3 h-3" />
+                        公的登記情報
+                      </span>
+                    )}
+
+                    <span className="text-[10px] font-medium text-slate-400 truncate">
+                      {company.city}
+                    </span>
                   </div>
 
-                  {/* Rating Stars */}
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex items-center gap-0.5">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-3.5 h-3.5 ${
-                            i < Math.round(Number(avgRating))
-                              ? 'text-amber-500 fill-amber-500'
-                              : 'text-zinc-300 dark:text-zinc-700'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs font-black text-zinc-700 dark:text-zinc-300">{avgRating}</span>
-                    <span className="text-[10px] text-zinc-400 dark:text-zinc-600 font-bold">({totalReviews})</span>
+                  {/* Company Name & License */}
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
+                      {company.companyName}
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 truncate">
+                      {company.licenseNumber}
+                    </p>
                   </div>
 
-                  {/* Contact Phone */}
-                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 font-bold text-xs">
-                    <Phone className="w-3.5 h-3.5 text-emerald-500" />
-                    <a href={`tel:${agency.phone}`} className="hover:underline text-zinc-900 dark:text-zinc-100">
-                      {agency.phone}
-                    </a>
+                  {/* Specialties Pills */}
+                  {(() => {
+                    const displaySpecialties = company.isVerified
+                      ? (company.specialties && company.specialties.length > 0 ? company.specialties : ['宅建免許保有'])
+                      : ['宅建免許保有'];
+                    return (
+                      <div className="flex flex-wrap gap-1">
+                        {displaySpecialties.slice(0, 3).map((spec, i) => (
+                          <span
+                            key={i}
+                            className={`px-1.5 py-0.5 rounded text-[9.5px] font-medium border ${
+                              spec === '宅建免許保有'
+                                ? 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-200/80 dark:border-blue-800/60 text-blue-800 dark:text-blue-300'
+                                : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-slate-300'
+                            }`}
+                          >
+                            {spec}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Description snippet if any */}
+                  {company.description && (
+                    <p className="text-[10.5px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                      {company.description}
+                    </p>
+                  )}
+
+                  {/* Contact Phone & Kigyoulist Profile Link */}
+                  <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+                    {company.phone ? (
+                      <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
+                        <Phone className="w-3 h-3 text-slate-400" />
+                        <a href={`tel:${company.phone}`} className="hover:underline font-mono">
+                          {company.phone}
+                        </a>
+                      </div>
+                    ) : (
+                      <span className="text-[10.5px] text-slate-400">電話番号: 登記参照</span>
+                    )}
+
+                    {company.houjinNumber && (
+                      <a
+                        href={`https://kigyoulist.com/ja/company/${company.houjinNumber}`}
+                        target="_blank"
+                        rel="noopener"
+                        title={`${company.companyName}の企業登記・信用情報をkigyoulist.comで確認`}
+                        className="inline-flex items-center gap-0.5 text-[10.5px] text-[#1B4F8A] dark:text-blue-400 hover:underline"
+                      >
+                        <span>企業詳細</span>
+                        <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                      </a>
+                    )}
                   </div>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                  <Link
-                    href={`/agencies/${agency.id}`}
-                    className="w-full inline-flex items-center justify-center gap-1 bg-white hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-xs py-2.5 rounded-xl transition-all"
-                  >
-                    詳細・クチコミを見る
-                  </Link>
+                {/* Card Action Buttons */}
+                <div className="mt-4 pt-3 border-t border-slate-200/70 dark:border-zinc-800 space-y-2">
+                  {company.isVerified ? (
+                    <button
+                      type="button"
+                      onClick={() => setLeadTarget({ id: company.id, name: company.companyName })}
+                      className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1B4F8A] hover:bg-blue-800 text-white font-medium text-xs py-2 rounded-md transition-colors shadow-xs"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>入札・売買の無料相談</span>
+                    </button>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setClaimTarget(company)}
+                        className="w-full inline-flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-900 text-[#1B4F8A] dark:text-blue-300 font-semibold text-xs py-2 rounded-md transition-colors shadow-2xs"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#1B4F8A] dark:text-blue-400" />
+                        <span>この企業のオーナー確認（無料）</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
-      ) : (
-        <div className="p-6 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50/50 dark:bg-zinc-950/20 text-center space-y-3">
-          <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
-            <Info className="w-5 h-5" />
-          </div>
-          <div className="max-w-md mx-auto space-y-2">
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              このエリアに対応可能な会社はまだ登録されていません。
-            </p>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium space-y-1.5">
-              <p>競売不動産のサポート対応が可能な会社様は、こちらからプロフィールをご登録いただけます（無料）。</p>
-              <ul className="text-left list-disc pl-5 space-y-0.5 inline-block text-[11px] text-zinc-500">
-                <li>該当エリアの物件ページに連絡先情報を無料表示</li>
-                <li>月間数百万ユーザーが利用する keibai-koubai.com での貴社PR</li>
-                <li>対応エリアからの直接的な見込み客の自然流入と獲得</li>
-              </ul>
-            </div>
-          </div>
-          <Link
-            href="/dashboard/agency"
-            className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-colors mt-2"
-          >
-            今すぐ掲載登録する
-          </Link>
-        </div>
+      </div>
+
+      {/* Claim Modal */}
+      <CompanyClaimModal
+        isOpen={Boolean(claimTarget)}
+        onClose={() => setClaimTarget(null)}
+        company={claimTarget}
+      />
+
+      {/* Lead Inquiry Modal */}
+      {leadTarget && (
+        <AgencyLeadModal
+          isOpen={Boolean(leadTarget)}
+          onClose={() => setLeadTarget(null)}
+          saleUnitId={undefined}
+          agencyProfileId={leadTarget.id}
+          agencyName={leadTarget.name}
+        />
       )}
-    </div>
+    </>
   );
 }

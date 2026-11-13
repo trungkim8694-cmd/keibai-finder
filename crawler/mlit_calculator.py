@@ -41,12 +41,13 @@ def extract_total_area(raw_display_data_json):
     except Exception:
         return None
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), '../web/.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), '../web/.env.local'))
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
-    from dotenv import load_dotenv
-    load_dotenv(dotenv_path="/Users/kimtrung/keibai-finder/web/.env")
-    load_dotenv(dotenv_path="/Users/kimtrung/keibai-finder/web/.env.local")
-    DATABASE_URL = os.environ.get("DATABASE_URL")
+    raise ValueError("Missing DATABASE_URL environment variable.")
 
 db_url = DATABASE_URL.split("?")[0]
 MLIT_API_KEY = "3cee958080dc40b2854698b6407d4b5a"
@@ -155,6 +156,46 @@ def get_market_valuation(city_code, property_type, year="2023"):
         print(f"[ERROR] Failed to fetch valuation: {e}")
         return "HTTP_ERROR"
 
+def calculate_depreciation_factor(prop_type, build_year_western):
+    """
+    Japanese Real Estate Appraisal Depreciation Factor (減価修正係数)
+    Based on MLIT Statutory Useful Life & Market Valuation:
+    - Wooden House (戸建て - 木造): 22-year statutory life. Older auction houses are adjusted for age.
+    - RC Condominium (マンション): 47-year statutory life.
+    - Land (土地): No depreciation (1.0).
+    """
+    if prop_type == '土地':
+        return 1.0
+        
+    current_year = 2026
+    age = None
+    if build_year_western and 1900 < build_year_western <= current_year:
+        age = current_year - build_year_western
+        
+    if prop_type == '戸建て':
+        if age is None:
+            return 0.65  # Conservative realistic factor for distressed/auctioned older houses (~20-30yo)
+        elif age <= 5:
+            return 0.95
+        elif age <= 15:
+            return 0.85
+        elif age <= 25:
+            return 0.70
+        else:
+            return 0.60  # Land value + residual structure
+    elif prop_type == 'マンション':
+        if age is None:
+            return 0.80  # Default factor for used condos
+        elif age <= 10:
+            return 1.0
+        elif age <= 20:
+            return 0.90
+        elif age <= 30:
+            return 0.80
+        else:
+            return 0.70
+    return 1.0
+
 def m_print(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}")
 
@@ -165,7 +206,7 @@ def process_mlit_gap():
     cur = conn.cursor()
     
     cur.execute("""
-        SELECT sale_unit_id, property_type, prefecture, city, starting_price, area, raw_display_data 
+        SELECT sale_unit_id, property_type, prefecture, city, starting_price, area, raw_display_data, build_year_western
         FROM "Property" 
         WHERE status = 'ACTIVE' 
           AND mlit_investment_gap IS NULL 
@@ -177,7 +218,7 @@ def process_mlit_gap():
     success_count = 0
     
     for row in rows:
-        sale_unit_id, prop_type, pref, city, start_price, db_area, raw_data = row
+        sale_unit_id, prop_type, pref, city, start_price, db_area, raw_data, build_year_western = row
         
         area = db_area if db_area and db_area > 0 else extract_total_area(raw_data)
         
@@ -207,10 +248,14 @@ def process_mlit_gap():
             avgArea = val.get("avgArea", 0)
             
             referenceArea = area if area and area > 0 else avgArea
-            estimatedPrice = val["avgTradePrice"]
+            baseEstimatedPrice = val["avgTradePrice"]
             
             if avgPricePerSqm and avgPricePerSqm > 0 and referenceArea > 0:
-                estimatedPrice = avgPricePerSqm * referenceArea
+                baseEstimatedPrice = avgPricePerSqm * referenceArea
+                
+            # Apply realistic building age depreciation factor
+            factor = calculate_depreciation_factor(prop_type, build_year_western)
+            estimatedPrice = int(baseEstimatedPrice * factor)
                 
             gap = 0
             if start_price and start_price > 0 and estimatedPrice > 0:
@@ -220,9 +265,9 @@ def process_mlit_gap():
                 UPDATE "Property" 
                 SET mlit_estimated_price = %s, mlit_investment_gap = %s
                 WHERE sale_unit_id = %s
-            ''', (int(estimatedPrice), round(gap, 1), sale_unit_id))
+            ''', (estimatedPrice, round(gap, 1), sale_unit_id))
             success_count += 1
-            m_print(f"  [Calculated] {sale_unit_id} ({city}) gap = {round(gap, 1)}%")
+            m_print(f"  [Calculated] {sale_unit_id} ({city}) gap = {round(gap, 1)}% (factor: {factor})")
         else:
             cur.execute('UPDATE "Property" SET mlit_investment_gap = -999 WHERE sale_unit_id = %s', (sale_unit_id,))
             m_print(f"  [Skipped] {sale_unit_id} - No MLIT Data.")

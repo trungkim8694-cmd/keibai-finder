@@ -8,6 +8,8 @@ import FavoriteButton from './FavoriteButton';
 import { extractAuctionEndDate, extractTotalArea, cleanAddress } from '../lib/utils';
 import { formatDateJapan } from '../utils/dateFormatter';
 import { CourtContactLink } from './CourtContactLink';
+import { resolvePropertyAiAnalysis } from '../lib/aiRiskExtractor';
+import { getSourceProviderMeta, isPublicAuctionProvider } from '../lib/sourceProviderConfig';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
@@ -20,7 +22,8 @@ export default function PropertyCard({
   layout = 'horizontal',
   onClick,
   onMouseEnter,
-  onMouseLeave
+  onMouseLeave,
+  onPreview
 }: { 
   property: SharedProperty;
   isHovered?: boolean;
@@ -30,6 +33,7 @@ export default function PropertyCard({
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  onPreview?: (property: SharedProperty) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -80,11 +84,12 @@ export default function PropertyCard({
   // contact_url is pre-extracted by the server action from BIT Summary section
   const courtContactUrl: string | null = (property as any).contact_url || null;
   
-  // NTA Countdown Logic
+  // Public Auction (NTA / KSI / MOF) Countdown Logic
+  const providerMeta = getSourceProviderMeta(property.source_provider);
   let ntaCountdownUI = null;
-  if (property.source_provider === 'NTA') {
+  if (isPublicAuctionProvider(property.source_provider)) {
     const rawData = (property as any).raw_display_data;
-    const endDate = (property as any).endDate || extractAuctionEndDate(rawData);
+    const endDate = (property as any).bid_end_date || (property as any).endDate || extractAuctionEndDate(rawData);
     if (endDate) {
       const nowMs = dayjs().valueOf();
       const endMs = dayjs.utc(endDate).valueOf();
@@ -128,17 +133,14 @@ export default function PropertyCard({
     <div
       ref={cardRef}
       onClick={onClick}
-      onMouseEnter={() => {
-        console.log('Hovering on ID:', property.sale_unit_id);
-        if (onMouseEnter) onMouseEnter();
-      }}
+      onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`block bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-500 mb-4 mt-2 group relative flex ${layout === 'horizontal' ? 'flex-col sm:flex-row' : 'flex-col'} hover:z-10 cursor-pointer ${
+      className={`block bg-white dark:bg-[#151B22] border rounded-lg overflow-hidden transition-all duration-200 mb-3 group relative flex ${layout === 'horizontal' ? 'flex-col sm:flex-row' : 'flex-col'} cursor-pointer ${
         isActive
-          ? 'border-blue-500 dark:border-blue-400 ring-4 ring-blue-500/30 bg-blue-50/80 dark:bg-blue-900/40 shadow-[0_0_20px_rgba(59,130,246,0.35)] scale-[1.02] transform'
+          ? 'border-[#1B4F8A] dark:border-[#2B6CB0] ring-1 ring-[#1B4F8A] bg-slate-50/70 dark:bg-slate-900/60 shadow-sm'
           : isHovered 
-            ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-400/30' 
-            : 'border-zinc-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-700'
+            ? 'border-[#1B4F8A]/80 dark:border-[#2B6CB0]/80 shadow-sm' 
+            : 'border-slate-200 dark:border-slate-800/90 hover:border-slate-400 dark:hover:border-slate-600'
       }`}
     >
       {/* Remove the absolute Link overlay so the whole card is just a click target handling onClick without navigating away */}
@@ -148,20 +150,16 @@ export default function PropertyCard({
           src={imgSrc}
           alt="物件の写真"
           fill
+          unoptimized
           onError={handleImageError}
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         
         {/* Is New Badge (< 24h) */}
         {(property as any).created_at && (Date.now() - new Date((property as any).created_at).getTime() < 24 * 60 * 60 * 1000) && (
-          <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 px-2.5 py-1 bg-black/70 backdrop-blur-sm rounded-full border border-white/20 shadow-lg overflow-hidden">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-            <span className="text-[10px] sm:text-[9px] font-bold tracking-widest text-white relative">
-              <span className="relative z-10">NEW</span>
-              <span className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer"></span>
+          <div className="absolute top-2 left-2 z-10">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800/60">
+              新着
             </span>
           </div>
         )}
@@ -170,16 +168,16 @@ export default function PropertyCard({
         <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1 pointer-events-auto">
           <FavoriteButton id={property.sale_unit_id} />
           
-          {property.source_provider === 'NTA' && (
-             <div className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm flex items-center gap-1">
-                <span>🏛️ NTA</span>
+          {property.source_provider && property.source_provider !== 'BIT' && (
+             <div className={`${providerMeta.badgeClass} text-[10px] font-semibold px-1.5 py-0.5 rounded shadow-sm`}>
+                {providerMeta.badgeText}
              </div>
           )}
 
           {/* Dynamic Distance Indicator */}
           {distanceFromTarget !== undefined && distanceFromTarget > 0 && distanceFromTarget < 9999 ? (
-             <div className="bg-[#1D4ED8]/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm flex items-center gap-1 animate-fade-in">
-                <span>📍</span> +{distanceFromTarget.toFixed(1)}km
+             <div className="bg-[#1B4F8A] text-white text-[10px] font-medium px-1.5 py-0.5 rounded shadow-sm tabular-nums">
+                +{distanceFromTarget.toFixed(1)}km
              </div>
           ) : null}
         </div>
@@ -191,11 +189,11 @@ export default function PropertyCard({
         <div className="mb-2 lg:mb-1 flex justify-between items-start gap-2">
           <div className="min-w-0">
             <span className="text-[11px] lg:text-[10px] font-medium block truncate">
-              {property.source_provider === 'NTA' ? (
+              {isPublicAuctionProvider(property.source_provider) ? (
                 <CourtContactLink 
-                  courtName={property.managing_authority ? property.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : 'NTA 税務署'} 
+                  courtName={property.managing_authority ? property.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : (property.court_name || providerMeta.authorityFallback)} 
                   contactUrl={property.contact_url || property.source_url} 
-                  theme="red"
+                  theme={providerMeta.linkTheme}
                 />
               ) : (
                 <CourtContactLink courtName={property.court_name} contactUrl={courtContactUrl} />
@@ -204,13 +202,13 @@ export default function PropertyCard({
           </div>
 
           {property.mlit_investment_gap !== null && property.mlit_investment_gap !== undefined && property.mlit_investment_gap > 0 && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50 shadow-sm whitespace-nowrap transition-transform hover:scale-105">
-              <span className="text-[9px] sm:text-[10px]">📈</span> ギャップ +{property.mlit_investment_gap.toFixed(1)}%
+            <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 border border-blue-200/90 dark:border-blue-800/60 tabular-nums">
+              市場比 {property.mlit_investment_gap.toFixed(0)}% 割安
             </span>
           )}
         </div>
         
-        <h3 className="text-[11px] lg:text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 mb-2 lg:mb-1 line-clamp-2 leading-snug group-hover:text-blue-500 transition-colors">
+        <h3 className="text-[12px] lg:text-[11px] font-semibold text-slate-800 dark:text-slate-200 mb-1.5 line-clamp-2 leading-snug group-hover:text-[#1B4F8A] dark:group-hover:text-blue-400 transition-colors">
           {cleanAddress(property.address, property.prefecture, property.city)}
         </h3>
          <div className="mb-4 lg:mb-3">
@@ -225,32 +223,83 @@ export default function PropertyCard({
         
 
         
+        {/* AI Complexity Quick Badge */}
+        {(() => {
+          const ai = resolvePropertyAiAnalysis(property);
+          const hasArrears = ai.metrics.arrears.amountYen > 0;
+          const isCaution = ai.complexityLevel === 'C' || ai.complexityLevel === 'D';
+
+          return (
+            <div className="mb-2 flex items-center gap-1.5 flex-wrap">
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium tabular-nums ${
+                isCaution
+                  ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-900/60'
+                  : hasArrears
+                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-900/60'
+                    : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-zinc-700/60'
+              }`}>
+                調査難易度 {ai.complexityLevel}
+              </span>
+
+              {hasArrears && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-900/60 tabular-nums">
+                  滞納約{Math.round(ai.metrics.arrears.amountYen / 10000)}万
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
         {ntaCountdownUI}
         
-        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 lg:pt-2 mt-auto flex items-end justify-between pr-1 gap-1">
+        <div className="border-t border-slate-100 dark:border-slate-800 pt-2.5 mt-auto flex items-end justify-between pr-1 gap-1">
           <div className="shrink-0 overflow-hidden">
-            <p className="text-[9px] text-zinc-500 dark:text-zinc-400 mb-0.5 whitespace-nowrap">売却基準価額</p>
-            <p className="font-bold text-[12px] lg:text-[11px] tracking-tight text-zinc-900 dark:text-white whitespace-nowrap">{formattedPrice}</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">売却基準価額</p>
+            <p className="font-bold text-[13px] lg:text-[12px] tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap tabular-nums">{formattedPrice}</p>
           </div>
-          <div className="flex gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button 
               onClick={(e) => { e.stopPropagation(); if (onClick) onClick(); }} 
-              className="group/btn bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-all duration-300 text-[10px] font-bold py-1 px-1.5 rounded-lg flex items-center gap-0.5 shadow-sm border border-emerald-100"
+              className="px-2 py-1 text-[11px] font-medium border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 rounded transition-colors"
               title="地図で位置を見る"
             >
-               <span>🎯</span>
-               <span>地図</span>
+               地図
             </button>
-            <a 
-              href={`/property/${property.sale_unit_id}`} 
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()} 
-              className="group/btn bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all duration-300 text-[10px] font-bold py-1 px-1.5 rounded-lg flex items-center gap-0.5 shadow-sm border border-blue-100"
-            >
-               <span>詳細</span>
-               <span className="group-hover/btn:translate-x-0.5 transition-transform">→</span>
-            </a>
+            {onPreview ? (
+              <>
+                {/* Mobile: Trượt mở Bottom Sheet không bung tab mới */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPreview(property);
+                  }}
+                  className="md:hidden px-2.5 py-1 text-[11px] font-medium bg-[#1B4F8A] hover:bg-[#143D6C] text-white rounded transition-colors inline-flex items-center gap-0.5"
+                >
+                  詳細
+                </button>
+                {/* Desktop: Giữ nguyên mở tab mới để phục vụ Tab Hoarding */}
+                <a 
+                  href={`/property/${property.sale_unit_id}`} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()} 
+                  className="hidden md:inline-flex px-2.5 py-1 text-[11px] font-medium bg-[#1B4F8A] hover:bg-[#143D6C] text-white rounded transition-colors"
+                >
+                  詳細
+                </a>
+              </>
+            ) : (
+              <a 
+                href={`/property/${property.sale_unit_id}`} 
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()} 
+                className="px-2.5 py-1 text-[11px] font-medium bg-[#1B4F8A] hover:bg-[#143D6C] text-white rounded transition-colors"
+              >
+                詳細
+              </a>
+            )}
           </div>
         </div>
       </div>

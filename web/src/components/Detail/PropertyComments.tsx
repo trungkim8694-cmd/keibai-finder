@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession, signIn } from "next-auth/react";
-import { ChatBubbleLeftRightIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { MessageSquare, Lock, AlertCircle } from "lucide-react";
 
 interface Comment {
   id: string;
@@ -79,43 +79,46 @@ export function PropertyComments({ saleUnitId, initialComments }: PropertyCommen
   };
 
   return (
-    <section className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-6">
-      <div className="flex items-center gap-2.5 border-b border-zinc-100 dark:border-zinc-800 pb-4">
-        <ChatBubbleLeftRightIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-        <h2 className="font-bold text-lg text-zinc-900 dark:text-white">
-          コメント・情報共有 ({comments.length})
+    <section className="bg-white dark:bg-zinc-900 rounded-lg p-5 md:p-6 shadow-none border border-slate-200 dark:border-zinc-800 space-y-5">
+      <div className="flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3">
+        <MessageSquare className="w-4 h-4 text-[#1B4F8A] dark:text-blue-400" />
+        <h2 className="font-semibold text-sm text-slate-800 dark:text-slate-100">
+          コメント・現地調査メモ ({comments.length})
         </h2>
       </div>
 
       {/* Comment Form */}
       {session ? (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full border border-zinc-200 dark:border-zinc-800 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+            <div className="w-8 h-8 rounded border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-xs shrink-0">
               {Array.from(session.user?.name ? maskName(session.user.name) : '匿名ユーザー')[0]}
             </div>
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 space-y-2">
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="現地調査の状況（外壁の状態、騒音、境界など）や、入札に関する相談・疑問などを入力してください..."
+                placeholder="現地調査の所見（接道状況、外壁劣化、占有状態など）や入札に関する質疑を入力できます..."
                 rows={3}
                 required
-                className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none placeholder-zinc-400 dark:placeholder-zinc-600"
+                className="w-full px-3 py-2 bg-slate-50/50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-[#1B4F8A] focus:border-[#1B4F8A] transition-colors resize-none placeholder-slate-400 dark:placeholder-zinc-600"
               />
               
               {error && (
-                <p className="text-xs text-red-500 font-medium">⚠️ {error}</p>
+                <div className="flex items-center gap-1.5 text-xs text-red-600">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{error}</span>
+                </div>
               )}
 
               <div className="flex justify-end">
                 <button
                   type="submit"
                   disabled={loading || content.trim() === ""}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600 dark:disabled:bg-blue-800/50 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-[#1B4F8A] hover:bg-[#163e6c] disabled:bg-slate-300 dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-xs font-medium rounded transition-colors flex items-center gap-1.5 disabled:cursor-not-allowed"
                 >
                   {loading && (
-                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                   )}
                   コメントを投稿する
                 </button>
@@ -124,23 +127,23 @@ export function PropertyComments({ saleUnitId, initialComments }: PropertyCommen
           </div>
         </form>
       ) : (
-        <div className="p-5 bg-zinc-50/50 dark:bg-zinc-950/20 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl flex flex-col items-center justify-center text-center space-y-4 py-8">
-          <div className="p-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-full">
-            <LockClosedIcon className="w-5 h-5" />
+        <div className="p-5 bg-slate-50/50 dark:bg-zinc-950/20 border border-dashed border-slate-200 dark:border-zinc-800 rounded-lg flex flex-col items-center justify-center text-center space-y-3 py-6">
+          <div className="p-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 rounded-full">
+            <Lock className="w-4 h-4" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              コメントを投稿するにはログインが必要です
+            <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">
+              コメントや調査メモの閲覧・投稿にはログインが必要です
             </p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-[280px] leading-relaxed">
-              現地調査メモの共有や、入札意見の交換をするためにログインしてください。
+            <p className="text-[11px] text-slate-500 dark:text-zinc-400 max-w-xs leading-relaxed">
+              現地確認データや投資家同士の情報交換にご利用いただけます。
             </p>
           </div>
           <button
             onClick={() => signIn("google")}
-            className="px-5 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-black rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all flex items-center gap-2 shadow-sm"
+            className="px-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-xs font-medium rounded hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2 shadow-none"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
@@ -152,24 +155,24 @@ export function PropertyComments({ saleUnitId, initialComments }: PropertyCommen
       )}
 
       {/* Comments List */}
-      <div className="space-y-4 divide-y divide-zinc-100 dark:divide-zinc-800/40">
-        {comments.map((comment, index) => {
+      <div className="space-y-3 divide-y divide-slate-100 dark:divide-zinc-800/40">
+        {comments.map((comment) => {
           const commentMaskedName = maskName(comment.user.name);
           return (
-            <div key={comment.id} className="flex gap-3 pt-4 first:pt-0">
-              <div className="w-9 h-9 rounded-full border border-zinc-200 dark:border-zinc-800 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+            <div key={comment.id} className="flex gap-3 pt-3 first:pt-0">
+              <div className="w-8 h-8 rounded border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-xs shrink-0">
                 {Array.from(commentMaskedName)[0]}
               </div>
-              <div className="flex-1 space-y-1.5 min-w-0">
+              <div className="flex-1 space-y-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-sm text-zinc-900 dark:text-white truncate">
+                  <span className="font-semibold text-xs text-slate-800 dark:text-white truncate">
                     {commentMaskedName}
                   </span>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 whitespace-nowrap">
+                  <span className="text-[10px] text-slate-400 tabular-nums whitespace-nowrap">
                     {formatCommentDate(comment.created_at)}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-700 dark:text-zinc-350 leading-relaxed whitespace-pre-wrap break-words">
+                <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap break-words">
                   {comment.content}
                 </p>
               </div>

@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const { ids } = body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ success: true, message: 'Nhận mảng rỗng, không cần đồng bộ' });
+      return NextResponse.json({ success: true, message: '空の配列のため同期をスキップしました' });
     }
 
     // Prepare array for creation, ignoring if exists using createMany with skipDuplicates
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Lỗi khi Sync Favorites:', error);
+    console.error('Favorites sync error:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }

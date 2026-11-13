@@ -1,9 +1,10 @@
 name: Weekly Auction Results Crawler
 
 on:
-  schedule:
-    # 18:00 UTC Thứ Sáu = 3:00 AM JST Thứ Bảy
-    - cron: '0 18 * * 5'
+  # Lịch tự động đã được chuyển về chạy trực tiếp trên VPS qua Systemd Timer / Crontab.
+  # Bỏ comment bên dưới nếu muốn kích hoạt lại lịch chạy tự động trên GitHub Actions:
+  # schedule:
+  #   - cron: '0 18 * * 5'
   workflow_dispatch:
 
 jobs:

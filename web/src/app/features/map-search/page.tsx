@@ -2,25 +2,15 @@ import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Map, ArrowRight, TrendingUp, Sparkles, MapPin, Calculator, MousePointer2 } from 'lucide-react';
-import LanguageBanner from '@/components/LanguageBanner';
 
 export const metadata: Metadata = {
   title: '競売物件のマップ検索・AI相場査定｜Keibai Finder機能紹介',
   description: '文字だけの競売情報から卒業しませんか？Keibai Finderのマップ検索なら直感的に周囲の物件と比較可能。国交省データとAIを用いた「投資ギャップ（Investment Gap）」査定機能について解説します。',
-  alternates: {
-    languages: {
-      'ja': '/features/map-search',
-      'en': '/en/features/map-search',
-      'vi': '/vi/features/map-search',
-      'zh': '/zh/features/map-search'
-    }
-  }
 };
 
 export default function MapFeatureLandingPage() {
   return (
     <div className="min-h-[100dvh] bg-white dark:bg-zinc-950 font-sans pb-20">
-      <LanguageBanner />
       {/* 1. Hero Section */}
       <section className="relative overflow-hidden pt-24 pb-16 sm:pt-32 sm:pb-24 lg:pb-32 px-4 sm:px-6 lg:px-8 text-center max-w-7xl mx-auto">
         <div className="absolute top-0 inset-x-0 h-64 bg-gradient-to-b from-blue-50/50 dark:from-indigo-950/20 to-transparent pointer-events-none" />

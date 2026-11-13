@@ -13,7 +13,7 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: CORS_HEADERS });
 }
 
-// Helper to convert Lat/Lng to XYZ Tile
+// Helper to convert Lat/Lng to XYZ Tile at specific zoom level
 function latLngToTile(lat: number, lng: number, zoom: number) {
   const x = Math.floor((lng + 180) / 360 * Math.pow(2, zoom));
   const y = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
@@ -30,25 +30,32 @@ function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon
   return R * c; 
 }
 
-const MLIT_API_KEY = process.env.MLIT_REINFOLIB_API_KEY || '';
+const rawKey = process.env.MLIT_REINFOLIB_API_KEY || process.env.MLIT_API_KEY || '3cee958080dc40b2854698b6407d4b5a';
+const MLIT_API_KEY = rawKey.replace(/["'\\]/g, '').trim();
 
-// Base fetch configuration
+// Base fetch configuration with 7-day Server Fetch Cache (Revalidate)
 async function fetchMLITGeoJSON(layerType: string, z: number, x: number, y: number) {
   if (!MLIT_API_KEY) return null;
-  // TODO: Update exact API endpoint codes (e.g., XIT00X) when MLIT API spec is fully published
   const url = `https://www.reinfolib.mlit.go.jp/ex-api/external/${layerType}?response_format=geojson&z=${z}&x=${x}&y=${y}`;
   
   try {
     const res = await fetch(url, {
       method: 'GET',
       headers: { 'Ocp-Apim-Subscription-Key': MLIT_API_KEY },
-      next: { revalidate: 604800 } // Cache 7 days to protect MLIT quota
+      next: { revalidate: 604800 }, // Cache 7 days in Next.js Server Cache Layer
     });
     
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (error) {
-    console.error(`MLIT Fetch failed for ${layerType}:`, error);
+    if (!res.ok) {
+      if (res.status === 404) {
+        return { type: 'FeatureCollection', features: [] };
+      }
+      console.error(`MLIT Fetch non-ok for ${layerType}: status=${res.status} ${res.statusText}`);
+      return null;
+    }
+    const data = await res.json();
+    return data;
+  } catch (error: any) {
+    console.error(`MLIT Fetch exception for ${layerType}:`, error?.message || error);
     return null;
   }
 }
@@ -85,13 +92,17 @@ export async function GET(request: NextRequest) {
     timestamp: new Date().toISOString()
   };
 
+  const resHeaders = new Headers(CORS_HEADERS);
+  resHeaders.set('Content-Type', 'application/json');
+  // Cache for 24h on CDN/Edge, allow serving stale content for 1 hour while revalidating in background
+  resHeaders.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=3600');
+
   if (!MLIT_API_KEY) {
-      // Return warnings completely empty of random mock data if no API Key
-      return NextResponse.json(result, { status: 200, headers: CORS_HEADERS });
+      return NextResponse.json(result, { status: 200, headers: resHeaders });
   }
 
   try {
-    // 1. Parallel MLIT fetching (Promise.all to optimize UX)
+    // Parallel MLIT fetching (Promise.all to optimize latency)
     const [floodData, landslideData, tsunamiData, stormData, shelterData] = await Promise.all([
       fetchMLITGeoJSON('XKT026', tile.z, tile.x, tile.y), // Flood 洪水浸水想定
       fetchMLITGeoJSON('XKT029', tile.z, tile.x, tile.y), // Landslide 土砂災害警戒
@@ -100,61 +111,84 @@ export async function GET(request: NextRequest) {
       fetchMLITGeoJSON('XGT001', tile.z, tile.x, tile.y)  // Shelter 指定緊急避難場所
     ]);
 
-    // Default to '未取得' (Not acquired/Failed) first. 
-    // They will only be marked as safe ('危険なし') if the API successfully returned a FeatureCollection, 
-    // ensuring we don't accidentally report 'Safe' when MLIT servers are down.
-    result.flood = floodData ? "危険なし" : "未取得 (Không có dữ liệu)";
-    result.landslide = landslideData ? "危険なし" : "未取得 (Không có dữ liệu)";
-    result.tsunami = tsunamiData ? "危険なし" : "未取得 (Không có dữ liệu)";
-    result.storm_surge = stormData ? "危険なし" : "未取得 (Không có dữ liệu)";
-    result.shelter = shelterData ? "付近に避難所が見つかりません" : "未取得 (Không có dữ liệu)";
+    // Default safe status if data retrieved
+    result.flood = floodData ? "危険なし (想定区域外)" : "データ未取得 (エリア外)";
+    result.landslide = landslideData ? "危険なし (警戒区域外)" : "データ未取得 (エリア外)";
+    result.tsunami = tsunamiData ? "危険なし (想定区域外)" : "データ未取得 (エリア外)";
+    result.storm_surge = stormData ? "危険なし (想定区域外)" : "データ未取得 (エリア外)";
+    result.shelter = shelterData ? "付近1km圏内に指定避難所なし" : "データ未取得 (エリア外)";
 
-    // 2. Point in Polygon Checks (Ray-casting via Turf.js)
+    // 1. Flood Inundation Check (洪水浸水想定)
+    const floodDepthMap: Record<number | string, string> = {
+      1: '0.5m未満',
+      2: '0.5m〜3.0m未満',
+      3: '3.0m〜5.0m未満',
+      4: '5.0m〜10.0m未満',
+      5: '10.0m〜20.0m未満',
+      6: '20.0m以上',
+    };
     if (floodData && floodData.features) {
       for (const f of floodData.features) {
         if (f.geometry && f.geometry.type.includes('Polygon')) {
            if (booleanPointInPolygon(targetPt, f)) {
-              result.flood = f.properties?.rank_ja ? `浸水想定 ${f.properties.rank_ja}` : "浸水想定区域内";
+              const rankVal = f.properties?.A31a_205 || f.properties?.rank || f.properties?.rank_code;
+              const depthStr = floodDepthMap[rankVal] || f.properties?.rank_ja || '浸水想定区域内';
+              const river = f.properties?.A31a_202 ? `（${f.properties.A31a_202}）` : '';
+              result.flood = `浸水想定 ${depthStr}${river}`;
               break;
            }
         }
       }
     }
 
+    // 2. Landslide Alert Area (土砂災害警戒区域)
+    const landslideTypeMap: Record<number | string, string> = {
+      1: '急傾斜地崩壊',
+      2: '土石流',
+      3: '地滑り',
+    };
     if (landslideData && landslideData.features) {
       for (const f of landslideData.features) {
         if (f.geometry && f.geometry.type.includes('Polygon')) {
            if (booleanPointInPolygon(targetPt, f)) {
-              result.landslide = f.properties?.zone_ja || "警戒区域 (イエローゾーン)";
+              const typeCode = f.properties?.A33_001;
+              const levelCode = f.properties?.A33_002;
+              const hazardType = landslideTypeMap[typeCode] || '';
+              const zoneLevel = levelCode === 2 ? '特別警戒区域 (レッド)' : '警戒区域 (イエロー)';
+              result.landslide = hazardType ? `${zoneLevel}・${hazardType}` : (f.properties?.zone_ja || zoneLevel);
               break;
            }
         }
       }
     }
 
+    // 3. Tsunami Inundation (津波浸水想定)
     if (tsunamiData && tsunamiData.features) {
       for (const f of tsunamiData.features) {
         if (f.geometry && f.geometry.type.includes('Polygon')) {
            if (booleanPointInPolygon(targetPt, f)) {
-              result.tsunami = f.properties?.rank_ja ? `浸水想定 ${f.properties.rank_ja}` : "浸水想定区域内";
+              const tDepth = f.properties?.A40_003 || f.properties?.depth_ja || f.properties?.rank_ja || '浸水想定区域内';
+              result.tsunami = `津波浸水想定 (${tDepth})`;
               break;
            }
         }
       }
     }
 
+    // 4. Storm Surge Inundation (高潮浸水想定)
     if (stormData && stormData.features) {
       for (const f of stormData.features) {
         if (f.geometry && f.geometry.type.includes('Polygon')) {
            if (booleanPointInPolygon(targetPt, f)) {
-              result.storm_surge = f.properties?.rank_ja ? `浸水想定 ${f.properties.rank_ja}` : "高潮浸水想定区域内";
+              const sDepth = f.properties?.A49_003 || f.properties?.rank_ja || '高潮浸水想定区域内';
+              result.storm_surge = `高潮浸水想定 (${sDepth})`;
               break;
            }
         }
       }
     }
 
-    // 3. Nearest Shelter Calculation (Haversine via Turf)
+    // 5. Nearest Shelter (指定緊急避難場所)
     if (shelterData && shelterData.features) {
        let minDistance = Infinity;
        let bestShelterName = null;
@@ -166,38 +200,30 @@ export async function GET(request: NextRequest) {
              const d = getDistanceFromLatLonInKm(lat, lng, sLat, sLng);
              if (d < minDistance) {
                 minDistance = d;
-                bestShelterName = f.properties?.name || f.properties?.施設名称 || "指定避難所";
+                bestShelterName = f.properties?.facility_name_ja || f.properties?.name || f.properties?.施設名称 || "指定避難所";
              }
           }
        }
 
-       if (bestShelterName) {
-           // Average walking speed 80m/min
+       if (bestShelterName && minDistance < 15) {
            const walkTimeMins = Math.ceil((minDistance * 1000) / 80);
-           result.shelter = `${bestShelterName} (徒歩約${walkTimeMins}分)`;
+           const distText = minDistance < 1 ? `${Math.round(minDistance * 1000)}m` : `${minDistance.toFixed(1)}km`;
+           result.shelter = `${bestShelterName} (約${distText}・徒歩${walkTimeMins}分)`;
        }
     }
 
-    // Since exact MLIT endpoint IDs (XIT...) aren't set in the fetcher yet, 
-    // it will safely fall back to "危険なし" / "付近に避難所が見つかりません" if the API yields 404,
-    // achieving exactly what the user requested: No more random mock data, just fail-safe warnings!
-
     return NextResponse.json(result, {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        ...CORS_HEADERS
-      },
+      headers: resHeaders,
     });
   } catch (error) {
     console.error('Hazard Check API Error:', error);
-    // User requirement: Warn instead of mock if it fails
     return NextResponse.json({ 
-        flood: "システムエラー",
-        landslide: "システムエラー",
-        tsunami: "システムエラー",
-        storm_surge: "システムエラー",
-        shelter: "システムエラー"
+        flood: "データ取得エラー",
+        landslide: "データ取得エラー",
+        tsunami: "データ取得エラー",
+        storm_surge: "データ取得エラー",
+        shelter: "データ取得エラー"
     }, { status: 500, headers: CORS_HEADERS });
   }
 }

@@ -10,6 +10,7 @@ import json
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '../web/.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), '../web/.env.local'))
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -50,27 +51,29 @@ def prepend_prefecture(address, court_name):
         return f"{matched_pref}{address}"
     return address
 
-def get_gsi_coords(address):
+def get_gsi_coords(address, return_title=False):
     """
     Gọi API GSI (Quốc thổ Địa lý Viện Nhật Bản) để lấy toạ độ siêu chuẩn cho địa chỉ.
     Docs: https://msearch.gsi.go.jp/address-search/AddressSearch?q=
-    Returns: lat, lng (float) or None, None
+    Returns: (lat, lng) or (lat, lng, title) if return_title=True
     """
-    if not address: return None, None
+    if not address:
+        return (None, None, None) if return_title else (None, None)
     try:
         url = f"https://msearch.gsi.go.jp/address-search/AddressSearch?q={urllib.parse.quote(address)}"
-        res = requests.get(url, timeout=10)
+        res = requests.get(url, timeout=8)
         data = res.json()
         if data and isinstance(data, list) and len(data) > 0:
-            # GSI API trả về [lng, lat] trong geometry.coordinates
             coords = data[0].get("geometry", {}).get("coordinates", [])
+            title = data[0].get("properties", {}).get("title", "")
             if len(coords) == 2:
                 lng, lat = coords[0], coords[1]
-                print(f"      [GSI-Success] Lấy toạ độ từ cơ sở dữ liệu quốc gia: {lat},{lng}")
+                if return_title:
+                    return float(lat), float(lng), title
                 return float(lat), float(lng)
     except Exception as e:
-        print(f"      [GSI-Error] API lỗi: {e}")
-    return None, None
+        pass
+    return (None, None, None) if return_title else (None, None)
 
 
 def clean_area_string(val):
@@ -80,9 +83,16 @@ def clean_area_string(val):
     # Normalize unicode to NFKC (converts full-width to half-width)
     hw = unicodedata.normalize('NFKC', str(val))
     
+    # Loại bỏ thông tin tỉ lệ sở hữu: e.g. 持分 1/2, (1/2), 持分: 3/4
+    hw = re.sub(r'(?:持分\s*)?[\(（]?\d+\s*[/／]\s*\d+[\)）]?', ' ', hw)
+    # Loại bỏ phần trăm: e.g. 60%, 200%
+    hw = re.sub(r'\d+(?:\.\d+)?\s*%', ' ', hw)
+    # Loại bỏ số thửa/bút: e.g. 外2筆, 3筆
+    hw = re.sub(r'外?\d+\s*筆', ' ', hw)
     # Standardize area units to "㎡" (handle m2, m 2, etc.)
     hw = re.sub(r'm\s*2', '㎡', hw, flags=re.IGNORECASE)
     hw = re.sub(r'ｍ\s*２', '㎡', hw)
+    hw = re.sub(r'平方メートル|平米', '㎡', hw)
     
     # Strip floor designations (e.g. 1階, 1階部分, 地下2階建)
     hw = re.sub(r'地下\d+(?:\.\d+)?\s*階(?:部分|建)?', ' ', hw, flags=re.IGNORECASE)
@@ -90,24 +100,46 @@ def clean_area_string(val):
     
     # Strip room numbers (e.g. 103号室, 103号)
     hw = re.sub(r'\d+\s*号室?', ' ', hw, flags=re.IGNORECASE)
+    # Strip building/block numbers (e.g. 1棟, 2工区)
+    hw = re.sub(r'\d+\s*棟', ' ', hw, flags=re.IGNORECASE)
     
     # Remove commas that are part of numbers like 1,234.56
     hw_no_commas = re.sub(r'(?<=\d),(?=\d)', '', hw)
     
-    # Find all float numbers in the remaining string
-    matches = re.findall(r'(\d+(?:\.\d+)?)', hw_no_commas)
-    if not matches:
-        return None
+    # Ưu tiên 1: Trích xuất các số gắn liền với đơn vị diện tích ㎡
+    area_unit_matches = re.findall(r'(\d+(?:\.\d+)?)\s*㎡', hw_no_commas)
+    if area_unit_matches:
+        total = sum(float(x) for x in area_unit_matches if float(x) > 0)
+        return total if total > 0 else None
         
-    # Sum all extracted numbers
-    total = 0.0
-    for num_str in matches:
-        try:
-            total += float(num_str)
-        except ValueError:
-            pass
+    # Ưu tiên 2: Xử lý đơn vị 坪 (tsubo): 1 坪 ≈ 3.30578 ㎡
+    tsubo_matches = re.findall(r'(\d+(?:\.\d+)?)\s*坪', hw_no_commas)
+    if tsubo_matches:
+        total = sum(float(x) * 3.30578 for x in tsubo_matches if float(x) > 0)
+        return total if total > 0 else None
+
+    # Fallback: Nếu không có nhãn ㎡ nhưng chuỗi chỉ chứa số
+    matches = re.findall(r'(\d+(?:\.\d+)?)', hw_no_commas)
+    if matches:
+        if len(matches) == 1:
+            try:
+                v = float(matches[0])
+                return v if v > 0 else None
+            except ValueError:
+                pass
+        else:
+            floats = []
+            for m in matches:
+                try:
+                    f = float(m)
+                    if 0 < f < 1000000:
+                        floats.append(f)
+                except ValueError:
+                    pass
+            if floats:
+                return floats[0]
             
-    return total if total > 0 else None
+    return None
 
 def convert_reiwa_to_datetime(date_str):
     if not date_str:
@@ -167,17 +199,17 @@ def get_nearest_station_from_db(lat, lng, cur):
     if not lat or not lng:
         return None, None, None, None
         
-    sql = f"""
+    sql = """
       SELECT 
         "name_ja", "line_name",
-        ( 6371 * acos( cos( radians({lat}) ) * cos( radians( "lat" ) ) * cos( radians( "lng" ) - radians({lng}) ) + sin( radians({lat}) ) * sin( radians( "lat" ) ) ) ) AS distance
+        ( 6371 * acos( cos( radians(%s) ) * cos( radians( "lat" ) ) * cos( radians( "lng" ) - radians(%s) ) + sin( radians(%s) ) * sin( radians( "lat" ) ) ) ) AS distance
       FROM "RailwayStation"
       WHERE "lat" IS NOT NULL AND "lng" IS NOT NULL
       ORDER BY distance ASC
       LIMIT 1
     """
     try:
-        cur.execute(sql)
+        cur.execute(sql, (float(lat), float(lng), float(lat)))
         row = cur.fetchone()
         if row:
             name_ja, line_name, dist_km = row
@@ -198,8 +230,27 @@ def to_half_width(text):
     return unicodedata.normalize('NFKC', text)
 
 def aggressive_clean(address):
-    if not address: return ""
+    """
+    Tiền xử lý và làm sạch địa chỉ tiếng Nhật chuẩn hóa:
+    1. Bóc tách nội dung trong ngoặc kép 「...」 (đặc thù của NTA: 近隣の住居表示「...」付近)
+    2. Loại bỏ tiền tố: 所在, 所在地, 近隣の住居表示
+    3. Loại bỏ hậu tố: 付近, 周辺, 外○筆
+    4. Chuẩn hóa NFKC (toàn giác sang bán giác), dấu gạch nối và số nhà
+    """
+    if not address or address == "Unknown":
+        return ""
+    
+    # 1. Bóc tách địa chỉ NTA trong ngoặc
+    m_bracket = re.search(r'「([^」]+)」', address)
+    if m_bracket:
+        address = m_bracket.group(1)
+        
     addr = to_half_width(address)
+    # 2. Xóa tiền tố
+    addr = re.sub(r'^(?:所在|所在地|近隣の住居表示)[:：\s]*', '', addr)
+    # 3. Xóa hậu tố
+    addr = re.sub(r'[付近周辺]$', '', addr)
+    addr = re.sub(r'外?\d+\s*筆', '', addr)
     addr = re.sub(r'[番番地号]$', '', addr)
     addr = re.sub(r'番地?', '-', addr)
     addr = re.sub(r'号', '', addr)
@@ -211,139 +262,211 @@ JAPAN_BOUNDS = {"lat_min": 24.0, "lat_max": 46.0, "lng_min": 122.0, "lng_max": 1
 def is_valid_japan_coords(lat, lng):
     if lat is None or lng is None:
         return False
-    return (JAPAN_BOUNDS["lat_min"] <= float(lat) <= JAPAN_BOUNDS["lat_max"] and
-            JAPAN_BOUNDS["lng_min"] <= float(lng) <= JAPAN_BOUNDS["lng_max"])
-
-def reverse_validate_coords(lat, lng, original_address):
-    if not is_valid_japan_coords(lat, lng):
-        return False
     try:
-        import time
-        time.sleep(1.2)
-        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lng}&format=json"
-        res = requests.get(url, headers={"User-Agent": "KeibaiFinderApp/1.0"}, timeout=10)
-        rev = res.json()
-        addr_parts = rev.get('address', {})
-        returned_place = ' '.join([
-            addr_parts.get('city', ''),
-            addr_parts.get('town', ''),
-            addr_parts.get('village', ''),
-            addr_parts.get('county', ''),
-            addr_parts.get('province', ''),
-            addr_parts.get('subprovince', ''),
-        ])
-        
-        m_pref = re.search(r'^(.{2,3}?(?:都|道|府|県))', original_address)
-        m_city = re.search(r'(?:都|道|府|県|^)([^都道府県\s\u0021-\u00ff]+?(?:市|区|郡|町|村))', original_address)
-        m_city_bare = re.search(r'^([^都道府県\s\u0021-\u00ff]+?(?:市|区|郡|町|村))', original_address)
-        m_town = re.search(r'郡([\u3040-\u9fff]+?(?:町|村))', original_address)
-        m_county = re.search(r'([\u3040-\u9fff]+郡)', original_address)
-        
-        expected_parts = []
-        if m_city: expected_parts.append(m_city.group(1).strip())
-        if m_pref: expected_parts.append(m_pref.group(1))
-        if m_city_bare and not m_city: expected_parts.append(m_city_bare.group(1))
-        if m_town: expected_parts.append(m_town.group(1))
-        if m_county: expected_parts.append(m_county.group(1))
-        
-        if not expected_parts:
-            return True
-        
-        is_match = any(part in returned_place for part in expected_parts)
-        if not is_match:
-            print(f"      [Reverse-Mismatch] Địa chỉ gốc: '{expected_parts}' | OSM trả về: '{returned_place.strip()}'")
-        return is_match
-    except Exception as e:
-        print(f"      [Reverse-Error]: {e}")
+        return (JAPAN_BOUNDS["lat_min"] <= float(lat) <= JAPAN_BOUNDS["lat_max"] and
+                JAPAN_BOUNDS["lng_min"] <= float(lng) <= JAPAN_BOUNDS["lng_max"])
+    except (ValueError, TypeError):
+        return False
+
+def is_gsi_title_matching(title, original_address):
+    """
+    Xác minh toạ độ GSI bằng trường title trả về trực tiếp từ GSI mà không cần gọi OSM.
+    Đảm bảo tỉnh hoặc thành phố/quận/huyện của địa chỉ gốc có trong title.
+    """
+    if not title or not original_address:
         return True
+    
+    m_pref = re.search(r'^(.{2,3}?(?:都|道|府|県))', original_address)
+    m_city = re.search(r'(?:都|道|府|県|^)([^都道府県\s\u0021-\u00ff]+?(?:市|区|郡|町|村))', original_address)
+    
+    checks = []
+    if m_pref: checks.append(m_pref.group(1))
+    if m_city: checks.append(m_city.group(1).strip())
+    
+    if not checks:
+        return True
+    
+    return any(c in title for c in checks)
+
+def get_gemini_coords(address, api_key):
+    """Fallback dùng AI Gemini (2.5-flash -> 1.5-flash) giải mã toạ độ khi GSI không nhận"""
+    for model_name in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+            headers = {'Content-Type': 'application/json'}
+            prompt = f"Convert this Japanese real estate address to latitude and longitude. Return ONLY a valid JSON object with keys 'lat' and 'lng' as float numbers. Do not include any markdown formatting, backticks, or other text. Address: {address}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"responseMimeType": "application/json"}
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=12)
+            data = res.json()
+            if "candidates" in data and len(data["candidates"]) > 0:
+                text_response = data["candidates"][0]["content"]["parts"][0]["text"]
+                location = json.loads(text_response)
+                lat, lng = location.get("lat"), location.get("lng")
+                if lat and lng:
+                    return float(lat), float(lng)
+        except Exception:
+            continue
+    return None, None
 
 def get_osm_coords(addr, original_address=None):
-    import time
-    time.sleep(1.2)
-    headers = {"User-Agent": "KeibaiFinderApp/1.0"}
-    query = f"{addr}, Japan"
-    url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(query)}&format=json&limit=1"
+    """Last-resort fallback sử dụng OpenStreetMap Nominatim khi GSI và AI đều không tìm thấy"""
     try:
-        res = requests.get(url, headers=headers, timeout=10)
+        import time
+        headers = {"User-Agent": "KeibaiFinderApp/1.0"}
+        query = f"{addr}, Japan"
+        url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(query)}&format=json&limit=1"
+        res = requests.get(url, headers=headers, timeout=8)
         data = res.json()
         if data and len(data) > 0:
             lat, lng = float(data[0]["lat"]), float(data[0]["lon"])
-            check_addr = original_address or addr
-            if reverse_validate_coords(lat, lng, check_addr):
+            if is_valid_japan_coords(lat, lng):
                 return lat, lng
-            else:
-                print(f"      [OSM-Rejected] Không khớp địa chỉ: {lat},{lng} cho '{addr}'")
-    except:
+    except Exception:
         pass
     return None, None
 
-def get_gemini_coords(address, api_key):
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-        headers = {'Content-Type': 'application/json'}
-        prompt = f"Convert this Japanese real estate address to latitude and longitude. Return ONLY a valid JSON object with keys 'lat' and 'lng' as float numbers. Do not include any markdown formatting, backticks, or other text. Address: {address}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"responseMimeType": "application/json"}
-        }
-        res = requests.post(url, headers=headers, json=payload, timeout=15)
-        data = res.json()
-        if "candidates" in data and len(data["candidates"]) > 0:
-            text_response = data["candidates"][0]["content"]["parts"][0]["text"]
-            location = json.loads(text_response)
-            lat, lng = location.get("lat"), location.get("lng")
-            if lat and lng:
-                return float(lat), float(lng)
-    except Exception as e:
-        print(f"      [Gemini-Error] Lỗi khi gọi Gemini: {e}")
-    return None, None
-
 def geocode_address(address, api_key=None):
+    """
+    Hệ thống Geocoding 3 lớp chuẩn B2B Nhật Bản:
+    Layer 1: GSI Quốc gia phân tầng (Full -> Chome/Oaza -> City/Gun)
+    Layer 2: Gemini AI (2.5-flash) dành cho địa chỉ phức tạp
+    Layer 3: OSM Nominatim chốt chặn cuối cùng
+    """
     if not address or address == "Unknown":
         return None, None
         
     clean_addr = aggressive_clean(address)
+    if not clean_addr:
+        return None, None
     
-    # Layer 00: GSI API
-    lat_gsi, lng_gsi = get_gsi_coords(clean_addr)
-    if lat_gsi and lng_gsi:
-        if reverse_validate_coords(lat_gsi, lng_gsi, address):
+    # -------------------------------------------------------------
+    # LAYER 1: GSI CƠ SỞ DỮ LIỆU ĐỊA LÝ QUỐC GIA (Tốc độ ~50ms, chuẩn 100%)
+    # -------------------------------------------------------------
+    # Nấc 1: Toàn bộ địa chỉ chi tiết (Full Address)
+    lat_gsi, lng_gsi, title_gsi = get_gsi_coords(clean_addr, return_title=True)
+    if lat_gsi and lng_gsi and is_valid_japan_coords(lat_gsi, lng_gsi):
+        if is_gsi_title_matching(title_gsi, address):
+            print(f"      [GSI-Success] Lấy toạ độ quốc gia (Chi tiết): {lat_gsi},{lng_gsi} [{title_gsi}]", flush=True)
             return lat_gsi, lng_gsi
-        else:
-            print(f"      [GSI-Rejected] Tọa độ không khớp địa chỉ: {lat_gsi},{lng_gsi} cho '{address}'")
 
-    # Layer 0.5: AI Gemini API
+    # Nấc 2: Cắt tỉa số thửa con (Chome / Oaza level)
+    trimmed_addr = re.sub(r'[\s\-0-9]+$', '', clean_addr)
+    if trimmed_addr and trimmed_addr != clean_addr:
+        lat_gsi, lng_gsi, title_gsi = get_gsi_coords(trimmed_addr, return_title=True)
+        if lat_gsi and lng_gsi and is_valid_japan_coords(lat_gsi, lng_gsi):
+            if is_gsi_title_matching(title_gsi, address):
+                print(f"      [GSI-Fallback] Lấy toạ độ quốc gia (Khu phố/Thôn xóm): {lat_gsi},{lng_gsi} [{title_gsi}]", flush=True)
+                return lat_gsi, lng_gsi
+
+    # Nấc 3: Cắt về cấp Quận / Huyện / Thị trấn (City / Gun level)
+    m_city_level = re.match(r'^(.*?([都道府県])?.*?[市区郡町村])', clean_addr)
+    if m_city_level:
+        city_addr = m_city_level.group(1).strip()
+        if city_addr and city_addr != clean_addr and city_addr != trimmed_addr:
+            lat_gsi, lng_gsi, title_gsi = get_gsi_coords(city_addr, return_title=True)
+            if lat_gsi and lng_gsi and is_valid_japan_coords(lat_gsi, lng_gsi):
+                print(f"      [GSI-Fallback] Lấy toạ độ quốc gia (Quận/Huyện): {lat_gsi},{lng_gsi} [{title_gsi}]", flush=True)
+                return lat_gsi, lng_gsi
+
+    # -------------------------------------------------------------
+    # LAYER 2: AI GEMINI (Dành cho địa chỉ có tên tranh chấp/cũ)
+    # -------------------------------------------------------------
     actual_api_key = api_key or os.environ.get("GEMINI_API_KEY")
     if actual_api_key:
         lat_ai, lng_ai = get_gemini_coords(address, actual_api_key)
-        if lat_ai and lng_ai:
-            if reverse_validate_coords(lat_ai, lng_ai, address):
-                print(f"      [Gemini-Success] Đã dùng AI lấy tọa độ: {lat_ai},{lng_ai} cho '{address}'")
-                return lat_ai, lng_ai
-            else:
-                print(f"      [Gemini-Rejected] AI trả về tọa độ không khớp địa chỉ: {lat_ai},{lng_ai} cho '{address}'")
+        if lat_ai and lng_ai and is_valid_japan_coords(lat_ai, lng_ai):
+            print(f"      [Gemini-Success] Đã dùng AI lấy tọa độ: {lat_ai},{lng_ai} cho '{address}'", flush=True)
+            return lat_ai, lng_ai
 
-    # Layer 0: Full OSM
-    lat, lng = get_osm_coords(clean_addr, address)
-    if lat and lng:
-        return lat, lng
+    # -------------------------------------------------------------
+    # LAYER 3: OSM NOMINATIM (Last Resort)
+    # -------------------------------------------------------------
+    lat_osm, lng_osm = get_osm_coords(clean_addr, address)
+    if lat_osm and lng_osm:
+        print(f"      [OSM-Fallback] Đã dùng OSM lấy tọa độ: {lat_osm},{lng_osm} cho '{address}'", flush=True)
+        return lat_osm, lng_osm
         
-    # Layer 1: Town level
-    m_phuong = re.match(r"^(.*?)[0-9\-]+$", clean_addr)
-    if m_phuong:
-        addr_phuong = m_phuong.group(1).strip()
-        print(f"      [OSM-Retry] Không tìm thấy số nhà, đang thử lại với cấp độ Phường: {addr_phuong}...")
-        lat, lng = get_osm_coords(addr_phuong, address)
-        if lat and lng: return lat, lng
-        
-    # Layer 2: City/Ward level
-    m_quan = re.match(r"(.*?[都道府県]?.*?[市区郡町村])", clean_addr)
-    if m_quan:
-        addr_quan = m_quan.group(1).strip()
-        if addr_quan != address and addr_quan != getattr(m_phuong, 'group', lambda x: '')(1).strip():
-            print(f"      [OSM-Retry] Vẫn không tìm thấy, thử lại với cấp độ Quận/Thành phố: {addr_quan}...")
-            lat, lng = get_osm_coords(addr_quan, address)
-            if lat and lng: return lat, lng
-            
-    print(f"      [OSM-Fail] Bó tay với địa chỉ: {address}")
+    print(f"      [Geocode-Fail] Không tìm thấy tọa độ cho: {address}", flush=True)
     return None, None
+
+
+def extract_prefecture_and_city(address: str):
+    """Extract (prefecture, city) from a Japanese address string."""
+    if not address:
+        return None, None
+    addr = address.strip()
+    pref_match = re.match(r'^(.{2,3}?[都道府県])\s*(.*)$', addr)
+    if not pref_match:
+        return None, None
+    prefecture = pref_match.group(1)
+    rest = pref_match.group(2).strip()
+    city_match = re.match(r'^([^0-9\s]+?[市区町村郡])', rest)
+    city = city_match.group(1) if city_match else None
+    return prefecture, city
+
+
+def extract_pdf_images_to_vps(pdf_bytes: bytes, sale_unit_id: str, max_images: int = 5) -> list[str]:
+    """
+    Trích xuất ảnh chụp thực tế từ PDF (PyMuPDF) -> WebP -> lưu vào /var/www/keibai-images/{sale_unit_id}/
+    Trả về danh sách URL dạng /vps-images/{sale_unit_id}/{filename}.webp
+    """
+    if not pdf_bytes or len(pdf_bytes) < 1000:
+        return []
+    try:
+        import io
+        import fitz
+        from PIL import Image
+    except ImportError:
+        return []
+
+    local_image_dir = os.environ.get("LOCAL_IMAGE_DIR", "/var/www/keibai-images")
+    url_prefix = os.environ.get("LOCAL_IMAGE_URL_PREFIX", "/vps-images")
+    pdf_images = []
+
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        for page_idx in range(len(doc) - 1, -1, -1):
+            pdf_page = doc[page_idx]
+            if not pdf_page.get_images(full=True):
+                continue
+
+            pix_color = pdf_page.get_pixmap(matrix=fitz.Matrix(1, 1))
+            try:
+                pil_color = Image.frombytes("RGB", [pix_color.width, pix_color.height], pix_color.samples)
+            except ValueError:
+                pil_color = Image.frombytes("RGBA", [pix_color.width, pix_color.height], pix_color.samples).convert("RGB")
+
+            # Bỏ qua trang văn bản/bản vẽ nền trắng (> 75% pixel tập trung ở 30 mức xám cao nhất)
+            sample = pil_color.resize((300, 300)).convert("L")
+            hist_sorted = sorted(sample.histogram(), reverse=True)
+            if sum(hist_sorted[:30]) / (300 * 300) > 0.75:
+                continue
+
+            mat_high = fitz.Matrix(200 / 72, 200 / 72)
+            pix_high = pdf_page.get_pixmap(matrix=mat_high, alpha=False)
+            try:
+                pil_high = Image.frombytes("RGB", [pix_high.width, pix_high.height], pix_high.samples)
+            except ValueError:
+                pil_high = Image.frombytes("RGBA", [pix_high.width, pix_high.height], pix_high.samples).convert("RGB")
+
+            pil_high.thumbnail((1200, 1600))
+            image_filename = f"{sale_unit_id}_p{page_idx}.webp"
+            img_byte_arr = io.BytesIO()
+            pil_high.save(img_byte_arr, format="WEBP", quality=80)
+
+            prop_dir = os.path.join(local_image_dir, sale_unit_id)
+            os.makedirs(prop_dir, exist_ok=True)
+            with open(os.path.join(prop_dir, image_filename), "wb") as f_img:
+                f_img.write(img_byte_arr.getvalue())
+
+            pdf_images.append(f"{url_prefix}/{sale_unit_id}/{image_filename}")
+            if len(pdf_images) >= max_images:
+                break
+        doc.close()
+    except Exception as e:
+        print(f"      [PDF Image Error] {sale_unit_id}: {e}", flush=True)
+
+    return pdf_images

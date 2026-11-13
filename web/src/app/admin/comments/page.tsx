@@ -36,11 +36,11 @@ export default function AdminCommentsPage() {
     setError(null);
     try {
       const res = await fetch("/api/admin/comments");
-      if (!res.ok) throw new Error("Không thể tải danh sách bình luận");
+      if (!res.ok) throw new Error("コメント一覧の取得に失敗しました");
       const data = await res.json();
       setComments(data.comments || []);
     } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi");
+      setError(err.message || "エラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export default function AdminCommentsPage() {
   }, []);
 
   const handleDeleteComment = async (id: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa bình luận này? Hành động này không thể hoàn tác.")) {
+    if (!confirm("このコメントを削除してもよろしいですか？この操作は取り消せません。")) {
       return;
     }
 
@@ -66,13 +66,13 @@ export default function AdminCommentsPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Không thể xóa bình luận");
+        throw new Error(data.error || "コメントの削除に失敗しました");
       }
 
       setComments(comments.filter(c => c.id !== id));
-      setSuccess("Đã xóa bình luận thành công");
+      setSuccess("コメントを正常に削除しました");
     } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi");
+      setError(err.message || "エラーが発生しました");
     } finally {
       setDeletingId(null);
     }
@@ -81,9 +81,9 @@ export default function AdminCommentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-black">Quản lý bình luận</h1>
+        <h1 className="text-2xl font-black">コメント管理</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Kiểm duyệt và xóa bình luận của các thành viên trên bất động sản.
+          物件ページに投稿された会員コメントの確認・削除管理を行います。
         </p>
       </div>
 
@@ -105,23 +105,23 @@ export default function AdminCommentsPage() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
               <span className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></span>
-              <p className="text-sm">Đang tải danh sách bình luận...</p>
+              <p className="text-sm">コメント一覧を読み込み中...</p>
             </div>
           ) : comments.length === 0 ? (
             <div className="text-center py-20 text-zinc-400">
               <p className="text-4xl mb-4">💬</p>
-              <p className="font-semibold">Chưa có bình luận nào trên hệ thống</p>
-              <p className="text-xs opacity-75 mt-1">Bình luận của người dùng trên trang chi tiết sẽ xuất hiện ở đây.</p>
+              <p className="font-semibold">投稿されたコメントはありません</p>
+              <p className="text-xs opacity-75 mt-1">物件詳細ページでユーザーから投稿されたコメントがここに表示されます。</p>
             </div>
           ) : (
             <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="bg-zinc-50 dark:bg-zinc-800/40 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
-                  <th scope="col" className="px-6 py-4 font-semibold w-1/4">Thành viên</th>
-                  <th scope="col" className="px-6 py-4 font-semibold w-1/4">Bất động sản</th>
-                  <th scope="col" className="px-6 py-4 font-semibold w-1/3">Nội dung bình luận</th>
-                  <th scope="col" className="px-6 py-4 font-semibold">Thời gian</th>
-                  <th scope="col" className="px-6 py-4 font-semibold text-right">Thao tác</th>
+                  <th scope="col" className="px-6 py-4 font-semibold w-1/4">投稿ユーザー</th>
+                  <th scope="col" className="px-6 py-4 font-semibold w-1/4">対象物件</th>
+                  <th scope="col" className="px-6 py-4 font-semibold w-1/3">コメント内容</th>
+                  <th scope="col" className="px-6 py-4 font-semibold">投稿日時</th>
+                  <th scope="col" className="px-6 py-4 font-semibold text-right">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
@@ -139,7 +139,7 @@ export default function AdminCommentsPage() {
                         )}
                         <div className="min-w-0">
                           <span className="font-semibold text-zinc-900 dark:text-white block truncate">
-                            {comment.user.name || "Chưa đặt tên"}
+                            {comment.user.name || "名称未設定"}
                           </span>
                           <span className="text-xs text-zinc-400 font-mono block truncate">
                             {comment.user.email || "-"}
@@ -175,9 +175,9 @@ export default function AdminCommentsPage() {
 
                     {/* Date */}
                     <td className="px-6 py-4 text-zinc-500 whitespace-nowrap">
-                      {new Date(comment.created_at).toLocaleDateString("vi-VN")}
+                      {new Date(comment.created_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}
                       <span className="text-[10px] text-zinc-400 block mt-0.5">
-                        {new Date(comment.created_at).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(comment.created_at).toLocaleTimeString("ja-JP", { hour: '2-digit', minute: '2-digit', timeZone: "Asia/Tokyo" })}
                       </span>
                     </td>
 
@@ -187,7 +187,7 @@ export default function AdminCommentsPage() {
                         onClick={() => handleDeleteComment(comment.id)}
                         disabled={deletingId === comment.id}
                         className="p-2 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Xóa bình luận"
+                        title="コメントを削除"
                       >
                         <TrashIcon className="w-5 h-5" />
                       </button>

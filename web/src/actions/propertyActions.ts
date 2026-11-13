@@ -6,6 +6,65 @@ import { resolveCityCode } from '@/lib/mlitApi';
 import { formatBidPeriod } from '@/utils/dateFormatter';
 import { revalidatePath, unstable_cache } from 'next/cache';
 import { headers } from 'next/headers';
+import { parseSmartKeyword } from '@/lib/keywordParser';
+import { resolveAuctionRelistHistory } from '@/lib/propertyDataNormalizer';
+
+let relistLookupCache: { timestamp: number; map: Map<string, { roundCount: number; priceDropYen: number }> } | null = null;
+const RELIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function getActiveRelistLookupMap(): Promise<Map<string, { roundCount: number; priceDropYen: number }>> {
+  if (relistLookupCache && Date.now() - relistLookupCache.timestamp < RELIST_CACHE_TTL_MS) {
+    return relistLookupCache.map;
+  }
+  const map = new Map<string, { roundCount: number; priceDropYen: number }>();
+  try {
+    const rows = await prisma.$queryRaw<Array<{
+      sale_unit_id: string;
+      address: string;
+      property_type: string;
+      area: number | null;
+      starting_price: bigint | number | null;
+      status: string;
+      raw_display_data: any;
+      thumbnailUrl: string | null;
+      images: string[] | null;
+      source_provider: string;
+    }>>`
+      SELECT p.sale_unit_id, p.address, p.property_type, p.area, p.starting_price, p.status, p.raw_display_data, p."thumbnailUrl", p.images, p.source_provider
+      FROM "Property" p
+      WHERE p.address IN (
+        SELECT address FROM "Property"
+        WHERE status = 'ACTIVE' AND address IS NOT NULL AND address != 'Unknown'
+      )
+    `;
+
+    const byKey = new Map<string, any[]>();
+    for (const r of rows) {
+      const k = `${r.address}__${r.property_type}`;
+      const list = byKey.get(k) || [];
+      list.push(r);
+      byKey.set(k, list);
+    }
+
+    for (const [, group] of byKey.entries()) {
+      if (group.length <= 1) continue;
+      const activeItems = group.filter(g => g.status === 'ACTIVE');
+      for (const activeProp of activeItems) {
+        const summary = resolveAuctionRelistHistory(activeProp, group);
+        if (summary.totalRounds > 1 || summary.priceDropYen > 0) {
+          map.set(String(activeProp.sale_unit_id), {
+            roundCount: summary.totalRounds,
+            priceDropYen: summary.priceDropYen,
+          });
+        }
+      }
+    }
+    relistLookupCache = { timestamp: Date.now(), map };
+  } catch (err) {
+    console.error('Failed to build relist lookup map:', err);
+  }
+  return map;
+}
 
 // Simple in-memory rate limiting map for debouncing
 // Key: "IP_PropertyID", Value: timestamp
@@ -49,13 +108,21 @@ export async function incrementViewCount(propertyId: string) {
 export async function getAreaStats() {
   return unstable_cache(async () => {
     try {
+      const activeCondition = {
+        status: 'ACTIVE',
+        OR: [
+          { bid_end_date: { gte: new Date() } },
+          { bid_end_date: null }
+        ]
+      };
+
       const stats = await prisma.property.groupBy({
         by: ['prefecture'],
-        where: { status: 'ACTIVE' },
+        where: activeCondition,
         _count: { _all: true },
       });
       
-      const total = await prisma.property.count({ where: { status: 'ACTIVE' }});
+      const total = await prisma.property.count({ where: activeCondition });
       
       const result: Record<string, number> = { '全国': total };
       stats.forEach(item => {
@@ -69,7 +136,7 @@ export async function getAreaStats() {
       console.error("Fetch area stats err", err);
       return {};
     }
-  }, ['area_stats_cache_v1'], { revalidate: 3600, tags: ['stats'] })();
+  }, ['area_stats_cache_v2'], { revalidate: 3600, tags: ['stats'] })();
 }
 
 export async function getCityStats(prefecture: string) {
@@ -79,7 +146,11 @@ export async function getCityStats(prefecture: string) {
       where: { 
         status: 'ACTIVE',
         prefecture: prefecture,
-        city: { not: null }
+        city: { not: null },
+        OR: [
+          { bid_end_date: { gte: new Date() } },
+          { bid_end_date: null }
+        ]
       },
       _count: { _all: true },
       orderBy: { _count: { city: 'desc'} }
@@ -99,7 +170,13 @@ export async function getTypeStats() {
     try {
       const stats = await prisma.property.groupBy({
         by: ['property_type'],
-        where: { status: 'ACTIVE' },
+        where: { 
+          status: 'ACTIVE',
+          OR: [
+            { bid_end_date: { gte: new Date() } },
+            { bid_end_date: null }
+          ]
+        },
         _count: { _all: true },
       });
       
@@ -134,7 +211,13 @@ export async function getTypeStats() {
 export async function getTotalPropertiesCount() {
   try {
     return await prisma.property.count({
-      where: { status: 'ACTIVE' }
+      where: { 
+        status: 'ACTIVE',
+        OR: [
+          { bid_end_date: { gte: new Date() } },
+          { bid_end_date: null }
+        ]
+      }
     });
   } catch(e) {
     console.error("Total properties count error", e);
@@ -144,68 +227,103 @@ export async function getTotalPropertiesCount() {
 
 
 export interface SearchSuggestion {
-  type: 'STATION' | 'LINE' | 'CITY' | 'ADDRESS';
+  type: 'STATION' | 'LINE' | 'CITY' | 'ADDRESS' | 'COURT' | 'CASE';
   text: string;
   subtext?: string;
+  count?: number;
 }
+
+const suggestionsCache = new Map<string, { timestamp: number; data: SearchSuggestion[] }>();
+const SUGGESTIONS_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function getSearchSuggestions(query: string): Promise<SearchSuggestion[]> {
   try {
     if (!query || query.trim().length < 2) return [];
-    
-    const qStr = `%${query.trim()}%`;
+    const normalizedQuery = query.trim();
+
+    const cached = suggestionsCache.get(normalizedQuery);
+    if (cached && Date.now() - cached.timestamp < SUGGESTIONS_TTL_MS) {
+      return cached.data;
+    }
+
+    if (suggestionsCache.size > 500) {
+      suggestionsCache.clear();
+    }
+
+    const qStr = `%${normalizedQuery}%`;
     const results: SearchSuggestion[] = [];
 
-    // 1. Stations
-    const stations = await prisma.$queryRaw`
-      SELECT DISTINCT "nearest_station" as text
-      FROM "Property"
-      WHERE "nearest_station" ILIKE ${qStr} AND "status" = 'ACTIVE' AND "nearest_station" IS NOT NULL
-      LIMIT 3
-    `;
+    // Parallel lookup across Stations, Lines, Cities, Courts, Authorities, Cases with counts
+    const [stations, lines, locations, courts, authorities, cases] = await Promise.all([
+      prisma.$queryRaw<Array<{ text: string; count: number }>>`
+        SELECT "nearest_station" as text, COUNT(*)::int as count
+        FROM "Property"
+        WHERE "status" = 'ACTIVE' AND "nearest_station" ILIKE ${qStr} AND "nearest_station" IS NOT NULL
+        GROUP BY "nearest_station"
+        ORDER BY count DESC
+        LIMIT 3
+      `.catch(() => []),
+      prisma.$queryRaw<Array<{ text: string; count: number }>>`
+        SELECT "line_name" as text, COUNT(*)::int as count
+        FROM "Property"
+        WHERE "status" = 'ACTIVE' AND "line_name" ILIKE ${qStr} AND "line_name" IS NOT NULL
+        GROUP BY "line_name"
+        ORDER BY count DESC
+        LIMIT 2
+      `.catch(() => []),
+      prisma.$queryRaw<Array<{ prefecture: string; city: string; count: number }>>`
+        SELECT "prefecture", "city", COUNT(*)::int as count
+        FROM "Property"
+        WHERE "status" = 'ACTIVE' AND ("prefecture" ILIKE ${qStr} OR "city" ILIKE ${qStr})
+        GROUP BY "prefecture", "city"
+        ORDER BY count DESC
+        LIMIT 3
+      `.catch(() => []),
+      prisma.$queryRaw<Array<{ text: string; count: number }>>`
+        SELECT "court_name" as text, COUNT(*)::int as count
+        FROM "Property"
+        WHERE "status" = 'ACTIVE' AND "court_name" ILIKE ${qStr}
+        GROUP BY "court_name"
+        ORDER BY count DESC
+        LIMIT 2
+      `.catch(() => []),
+      prisma.$queryRaw<Array<{ text: string; count: number }>>`
+        SELECT "managing_authority" as text, COUNT(*)::int as count
+        FROM "Property"
+        WHERE "status" = 'ACTIVE' AND "managing_authority" ILIKE ${qStr} AND "managing_authority" IS NOT NULL
+        GROUP BY "managing_authority"
+        ORDER BY count DESC
+        LIMIT 2
+      `.catch(() => []),
+      prisma.$queryRaw<Array<{ text: string; subtext: string }>>`
+        SELECT "sale_unit_id" as text, "address" as subtext
+        FROM "Property"
+        WHERE "status" = 'ACTIVE' AND "sale_unit_id" ILIKE ${qStr}
+        LIMIT 2
+      `.catch(() => [])
+    ]);
 
-    // 2. Lines
-    const lines = await prisma.$queryRaw`
-      SELECT DISTINCT "line_name" as text
-      FROM "Property"
-      WHERE "line_name" ILIKE ${qStr} AND "status" = 'ACTIVE' AND "line_name" IS NOT NULL
-      LIMIT 2
-    `;
-
-    // 3. Prefecture / City
-    const cities = await prisma.$queryRaw`
-      SELECT DISTINCT "prefecture", "city"
-      FROM "Property"
-      WHERE ("prefecture" ILIKE ${qStr} OR "city" ILIKE ${qStr}) AND "status" = 'ACTIVE'
-      LIMIT 3
-    `;
+    stations.forEach(s => s.text && results.push({ type: 'STATION', text: s.text, count: s.count }));
+    lines.forEach(l => l.text && results.push({ type: 'LINE', text: l.text, count: l.count }));
     
-    // 4. Address
-    const addresses = await prisma.$queryRaw`
-      SELECT "address"
-      FROM "Property"
-      WHERE "address" ILIKE ${qStr} AND "status" = 'ACTIVE'
-      LIMIT 2
-    `;
-
-    (stations as any[]).forEach(s => s.text && results.push({ type: 'STATION', text: s.text }));
-    (lines as any[]).forEach(l => l.text && results.push({ type: 'LINE', text: l.text }));
-    
-    (cities as any[]).forEach(loc => {
-      const qLower = query.toLowerCase();
+    locations.forEach(loc => {
+      const qLower = normalizedQuery.toLowerCase();
       if (loc.city && loc.city.toLowerCase().includes(qLower)) {
          if (!results.find(r => r.text === loc.city)) {
-           results.push({ type: 'CITY', text: loc.city, subtext: loc.prefecture });
+           results.push({ type: 'CITY', text: loc.city, subtext: loc.prefecture, count: loc.count });
          }
       } else if (loc.prefecture && loc.prefecture.toLowerCase().includes(qLower)) {
          if (!results.find(r => r.text === loc.prefecture)) {
-            results.push({ type: 'CITY', text: loc.prefecture });
+            results.push({ type: 'CITY', text: loc.prefecture, count: loc.count });
          }
       }
     });
 
-    (addresses as any[]).forEach(a => a.address && results.push({ type: 'ADDRESS', text: a.address }));
+    courts.forEach(c => c.text && results.push({ type: 'COURT', text: c.text, subtext: '競売 (BIT)', count: c.count }));
+    authorities.forEach(a => a.text && results.push({ type: 'COURT', text: a.text, subtext: '公売 (国税局)', count: a.count }));
+    cases.forEach(k => k.text && results.push({ type: 'CASE', text: k.text, subtext: k.subtext }));
 
+    suggestionsCache.set(normalizedQuery, { timestamp: Date.now(), data: results });
     return results;
   } catch (error) {
     console.error("Failed to fetch search suggestions", error);
@@ -236,7 +354,7 @@ export interface SearchFilters {
   providers?: string[];
   lineName?: string;
   stationName?: string;
-  maxWalkTime?: number; // Thay cho walkTimeMins
+  maxWalkTime?: number;
   managingAuthority?: string;
   courtName?: string;
   sortBy?: 'newest' | 'priceAsc' | 'areaDesc' | 'viewsDesc' | 'bid_start_asc' | 'bid_start_desc';
@@ -249,6 +367,18 @@ export interface SearchFilters {
 function buildWhereClause(filters: SearchFilters, exclude?: 'types' | 'prefectures' | 'provider' | 'railways') {
   const andConditions: any[] = [{ status: 'ACTIVE' }];
 
+  // Parse smart natural language query if keyword is provided
+  const parsedKeyword = filters.keyword ? parseSmartKeyword(filters.keyword) : null;
+
+  // Harmonize extracted quantitative filters with explicit filters
+  const effectiveMinPrice = filters.minPrice ?? parsedKeyword?.extractedFilters.minPrice;
+  const effectiveMaxPrice = filters.maxPrice ?? parsedKeyword?.extractedFilters.maxPrice;
+  const effectiveMaxWalkTime = filters.maxWalkTime ?? parsedKeyword?.extractedFilters.maxWalkTime;
+  const effectiveMinArea = filters.minArea ?? parsedKeyword?.extractedFilters.minArea;
+  const effectiveTypes = (filters.types && filters.types.length > 0)
+    ? filters.types
+    : (parsedKeyword?.extractedFilters.types && parsedKeyword.extractedFilters.types.length > 0 ? parsedKeyword.extractedFilters.types : undefined);
+
   if (filters.bounds && filters.bounds.sw && filters.bounds.ne && exclude !== 'prefectures') {
     andConditions.push({
       lat: { gte: filters.bounds.sw.lat, lte: filters.bounds.ne.lat },
@@ -256,9 +386,9 @@ function buildWhereClause(filters: SearchFilters, exclude?: 'types' | 'prefectur
     });
   }
 
-  if (exclude !== 'types' && filters.types && filters.types.length > 0) {
-    if (filters.types.includes('その他')) {
-      const explicitTypes = filters.types.filter(t => t !== 'その他');
+  if (exclude !== 'types' && effectiveTypes && effectiveTypes.length > 0) {
+    if (effectiveTypes.includes('その他')) {
+      const explicitTypes = effectiveTypes.filter(t => t !== 'その他');
       if (explicitTypes.length > 0) {
         andConditions.push({
           OR: [
@@ -272,7 +402,7 @@ function buildWhereClause(filters: SearchFilters, exclude?: 'types' | 'prefectur
         });
       }
     } else {
-      andConditions.push({ property_type: { in: filters.types } });
+      andConditions.push({ property_type: { in: effectiveTypes } });
     }
   }
 
@@ -285,12 +415,27 @@ function buildWhereClause(filters: SearchFilters, exclude?: 'types' | 'prefectur
   }
 
   if (exclude !== 'provider') {
-    const activeProviders = filters.providers || (filters.provider && filters.provider !== 'ALL' ? [filters.provider] : ['BIT', 'NTA']);
+    let activeProviders = filters.providers && filters.providers.length > 0
+      ? [...filters.providers]
+      : (filters.provider && filters.provider !== 'ALL' ? [filters.provider] : ['BIT', 'NTA', 'KSI', 'MOF']);
+
+    const hasCourtFilter = Boolean(filters.courtName && filters.courtName !== 'ALL');
+    const hasNtaFilter = Boolean(filters.managingAuthority && filters.managingAuthority !== 'ALL');
+
+    // Resolve conflicts when a specific Court or Tax Office is selected
+    if (filters.provider && filters.provider !== 'ALL') {
+      activeProviders = [filters.provider];
+    } else if (hasCourtFilter && !hasNtaFilter) {
+      activeProviders = ['BIT'];
+    } else if (hasNtaFilter && !hasCourtFilter) {
+      activeProviders = ['NTA'];
+    }
+
     const providerOrConditions: any[] = [];
     
     if (activeProviders.includes('BIT')) {
       const bitCondition: any = { source_provider: 'BIT' };
-      if (filters.courtName && filters.courtName !== 'ALL') {
+      if (hasCourtFilter) {
          bitCondition.court_name = filters.courtName;
       }
       providerOrConditions.push(bitCondition);
@@ -298,13 +443,23 @@ function buildWhereClause(filters: SearchFilters, exclude?: 'types' | 'prefectur
 
     if (activeProviders.includes('NTA')) {
       const ntaCondition: any = { source_provider: 'NTA' };
-      if (filters.managingAuthority && filters.managingAuthority !== 'ALL') {
+      if (hasNtaFilter && filters.managingAuthority) {
          ntaCondition.managing_authority = { contains: filters.managingAuthority.split(' ')[0] };
       }
       providerOrConditions.push(ntaCondition);
     }
 
-    if (providerOrConditions.length > 0) {
+    if (activeProviders.includes('KSI')) {
+      providerOrConditions.push({ source_provider: 'KSI' });
+    }
+
+    if (activeProviders.includes('MOF')) {
+      providerOrConditions.push({ source_provider: 'MOF' });
+    }
+
+    if (providerOrConditions.length === 1) {
+      andConditions.push(providerOrConditions[0]);
+    } else if (providerOrConditions.length > 1 && (activeProviders.length < 4 || hasCourtFilter || hasNtaFilter)) {
       andConditions.push({ OR: providerOrConditions });
     }
   }
@@ -324,10 +479,14 @@ function buildWhereClause(filters: SearchFilters, exclude?: 'types' | 'prefectur
     }
   }
 
-  if (filters.minPrice || filters.maxPrice) {
+  if (effectiveMaxWalkTime) {
+    andConditions.push({ walk_time_to_station: { lte: effectiveMaxWalkTime } });
+  }
+
+  if (effectiveMinPrice || effectiveMaxPrice) {
     const priceFilter: any = {};
-    if (filters.minPrice) priceFilter.gte = filters.minPrice;
-    if (filters.maxPrice) priceFilter.lte = filters.maxPrice;
+    if (effectiveMinPrice) priceFilter.gte = effectiveMinPrice;
+    if (effectiveMaxPrice) priceFilter.lte = effectiveMaxPrice;
     andConditions.push({ starting_price: priceFilter });
   }
   
@@ -342,28 +501,59 @@ function buildWhereClause(filters: SearchFilters, exclude?: 'types' | 'prefectur
     const p7D = new Date();
     p7D.setDate(p7D.getDate() + 7);
     andConditions.push({ bid_end_date: { gte: now, lte: p7D } });
-  }
-  
-  if (filters.minArea) {
-    andConditions.push({ area: { gte: filters.minArea } });
-  }
-
-  if (filters.keyword) {
+  } else {
     andConditions.push({
       OR: [
-        { address: { contains: filters.keyword, mode: 'insensitive' } },
-        { nearest_station: { contains: filters.keyword, mode: 'insensitive' } },
-        { prefecture: { contains: filters.keyword, mode: 'insensitive' } },
-        { city: { contains: filters.keyword, mode: 'insensitive' } },
+        { bid_end_date: { gte: new Date() } },
+        { bid_end_date: null }
       ]
     });
+  }
+  
+  if (effectiveMinArea) {
+    andConditions.push({ area: { gte: effectiveMinArea } });
+  }
+
+  // Multi-token AND search across 10 fields + Chome & Synonym variants
+  if (parsedKeyword && parsedKeyword.textTokens.length > 0) {
+    for (const token of parsedKeyword.textTokens) {
+      const variants = parsedKeyword.tokenVariants[token] || [token];
+      const tokenOrConditions: any[] = [];
+      for (const variant of variants) {
+        tokenOrConditions.push(
+          { address: { contains: variant, mode: 'insensitive' } },
+          { nearest_station: { contains: variant, mode: 'insensitive' } },
+          { line_name: { contains: variant, mode: 'insensitive' } },
+          { prefecture: { contains: variant, mode: 'insensitive' } },
+          { city: { contains: variant, mode: 'insensitive' } },
+          { court_name: { contains: variant, mode: 'insensitive' } },
+          { managing_authority: { contains: variant, mode: 'insensitive' } },
+          { property_type: { contains: variant, mode: 'insensitive' } },
+          { sale_unit_id: { contains: variant, mode: 'insensitive' } },
+          { raw_text: { contains: variant, mode: 'insensitive' } }
+        );
+      }
+      andConditions.push({ OR: tokenOrConditions });
+    }
   }
   
   return { AND: andConditions };
 }
 
+const facetedStatsCache = new Map<string, { timestamp: number; data: any }>();
+const FACETED_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
 export async function getFacetedStats(filters: SearchFilters = {}) {
   try {
+    const cacheKey = JSON.stringify(filters);
+    const cached = facetedStatsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < FACETED_CACHE_TTL_MS) {
+      return cached.data;
+    }
+    if (facetedStatsCache.size > 200) {
+      facetedStatsCache.clear();
+    }
+
     const typesWhere = buildWhereClause(filters, 'types');
     const typesPromise = prisma.property.groupBy({
       by: ['property_type'],
@@ -386,23 +576,32 @@ export async function getFacetedStats(filters: SearchFilters = {}) {
       by: ['prefecture'],
       where: prefWhere,
       _count: { _all: true },
-    }).then(res => res.reduce((acc, curr) => {
-      if (curr.prefecture) acc[curr.prefecture] = curr._count._all;
-      return acc;
-    }, {} as Record<string, number>));
+    }).then(res => {
+      let total = 0;
+      const map = res.reduce((acc, curr) => {
+        const count = curr._count._all;
+        total += count;
+        if (curr.prefecture) acc[curr.prefecture] = count;
+        return acc;
+      }, {} as Record<string, number>);
+      map['全国'] = total;
+      return map;
+    });
 
     const authWhere = buildWhereClause(filters, 'provider');
     const authPromise = (async () => {
-       const bitStats = await prisma.property.groupBy({
+       const [bitStats, ntaStats] = await Promise.all([
+         prisma.property.groupBy({
            by: ['court_name'],
            where: { ...authWhere, source_provider: 'BIT' },
            _count: { _all: true },
-       });
-       const ntaStats = await prisma.property.groupBy({
+         }),
+         prisma.property.groupBy({
            by: ['managing_authority'],
            where: { ...authWhere, source_provider: 'NTA' },
            _count: { _all: true },
-       });
+         })
+       ]);
        
        const processStats = (data: any[], keyField: string) => {
          return data.filter(d => d[keyField]).map(d => ({
@@ -419,27 +618,30 @@ export async function getFacetedStats(filters: SearchFilters = {}) {
     })();
 
     const railWhere = buildWhereClause(filters, 'railways');
-    const railPromise = prisma.property.findMany({
-      where: { ...railWhere, line_name: { not: null, not: '' } },
-      select: { line_name: true, nearest_station: true },
-    }).then(rawData => {
+    const railPromise = prisma.property.groupBy({
+      by: ['line_name', 'nearest_station'],
+      where: { ...railWhere, line_name: { notIn: ['', 'null'], not: null } },
+      _count: { _all: true },
+    }).then(groupedData => {
       const lineMap: Record<string, Set<string>> = {};
       const lineCounts: Record<string, number> = {};
 
-      rawData.forEach(p => {
+      groupedData.forEach(p => {
         if (!p.line_name) return;
+        const rowCount = p._count._all;
         
-        let lines = p.line_name.includes(',') ? p.line_name.split(',').map(s => s.trim()) : [p.line_name.trim()];
-        let stations = (p.nearest_station && p.nearest_station.includes(','))
+        const lines = p.line_name.includes(',') ? p.line_name.split(',').map(s => s.trim()) : [p.line_name.trim()];
+        const stations = (p.nearest_station && p.nearest_station.includes(','))
           ? p.nearest_station.split(',').map(s => s.trim())
           : [p.nearest_station?.trim() || ''];
 
         lines.forEach(line => {
+          if (!line) return;
           if (!lineMap[line]) {
             lineMap[line] = new Set();
             lineCounts[line] = 0;
           }
-          lineCounts[line]++;
+          lineCounts[line] += rowCount;
           stations.forEach(st => {
             if (st) lineMap[line].add(st);
           });
@@ -457,37 +659,48 @@ export async function getFacetedStats(filters: SearchFilters = {}) {
        typesPromise, prefPromise, authPromise, railPromise
     ]);
 
-    return { typeStats, areaStats, authorityStats, railData };
+    const finalStats = { typeStats, areaStats, authorityStats, railData };
+    facetedStatsCache.set(cacheKey, { timestamp: Date.now(), data: finalStats });
+    return finalStats;
   } catch (err) {
      console.error("Faceted calculation error:", err);
      return { typeStats: {}, areaStats: {}, authorityStats: { bit: [], nta: [] }, railData: [] };
   }
 }
 
+const mapPayloadCache = new Map<string, { timestamp: number; data: any[] }>();
+const MAP_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
 async function getPropertiesCore(filters: SearchFilters) {
-  console.log(">>> [DEBUG getProperties DB HIT]", JSON.stringify(filters));
   try {
     let data: any[] = [];
     
     const whereClause = buildWhereClause(filters);
-    console.log(">>> [DEBUG getProperties FINAL WHERE]", JSON.stringify(whereClause, null, 2));
-
 
         let effectiveSort = filters.sort === 'views' ? 'viewsDesc' : (filters.sort || filters.sortBy);
         
         let defaultOrderBy: any = { created_at: 'desc' };
         if (effectiveSort) {
            if (effectiveSort === 'newest') defaultOrderBy = { created_at: 'desc' };
-           else if (effectiveSort === 'priceAsc') defaultOrderBy = { starting_price: 'asc' };
+           else if (effectiveSort === 'priceAsc') defaultOrderBy = { starting_price: { sort: 'asc', nulls: 'last' } };
            else if (effectiveSort === 'areaDesc') defaultOrderBy = { area: { sort: 'desc', nulls: 'last' } };
            else if (effectiveSort === 'viewsDesc') defaultOrderBy = { views: 'desc' };
-           else if (effectiveSort === 'bid_start_asc') defaultOrderBy = { bid_start_date: 'asc' };
-           else if (effectiveSort === 'bid_start_desc') defaultOrderBy = { bid_start_date: 'desc' };
-           else if (effectiveSort === 'ending') defaultOrderBy = { bid_end_date: 'asc' };
-           else if (effectiveSort === 'gap_desc') defaultOrderBy = { mlit_investment_gap: 'desc' };
+           else if (effectiveSort === 'bid_start_asc') defaultOrderBy = { bid_start_date: { sort: 'asc', nulls: 'last' } };
+           else if (effectiveSort === 'bid_start_desc') defaultOrderBy = { bid_start_date: { sort: 'desc', nulls: 'last' } };
+           else if (effectiveSort === 'ending') defaultOrderBy = { bid_end_date: { sort: 'asc', nulls: 'last' } };
+           else if (effectiveSort === 'gap_desc') defaultOrderBy = { mlit_investment_gap: { sort: 'desc', nulls: 'last' } };
         }
 
         if (filters.isMapPayload) {
+            const mapCacheKey = JSON.stringify({ whereClause, defaultOrderBy });
+            const cachedMap = mapPayloadCache.get(mapCacheKey);
+            if (cachedMap && Date.now() - cachedMap.timestamp < MAP_CACHE_TTL_MS) {
+              return cachedMap.data;
+            }
+            if (mapPayloadCache.size > 100) {
+              mapPayloadCache.clear();
+            }
+
             data = await prisma.property.findMany({
               where: whereClause,
               select: {
@@ -498,24 +711,21 @@ async function getPropertiesCore(filters: SearchFilters) {
                 lng: true,
                 property_type: true,
                 starting_price: true,
-                raw_display_data: true,
                 status: true,
                 court_name: true,
                 address: true,
                 views: true,
                 thumbnailUrl: true,
-                images: true,
                 prefecture: true,
                 city: true,
                 area: true,
                 bid_start_date: true,
                 bid_end_date: true,
+                created_at: true,
                 line_name: true,
                 nearest_station: true,
                 walk_time_to_station: true,
                 managing_authority: true,
-                ai_analysis: true,
-                ai_status: true,
                 mlit_investment_gap: true,
                 mlit_estimated_price: true,
               },
@@ -523,43 +733,114 @@ async function getPropertiesCore(filters: SearchFilters) {
               orderBy: defaultOrderBy
             });
             
-            // Generate deterministic offset jitter for EXACT SAME coordinates
             const coordinateMap = new Map();
-            return data.map((d: any) => {
-               if (d.lat && d.lng) {
-                  const key = `${d.lat.toFixed(5)}-${d.lng.toFixed(5)}`;
+            const relistMap = await getActiveRelistLookupMap();
+
+            const mappedPayload = data.map((d: any) => {
+               const relistInfo = relistMap.get(String(d.sale_unit_id));
+               let lat = d.lat ? Number(d.lat) : null;
+               let lng = d.lng ? Number(d.lng) : null;
+               if (lat && lng) {
+                  const key = `${lat.toFixed(5)}-${lng.toFixed(5)}`;
                   const count = coordinateMap.get(key) || 0;
                   if (count > 0) {
-                     // Add an offset of ~1.1 meters per count in a spiraling manner
-                     d.lat += (Math.random() - 0.5) * 0.00002;
-                     d.lng += (Math.random() - 0.5) * 0.00002;
+                     lat += (Math.random() - 0.5) * 0.00002;
+                     lng += (Math.random() - 0.5) * 0.00002;
                   }
                   coordinateMap.set(key, count + 1);
                }
-               
-               // Next.js Serialization Fix: Convert BigInt to Number
-               if (typeof d.starting_price === 'bigint') {
-                   d.starting_price = Number(d.starting_price);
-               }
-               if (typeof d.mlit_estimated_price === 'bigint') {
-                   d.mlit_estimated_price = Number(d.mlit_estimated_price);
-               }
-               
-               return d;
+
+               const resolvedThumb = d.thumbnailUrl
+                 ? (d.thumbnailUrl.startsWith('./')
+                     ? `https://www.koubai.nta.go.jp/auctionx/public${d.thumbnailUrl.substring(1)}`
+                     : d.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp'))
+                 : null;
+
+               const resolvedArea = d.area != null ? Math.round(Number(d.area)) : null;
+               const auctionSchedule = formatBidPeriod(d.bid_start_date, d.bid_end_date);
+
+               return {
+                 sale_unit_id: d.sale_unit_id,
+                 source_provider: d.source_provider,
+                 source_url: d.source_url,
+                 lat,
+                 lng,
+                 property_type: d.property_type,
+                 starting_price: typeof d.starting_price === 'bigint' ? Number(d.starting_price) : d.starting_price,
+                 status: d.status,
+                 court_name: d.court_name,
+                 address: d.address,
+                 views: d.views,
+                 thumbnailUrl: resolvedThumb,
+                 prefecture: d.prefecture,
+                 city: d.city,
+                 area: resolvedArea,
+                 bid_start_date: d.bid_start_date,
+                 bid_end_date: d.bid_end_date,
+                 created_at: d.created_at,
+                 line_name: d.line_name,
+                 nearest_station: d.nearest_station,
+                 walk_time_to_station: d.walk_time_to_station,
+                 managing_authority: d.managing_authority,
+                 auctionSchedule,
+                 auctionRound: relistInfo ? relistInfo.roundCount : 1,
+                 priceDropYen: relistInfo ? relistInfo.priceDropYen : 0,
+                 mlit_investment_gap: d.mlit_investment_gap,
+                 mlit_estimated_price: typeof d.mlit_estimated_price === 'bigint' ? Number(d.mlit_estimated_price) : d.mlit_estimated_price,
+               };
             });
+
+            mapPayloadCache.set(mapCacheKey, { timestamp: Date.now(), data: mappedPayload });
+            return mappedPayload;
         }
 
         const page = filters.page || 1;
         const limit = filters.limit || 20;
+        const listCacheKey = JSON.stringify({ whereClause, defaultOrderBy, page, limit });
+        const cachedList = mapPayloadCache.get(listCacheKey);
+        if (cachedList && Date.now() - cachedList.timestamp < MAP_CACHE_TTL_MS) {
+          return cachedList.data;
+        }
         
         data = await prisma.property.findMany({
           where: whereClause,
+          select: {
+            sale_unit_id: true,
+            source_provider: true,
+            source_url: true,
+            court_name: true,
+            property_type: true,
+            address: true,
+            prefecture: true,
+            city: true,
+            lat: true,
+            lng: true,
+            starting_price: true,
+            status: true,
+            views: true,
+            thumbnailUrl: true,
+            raw_display_data: true,
+            build_year_western: true,
+            images: true,
+            area: true,
+            bid_start_date: true,
+            bid_end_date: true,
+            created_at: true,
+            managing_authority: true,
+            line_name: true,
+            nearest_station: true,
+            walk_time_to_station: true,
+            mlit_estimated_price: true,
+            mlit_investment_gap: true,
+          },
           orderBy: defaultOrderBy,
           skip: (page - 1) * limit,
           take: limit
         });
 
-    return await mapPropertiesWithStations(data);
+    const mappedList = await mapPropertiesWithStations(data);
+    mapPayloadCache.set(listCacheKey, { timestamp: Date.now(), data: mappedList });
+    return mappedList;
   } catch (error) {
     console.error("Failed to fetch properties:", error);
     return [];
@@ -575,9 +856,8 @@ const getPropertiesCached = unstable_cache(
 );
 
 export async function getProperties(filters: SearchFilters = {}) {
-  // Map payloads contain up to 2000 properties with rich JSON fields, exceeding Next.js 2MB unstable_cache limit.
-  // We bypass unstable_cache here; the CDN Edge cache (route.ts Cache-Control) will handle caching it instead.
-  if (filters.isMapPayload) {
+  // In development, or for map payloads, bypass Next.js data cache to ensure real-time fresh data
+  if (process.env.NODE_ENV === 'development' || filters.isMapPayload) {
     return getPropertiesCore(filters);
   }
   return getPropertiesCached(filters);
@@ -641,8 +921,10 @@ export async function getNearestStationInfo(lat: number, lng: number, sale_unit_
 
 // Helper to batch evaluate stations and map data
 async function mapPropertiesWithStations(data: any[]) {
+    const relistMap = await getActiveRelistLookupMap();
     // MAP TO SHARED FORMAT
     const formattedData = await Promise.all(data.map(async p => {
+      const relistInfo = relistMap.get(String(p.sale_unit_id));
       const startPrice = p.starting_price !== null ? Number(p.starting_price) : 0;
       
       let westernYear = p.build_year_western;
@@ -677,15 +959,16 @@ async function mapPropertiesWithStations(data: any[]) {
          auctionSchedule = extractAuctionSchedule(p.raw_display_data);
       }
       
-      const auctionRound = extractAuctionRoundFromData(p.raw_display_data);
+      const auctionRound = relistInfo ? relistInfo.roundCount : extractAuctionRoundFromData(p.raw_display_data);
+      const priceDropYen = relistInfo ? relistInfo.priceDropYen : 0;
 
         const rawImages = p.images || [];
         const mappedImages = rawImages.map((img: string) => 
             img.startsWith('./') ? `https://www.koubai.nta.go.jp/auctionx/public${img.substring(1)}` : img
         );
 
-        // Sort images so permanent storage (Cloudflare R2, Supabase) comes first
-        const isPermanent = (url: string) => Boolean(url && (url.includes('r2.dev') || url.includes('supabase.co')));
+        // Sort images so permanent storage (VPS Nginx, Cloudflare R2, Supabase) comes first
+        const isPermanent = (url: string) => Boolean(url && (url.startsWith('/vps-images/') || url.includes('r2.dev') || url.includes('supabase.co')));
         const sortedImages = [...mappedImages].sort((a, b) => {
             const aPerm = isPermanent(a);
             const bPerm = isPermanent(b);
@@ -702,7 +985,7 @@ async function mapPropertiesWithStations(data: any[]) {
         const permanentImage = sortedImages.find(isPermanent);
         const mappedThumbnail = permanentImage
           ? permanentImage
-          : (p.source_provider === 'NTA' && sortedImages.length > 0
+          : ((p.source_provider === 'NTA' || p.source_provider === 'KSI') && sortedImages.length > 0
               ? sortedImages[0]
               : (p.thumbnailUrl 
                   ? p.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp') 
@@ -732,6 +1015,7 @@ async function mapPropertiesWithStations(data: any[]) {
           views: p.views || 0,
           auctionSchedule: auctionSchedule,
           auctionRound: auctionRound,
+          priceDropYen: priceDropYen,
           thumbnailUrl: mappedThumbnail,
           images: sortedImages,
           source_provider: p.source_provider || 'BIT',
@@ -827,16 +1111,24 @@ export async function getAuthorityStats(): Promise<{
   nta: { name: string; count: number }[];
 }> {
     try {
+      const activeCondition = {
+        status: 'ACTIVE',
+        OR: [
+          { bid_end_date: { gte: new Date() } },
+          { bid_end_date: null }
+        ]
+      };
+
       const [bitData, ntaData] = await Promise.all([
         prisma.property.groupBy({
           by: ['court_name'],
-          where: { status: 'ACTIVE', source_provider: 'BIT' },
+          where: { ...activeCondition, source_provider: 'BIT' },
           _count: { _all: true },
           orderBy: { _count: { court_name: 'desc' } }
         }),
         prisma.property.groupBy({
           by: ['managing_authority'],
-          where: { status: 'ACTIVE', source_provider: 'NTA' },
+          where: { ...activeCondition, source_provider: 'NTA' },
           _count: { _all: true },
           orderBy: { _count: { managing_authority: 'desc' } }
         })

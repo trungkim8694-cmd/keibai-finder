@@ -18,19 +18,20 @@ export default function HeaderTotalCount({ initialCount }: { initialCount: numbe
   if (count === 0) return null;
 
   return (
-    <div className="flex items-center gap-1 sm:gap-1.5 border-r border-zinc-200 dark:border-zinc-800 pr-2 sm:pr-4 mr-0 sm:mr-1 h-6 sm:h-8">
-      {/* Mobile view: purely small number with light background */}
-      <span className="sm:hidden text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-1.5 py-0.5 rounded-full">
-        {count}件
+    <div 
+      className="flex items-center gap-1.5 border-r border-slate-200 dark:border-slate-800 pr-2.5 sm:pr-3 mr-0.5 sm:mr-1 text-xs text-slate-500 dark:text-slate-400 group cursor-default"
+      title="現在入札受付中の物件数です（過去落札・アーカイブ累計: 5,700件超）"
+    >
+      <span className="flex items-center gap-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse hidden sm:inline-block"></span>
+        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+          <span className="hidden sm:inline">入札</span>受付中
+        </span>
       </span>
-      
-      {/* Desktop view: "44 件の物件" */}
-      <span className="hidden sm:inline font-bold text-zinc-800 dark:text-zinc-200 text-sm">
-        {count}
+      <span className="font-bold text-[#1B4F8A] dark:text-blue-400 tabular-nums text-xs sm:text-sm">
+        {count.toLocaleString()}
       </span>
-      <span className="hidden sm:inline text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-        件の物件
-      </span>
+      <span className="text-[11px] text-slate-500 dark:text-slate-400">件</span>
     </div>
   );
 }

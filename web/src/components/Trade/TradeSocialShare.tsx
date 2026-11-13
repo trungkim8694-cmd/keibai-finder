@@ -77,11 +77,11 @@ export function TradeSocialShare({ title }: TradeSocialShareProps) {
     <Menu as="div" className="relative inline-block text-left">
       <div>
         <Menu.Button 
-          className="relative rounded-full flex items-center gap-2 p-2 sm:px-3 sm:py-1.5 transition-all duration-300 group shrink-0 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 outline-none focus:outline-none" 
+          className="relative rounded-md flex items-center gap-1.5 h-9 px-3 transition-colors group shrink-0 bg-white dark:bg-[#151B22] border border-slate-200 dark:border-slate-700 shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 outline-none focus:outline-none cursor-pointer" 
           title="共有"
         >
-          <Share2 className="w-[16px] h-[16px] sm:w-[15px] sm:h-[15px] text-zinc-500 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" strokeWidth={2.5} />
-          <span className="hidden sm:inline text-xs font-bold text-zinc-600 dark:text-zinc-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">シェア</span>
+          <Share2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-[#1B4F8A] dark:group-hover:text-blue-400 transition-colors" />
+          <span className="hidden sm:inline text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-[#1B4F8A] dark:group-hover:text-blue-400">シェア</span>
         </Menu.Button>
       </div>
 

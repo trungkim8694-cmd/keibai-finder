@@ -2,25 +2,15 @@ import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Search, TrendingUp, Sparkles, Building2, ShieldCheck, JapaneseYen, ArrowRight, MousePointer2 } from 'lucide-react';
-import LanguageBanner from '@/components/LanguageBanner';
 
 export const metadata: Metadata = {
   title: '国土交通省データ 不動産取引価格検索 | 過去の売買データから相場を査定',
   description: 'AIが過去5年間の国土交通省（MLIT）取引履歴を分析。競売物件や中古不動産の適正な市場価格（相場）を誰でも無料で調査・査定できるツールです。',
-  alternates: {
-    languages: {
-      'ja': '/features/trade-price-search',
-      'en': '/en/features/trade-price-search',
-      'vi': '/vi/features/trade-price-search',
-      'zh': '/zh/features/trade-price-search'
-    }
-  }
 };
 
 export default function TradePriceFeatureLandingPage() {
   return (
     <div className="min-h-[100dvh] bg-white dark:bg-zinc-950 font-sans pb-20 overflow-x-hidden">
-      <LanguageBanner currentLang="ja" pagePath="/features/trade-price-search" />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-24 pb-16 sm:pt-32 sm:pb-24 lg:pb-32 px-4 sm:px-6 lg:px-8 text-center max-w-7xl mx-auto">

@@ -1,31 +1,116 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --primary: #1B4F8A;
+  --primary-hover: #143D6C;
+  --card-bg: #FFFFFF;
+  --card-border: #E2E8F0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans), "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0D1117;
+    --foreground: #F8FAFC;
+    --primary: #2B6CB0;
+    --primary-hover: #1B4F8A;
+    --card-bg: #151B22;
+    --card-border: #30363D;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+  font-feature-settings: "palt";
+  -webkit-font-smoothing: antialiased;
 }
 
-@keyframes shimmer {
-  0% { transform: translateX(-150%) skewX(-20deg); }
-  30%, 100% { transform: translateX(200%) skewX(-20deg); }
+/* B2B Minimalist Utilities */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.b2b-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.5rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.b2b-card:hover {
+  border-color: #94A3B8;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .b2b-card:hover {
+    border-color: #475569;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Sleek Leaflet Popup for Property Cards */
+.leaflet-popup.custom-property-popup .leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.15), 0 2px 6px -1px rgba(15, 23, 42, 0.08);
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+}
+
+.dark .leaflet-popup.custom-property-popup .leaflet-popup-content-wrapper {
+  border-color: #30363D;
+  background: #151B22;
+}
+
+.leaflet-popup.custom-property-popup .leaflet-popup-content {
+  margin: 0 !important;
+  line-height: inherit;
+  width: 270px !important;
+}
+
+.leaflet-popup.custom-property-popup .leaflet-popup-tip-container {
+  overflow: visible;
+}
+
+.leaflet-popup.custom-property-popup .leaflet-popup-tip {
+  background: #FFFFFF;
+  box-shadow: none;
+}
+
+.dark .leaflet-popup.custom-property-popup .leaflet-popup-tip {
+  background: #151B22;
+}
+
+.leaflet-popup.custom-property-popup .leaflet-popup-close-button {
+  top: 6px !important;
+  right: 6px !important;
+  color: #FFFFFF !important;
+  background: rgba(15, 23, 42, 0.55) !important;
+  border-radius: 9999px !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  z-index: 30 !important;
+  backdrop-filter: blur(4px) !important;
+  transition: background 0.15s ease;
+}
+
+.leaflet-popup.custom-property-popup .leaflet-popup-close-button:hover {
+  background: rgba(15, 23, 42, 0.85) !important;
+  color: #FFFFFF !important;
 }

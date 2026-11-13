@@ -1,0 +1,19 @@
+[Unit]
+Description=Keibai Finder Daily Master Crawler Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/app/crawler
+ExecStart=/bin/bash /app/crawler/run_daily_vps.sh
+StandardOutput=append:/app/logs/systemd_daily_crawler.log
+StandardError=append:/app/logs/systemd_daily_crawler.log
+TimeoutSec=21600
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+

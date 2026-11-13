@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import GlobalHeader from "@/components/GlobalHeader";
+import AppLayoutWrapper from "@/components/AppLayoutWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,21 +18,12 @@ const geistMono = Geist_Mono({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.keibai-koubai.com'),
   alternates: {
     canonical: '/',
-    languages: {
-      'ja': '/',
-      'en': '/en',
-      'vi': '/vi',
-      'zh': '/zh',
-      'x-default': '/',
-    },
   },
   title: {
     default: "競売物件・公売物件の一括検索サイト｜Keibai Finder",
@@ -65,20 +56,70 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': 'https://www.keibai-koubai.com/#website',
+        url: 'https://www.keibai-koubai.com',
+        name: 'Keibai Finder',
+        description: '全国不動産競売・公売物件一括検索＆落札相場データベース',
+        inLanguage: 'ja',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: 'https://www.keibai-koubai.com/search?keyword={search_term_string}',
+          },
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'Organization',
+        '@id': 'https://www.keibai-koubai.com/#organization',
+        name: 'Keibai Finder',
+        url: 'https://www.keibai-koubai.com',
+        logo: 'https://www.keibai-koubai.com/extension-icon.png',
+      },
+    ],
+  };
+
   return (
     <html lang="ja" className="h-[100dvh] overflow-hidden" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        {/* Google Analytics 4 (GA4) */}
+        <script
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-G21M8EFJV8"}`}
+        />
+        <script
+          id="google-analytics"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-G21M8EFJV8"}', {
+                page_path: window.location.pathname,
+              });
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col h-full overflow-hidden`}
         suppressHydrationWarning
       >
-        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
-          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
-        )}
         <Providers>
           <GlobalHeader />
-          <div className="flex-1 overflow-y-auto">
+          <AppLayoutWrapper>
             {children}
-          </div>
+          </AppLayoutWrapper>
         </Providers>
       </body>
     </html>

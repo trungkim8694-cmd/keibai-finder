@@ -1,9 +1,10 @@
 name: Daily Parallel Keibai Crawler
 
 on:
-  schedule:
-    # 20:00 UTC = 5:00 AM JST (Chạy 2 ngày 1 lần)
-    - cron: '0 20 */2 * *'
+  # Lịch tự động đã được chuyển về chạy trực tiếp trên VPS qua Systemd Timer / Crontab.
+  # Bỏ comment bên dưới nếu muốn kích hoạt lại lịch chạy tự động trên GitHub Actions:
+  # schedule:
+  #   - cron: '0 20 */2 * *'
   workflow_dispatch:
 
 jobs:

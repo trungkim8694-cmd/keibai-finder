@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Keibai Daily Crawler every morning at 04:00 JST
+After=time-sync.target
+
+[Timer]
+# 04:00 Tokyo Time (JST) daily
+OnCalendar=*-*-* 04:00:00 Asia/Tokyo
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
+

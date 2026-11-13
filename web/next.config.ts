@@ -2,36 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    loader: 'custom',
-    loaderFile: './src/lib/imageLoader.ts',
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'bit.sikkou.jp',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.bit.courts.go.jp',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.koubai.nta.go.jp',
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'profile.line-scdn.net',
-      },
-      {
-        protocol: 'https',
-        hostname: 'qtgefqhqdfnpadufhnye.supabase.co',
-      },
-      {
-        protocol: 'https',
-        hostname: 'pub-*.r2.dev',
+        hostname: '**',
       },
     ],
   },
@@ -44,6 +19,35 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Edge Caching for Property Detail Pages (Zero VPS Spike on Tab Storms)
+        source: '/property/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        // Edge Caching for Sitemaps
+        source: '/sitemap/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+      {
+        source: '/sitemap.xml',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
           },
         ],
       },
@@ -74,11 +78,55 @@ const nextConfig: NextConfig = {
       {
          source: '/api/tiles/railway/:path*',
          destination: 'https://a.tiles.openrailwaymap.org/standard/:path*'
+      },
+      {
+         source: '/vps-images/:path*',
+         destination: 'http://163.44.116.98/keibai-images/:path*'
       }
     ];
   },
   async redirects() {
     return [
+      {
+        source: '/ja',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/ja/:path*',
+        destination: '/:path*',
+        permanent: true,
+      },
+      {
+        source: '/en',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/en/:path*',
+        destination: '/:path*',
+        permanent: true,
+      },
+      {
+        source: '/vi',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/vi/:path*',
+        destination: '/:path*',
+        permanent: true,
+      },
+      {
+        source: '/zh',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/zh/:path*',
+        destination: '/:path*',
+        permanent: true,
+      },
       {
         source: '/blogs/%E4%B8%8D%E5%8B%95%E7%94%A3%E7%AB%B6%E5%A3%B2%E3%81%AE%E5%9F%BA%E7%A4%8E%E7%9F%A5%E8%AD%98-A%E3%81%8B%E3%82%89Z%E3%81%BE%E3%81%A7',
         destination: '/blogs/keibai-guide-a-to-z',
@@ -115,7 +163,7 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: '/blogs/外国人におすすめ của Nhật不動産競売サイトTOP4-信頼できる情報源',
+        source: '/blogs/外国人におすすめの日本不動産競売サイトTOP4-信頼できる情報源',
         destination: '/blogs/top-4-japan-auction-sites',
         permanent: true,
       },
@@ -225,7 +273,7 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: '/blogs/京都の古民家を競売で落札し民泊ビジネスを成功させた若手起 nghiệp家の実例 🏮',
+        source: '/blogs/京都の古民家を競売で落札し民泊ビジネスを成功させた若手起業家の実例 🏮',
         destination: '/blogs/case-study-kyoto-machiya-minpaku',
         permanent: true,
       },
@@ -236,11 +284,11 @@ const nextConfig: NextConfig = {
       }
     ];
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 

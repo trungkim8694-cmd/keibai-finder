@@ -1,4 +1,5 @@
 import React from 'react';
+import { prisma } from '@/lib/prisma';
 import { getProperties } from '@/actions/propertyActions';
 import PropertyCard from '@/components/PropertyCard';
 import { Metadata } from 'next';
@@ -7,21 +8,91 @@ import { ArrowLeft, Train } from 'lucide-react';
 
 export const revalidate = 3600; // Cache these pages for 1 hour
 
-export async function generateMetadata({ params }: { params: { line: string, station: string } }): Promise<Metadata> {
+function safeDecodeURIComponent(val: string): string {
+  try {
+    return decodeURIComponent(val);
+  } catch {
+    return val;
+  }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ line: string, station: string }> }): Promise<Metadata> {
   const { line, station } = await params;
-  const decodedLine = decodeURIComponent(line);
-  const decodedStation = decodeURIComponent(station);
-  
+  const decodedLine = safeDecodeURIComponent(line);
+  const decodedStation = safeDecodeURIComponent(station);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const canonicalUrl = `${baseUrl}/search/station/${encodeURIComponent(decodedLine)}/${encodeURIComponent(decodedStation)}`;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  const properties = await prisma.property.findMany({
+    where: {
+      line_name: { contains: decodedLine },
+      nearest_station: { contains: decodedStation },
+      status: 'ACTIVE',
+      OR: [
+        { bid_end_date: { gte: now } },
+        { bid_end_date: null }
+      ],
+    },
+    select: {
+      starting_price: true,
+    },
+    orderBy: {
+      starting_price: { sort: 'asc', nulls: 'last' },
+    },
+    take: 50,
+  });
+
+  const count = properties.length;
+  const minPriceNum = properties[0]?.starting_price ? Number(properties[0].starting_price) : 0;
+  const minPriceMan = minPriceNum > 0 ? Math.round(minPriceNum / 10000) : 0;
+
+  // Thin Content Guard
+  if (count === 0) {
+    return {
+      title: `${decodedLine}・${decodedStation}駅周辺の競売物件・公売物件一覧｜Keibai Finder`,
+      description: `${decodedLine}沿線・${decodedStation}駅周辺の不動産競売・公売情報。駅徒歩圏内の物件状況を随時更新中。`,
+      robots: {
+        index: false,
+        follow: true,
+      },
+      alternates: {
+        canonical: canonicalUrl,
+      },
+    };
+  }
+
+  // Dynamic CTR-Magnet Title
+  const priceSnippet = minPriceMan > 0 ? `・最安${minPriceMan.toLocaleString('ja-JP')}万円〜` : '';
+  const title = `【${currentYear}年最新｜${count}件${priceSnippet}】${decodedLine}・${decodedStation}駅近くの競売物件・公売物件一覧｜Keibai Finder`;
+  const description = `${decodedLine}沿線の${decodedStation}駅周辺にある不動産競売・公売情報を${count}件掲載。駅徒歩圏内の戸建てやマンションなど、相場より安い割安物件が見つかります。`;
+
   return {
-    title: `【2026年最新】${decodedLine}沿線・${decodedStation}駅近くの競売物件・公売物件`,
-    description: `${decodedLine}沿線の${decodedStation}駅周辺にある不動産競売・公売情報。駅徒歩圏内の戸建てやマンションなど、相場より安い物件が見つかります。`,
+    title,
+    description,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      type: 'website',
+    },
   };
 }
 
-export default async function StationSearchPage({ params }: { params: { line: string, station: string } }) {
+export default async function StationSearchPage({ params }: { params: Promise<{ line: string, station: string }> }) {
   const { line, station } = await params;
-  const decodedLine = decodeURIComponent(line);
-  const decodedStation = decodeURIComponent(station);
+  const decodedLine = safeDecodeURIComponent(line);
+  const decodedStation = safeDecodeURIComponent(station);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
 
   // Fetch properties filtered by line and station
   const properties = await getProperties({
@@ -30,8 +101,57 @@ export default async function StationSearchPage({ params }: { params: { line: st
     limit: 50
   });
 
+  const jsonLdBreadcrumb = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    'itemListElement': [
+      {
+        '@type': 'ListItem',
+        'position': 1,
+        'name': 'ホーム',
+        'item': `${baseUrl}/`,
+      },
+      {
+        '@type': 'ListItem',
+        'position': 2,
+        'name': `${decodedLine}`,
+        'item': `${baseUrl}/search/station/${encodeURIComponent(decodedLine)}`,
+      },
+      {
+        '@type': 'ListItem',
+        'position': 3,
+        'name': `${decodedStation}駅`,
+        'item': `${baseUrl}/search/station/${encodeURIComponent(decodedLine)}/${encodeURIComponent(decodedStation)}`,
+      },
+    ],
+  };
+
+  const jsonLdItemList = properties && properties.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    'name': `${decodedLine} ${decodedStation}駅周辺の競売物件`,
+    'numberOfItems': properties.length,
+    'itemListElement': properties.slice(0, 10).map((prop: any, idx: number) => ({
+      '@type': 'ListItem',
+      'position': idx + 1,
+      'url': `${baseUrl}/property/${prop.sale_unit_id}`,
+      'name': prop.address || `${decodedStation}駅周辺の競売物件`,
+    })),
+  } : null;
+
   return (
-    <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+      />
+      {jsonLdItemList && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdItemList) }}
+        />
+      )}
+      <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">
       <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Link href={`/search/station/${encodeURIComponent(decodedLine)}`} className="inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors mb-2">
@@ -61,5 +181,6 @@ export default async function StationSearchPage({ params }: { params: { line: st
         )}
       </div>
     </div>
+    </>
   );
 }

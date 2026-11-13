@@ -1,0 +1,19 @@
+[Unit]
+Description=Keibai Finder Weekly Auction Results Crawler Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/app/crawler
+ExecStart=/bin/bash /app/crawler/run_weekly_results_vps.sh
+StandardOutput=append:/app/logs/systemd_weekly_results.log
+StandardError=append:/app/logs/systemd_weekly_results.log
+TimeoutSec=18000
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+

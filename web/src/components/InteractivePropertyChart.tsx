@@ -81,7 +81,7 @@ export default function InteractivePropertyChart({ property }: ChartProps) {
         
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${isBargain ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-400' : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300'}`}>
           {isBargain ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
-          <span className="text-sm font-bold">乖離率 {Math.abs(gapPercent).toFixed(1)}%</span>
+          <span className="text-sm font-bold">{isBargain ? `市場比 ${Math.abs(gapPercent).toFixed(0)}% 割安` : `市場比 ${Math.abs(gapPercent).toFixed(0)}% 割高`}</span>
         </div>
       </div>
 

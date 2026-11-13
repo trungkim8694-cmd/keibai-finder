@@ -2,26 +2,29 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import Image from 'next/image';
 import Link from 'next/link';
 import SignupModal from './SignupModal';
 import { 
-  Map, 
-  TrendingUp, 
-  Shield, 
-  MapPin, 
-  TramFront, 
-  Layers, 
-  Menu, 
   User, 
+  Bookmark, 
+  Clock, 
+  Building2, 
+  HelpCircle, 
+  LayoutDashboard, 
+  MessageSquare, 
+  Inbox, 
+  Settings, 
   LogOut,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  CheckCircle2,
+  Kanban
 } from 'lucide-react';
 
 const maskName = (name: string | null): string => {
-  if (!name) return '匿名ユーザー';
+  if (!name) return 'ユーザー';
   const trimmed = name.trim();
-  if (trimmed.length === 0) return '匿名ユーザー';
+  if (trimmed.length === 0) return 'ユーザー';
   const firstChar = Array.from(trimmed)[0];
   return `${firstChar}***`;
 };
@@ -31,6 +34,25 @@ export default function UserMenu() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (session) {
+      setShowSignup(false);
+      // Clean up ?login=true, callbackUrl, error from URL if present
+      if (params.get('login') || params.get('callbackUrl') || params.get('error')) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('login');
+        url.searchParams.delete('callbackUrl');
+        url.searchParams.delete('error');
+        const cleanPath = url.pathname + (url.search ? url.search : '');
+        window.history.replaceState({}, '', cleanPath);
+      }
+    } else if (status !== 'loading' && params.get('login') === 'true') {
+      setShowSignup(true);
+    }
+  }, [session, status]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -45,241 +67,230 @@ export default function UserMenu() {
   }, []);
 
   if (status === 'loading') {
-    return <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 animate-pulse"></div>;
+    return <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200 dark:border-slate-800"></div>;
   }
 
   const handleLinkClick = () => {
     setShowDropdown(false);
   };
 
-  const maskedName = session?.user?.name ? maskName(session.user.name) : '匿名ユーザー';
+  const maskedName = session?.user?.name ? maskName(session.user.name) : 'ユーザー';
+  const isAdmin = (session?.user as any)?.role === 'ADMIN';
 
   return (
     <div className="relative" ref={menuRef}>
-      {/* Trigger Button */}
+      {/* Trigger Button - Clean Japanese B2B Avatar */}
       <button 
         onClick={() => setShowDropdown(!showDropdown)}
-        className={`w-10 h-10 rounded-full overflow-hidden border-2 flex items-center justify-center transition-all focus:outline-none shadow-sm shrink-0 ${
+        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all focus:outline-none shadow-2xs shrink-0 border ${
           showDropdown 
-            ? 'border-blue-500 bg-zinc-100 dark:bg-zinc-800' 
-            : 'border-zinc-200 hover:border-blue-500 dark:border-zinc-800 dark:hover:border-blue-500 bg-white dark:bg-zinc-900'
+            ? 'border-blue-600 ring-2 ring-blue-100 dark:ring-blue-900/40 bg-slate-50 dark:bg-slate-800' 
+            : 'border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
         }`}
-        aria-label="User menu and site navigation"
+        aria-label="ユーザーメニュー"
         aria-expanded={showDropdown}
       >
         {session?.user ? (
-          <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 dark:bg-zinc-800 dark:text-zinc-400 font-bold text-sm">
+          <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-bold text-xs rounded-full">
             {Array.from(maskedName)[0]}
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-zinc-100 text-zinc-450 dark:bg-zinc-800 dark:text-zinc-400">
+          <div className="w-full h-full flex items-center justify-center text-slate-600 dark:text-slate-400">
             <User className="w-4 h-4" />
           </div>
         )}
       </button>
 
-      {/* Unified Dropdown Menu */}
+      {/* Unified Compact B2B User Dropdown */}
       {showDropdown && (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] w-80 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden z-50 overflow-y-auto max-h-[85vh] animate-in fade-in slide-in-from-top-2 duration-200 font-sans">
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150 font-sans text-xs">
           
-          {/* Section 1: User Account Header */}
-          <div className="p-4 bg-zinc-50/50 dark:bg-zinc-900/20 border-b border-zinc-100 dark:border-zinc-900">
-            {session ? (
-              <div className="space-y-3.5">
+          {session ? (
+            /* ================= 1. Authenticated User State ================= */
+            <div>
+              {/* Profile Header */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full border border-zinc-200 dark:border-zinc-800 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-xs shrink-0 border border-blue-200 dark:border-blue-800">
                     {Array.from(maskedName)[0]}
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-zinc-900 dark:text-white truncate">
-                      {maskedName}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                        {maskedName} 様
+                      </span>
+                      {isAdmin ? (
+                        <span className="px-1.5 py-0.2 bg-red-50 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[10px] font-bold rounded border border-red-200 dark:border-red-800">
+                          管理者
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.2 bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-[10px] font-semibold rounded border border-blue-100 dark:border-blue-800">
+                          会員
+                        </span>
+                      )}
                     </div>
-                    <div className="text-xs text-zinc-500 truncate font-mono">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                       {session.user?.email || ""}
                     </div>
                   </div>
                 </div>
-                
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => {
-                      handleLinkClick();
-                      window.location.href = '/dashboard';
-                    }}
-                    className="flex-1 bg-white hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-bold py-2 px-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1"
-                  >
-                    👤 マイページ
-                  </button>
-                  <button 
-                    onClick={() => {
-                      handleLinkClick();
-                      signOut();
-                    }}
-                    className="px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 border border-rose-100 dark:border-rose-900/30 text-rose-600 dark:text-rose-450 text-xs font-bold py-2 rounded-xl transition-all flex items-center justify-center"
-                    title="ログアウト"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
-            ) : (
-              <div className="py-2 text-center">
-                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-2.5">
-                  お気に入り登録やサポート会社への相談には会員登録が必要です。
+
+              {/* Account Navigation Items */}
+              <div className="p-1.5 space-y-0.5 text-slate-700 dark:text-slate-300">
+                {/* Investor Portal */}
+                <div className="px-2.5 py-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wider">
+                  投資家・マイページ
+                </div>
+                <Link 
+                  href="/dashboard?tab=favorites"
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
+                >
+                  <Kanban className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>お気に入り・検討ボード</span>
+                </Link>
+
+                <Link 
+                  href="/dashboard?tab=leads"
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
+                >
+                  <MessageSquare className="w-4 h-4 text-slate-400" />
+                  <span>相談・問い合わせ履歴</span>
+                </Link>
+
+                {/* Real Estate Partner Portal */}
+                <div className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wider border-t border-slate-100 dark:border-slate-800">
+                  宅建会社・パートナー管理
+                </div>
+                <Link 
+                  href="/dashboard?tab=company"
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
+                >
+                  <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>自社プロファイル・認証申請</span>
+                </Link>
+
+                <Link 
+                  href="/dashboard?tab=partner-leads"
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
+                >
+                  <Inbox className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>見込み客リード管理 (CRM)</span>
+                </Link>
+
+                {/* Admin Portal if Admin */}
+                {isAdmin && (
+                  <>
+                    <div className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-red-500 tracking-wider border-t border-slate-100 dark:border-slate-800">
+                      運営管理
+                    </div>
+                    <Link 
+                      href="/admin"
+                      onClick={handleLinkClick}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-md bg-red-50/50 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-700 dark:text-red-300 transition-colors font-medium"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-red-600" />
+                      <span>管理者ダッシュボード</span>
+                    </Link>
+                  </>
+                )}
+              </div>
+
+              {/* Logout Action */}
+              <div className="p-1.5 border-t border-slate-100 dark:border-slate-800">
+                <button 
+                  onClick={() => {
+                    handleLinkClick();
+                    signOut();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 dark:hover:text-rose-400 transition-colors text-xs font-medium text-left"
+                >
+                  <LogOut className="w-4 h-4 text-slate-400 group-hover:text-rose-500" />
+                  <span>ログアウト</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ================= 2. Unauthenticated (Guest) State ================= */
+            <div>
+              {/* Member Benefit Header */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">会員機能</span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mb-3">
+                  無料会員登録でお気に入り物件の保存や、周辺不動産会社への相談が可能になります。
                 </p>
                 <button 
                   onClick={() => {
                     handleLinkClick();
                     setShowSignup(true);
                   }}
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all shadow-md shadow-blue-500/10 flex items-center justify-center gap-1.5"
+                  className="w-full bg-[#1B4F8A] hover:bg-[#153e6d] text-white text-xs font-semibold py-2 px-3 rounded-md transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <User className="w-3.5 h-3.5" />
-                  ログイン / 会員登録
+                  <span>ログイン / 会員登録</span>
                 </button>
               </div>
-            )}
-          </div>
 
-          <div className="p-4 space-y-5">
-            
-            {/* Section 2: Directories */}
-            <div className="space-y-2.5">
-              <h4 className="text-[10px] font-black tracking-wider uppercase text-zinc-400 dark:text-zinc-500">ディレクトリ (Directories)</h4>
-              <div className="flex flex-col gap-2">
-                <Link 
-                  href="/" onClick={handleLinkClick}
-                  className="flex items-center gap-2 text-xs bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/10 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-xl transition-all font-bold border border-blue-100/40 dark:border-blue-900/20"
+              {/* Quick Member Shortcuts */}
+              <div className="p-1.5 space-y-0.5 text-slate-700 dark:text-slate-300">
+                <button 
+                  onClick={() => {
+                    handleLinkClick();
+                    setShowSignup(true);
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
                 >
-                  <div className="w-5 h-5 rounded-lg bg-white dark:bg-blue-800/30 flex items-center justify-center shrink-0 border border-blue-100/80 dark:border-blue-900/30">
-                    <Map className="w-3 h-3 text-blue-500" />
-                  </div>
-                  日本全国の物件マップ検索
-                </Link>
+                  <span className="flex items-center gap-2.5 font-medium">
+                    <Bookmark className="w-4 h-4 text-slate-400" />
+                    お気に入り・検討ボード
+                  </span>
+                  <span className="text-[10px] text-slate-400">要ログイン</span>
+                </button>
 
                 <Link 
-                  href="/search/area" onClick={handleLinkClick}
-                  className="flex items-center gap-2 text-xs bg-rose-50/50 hover:bg-rose-100/50 dark:bg-rose-900/10 dark:hover:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-3 py-2 rounded-xl transition-all font-bold border border-rose-100/40 dark:border-rose-900/20"
+                  href="/agencies"
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
                 >
-                  <div className="w-5 h-5 rounded-lg bg-white dark:bg-rose-800/30 flex items-center justify-center shrink-0 border border-rose-100/80 dark:border-rose-900/30">
-                    <MapPin className="w-3 h-3 text-rose-500" />
-                  </div>
-                  地域・エリアから探す
+                  <Building2 className="w-4 h-4 text-slate-400" />
+                  <span>全国宅建会社・入札代行</span>
                 </Link>
-                
+
                 <Link 
-                  href="/search/station" onClick={handleLinkClick}
-                  className="flex items-center gap-2 text-xs bg-emerald-50/50 hover:bg-emerald-100/50 dark:bg-emerald-900/10 dark:hover:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-3 py-2 rounded-xl transition-all font-bold border border-emerald-100/40 dark:border-emerald-900/20"
+                  href="/blogs"
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
                 >
-                  <div className="w-5 h-5 rounded-lg bg-white dark:bg-emerald-800/30 flex items-center justify-center shrink-0 border border-emerald-100/80 dark:border-emerald-900/30">
-                    <TramFront className="w-3 h-3 text-emerald-500" />
-                  </div>
-                  路線・駅から探す
+                  <HelpCircle className="w-4 h-4 text-slate-400" />
+                  <span>競売ナレッジ & ガイド</span>
                 </Link>
               </div>
-            </div>
 
-            {/* Section 3: Tools */}
-            <div className="space-y-2 pt-3.5 border-t border-zinc-100 dark:border-zinc-800/50">
-              <h4 className="text-[10px] font-black tracking-wider uppercase text-zinc-400 dark:text-zinc-500">ツール (Tools)</h4>
-              <div className="flex flex-col gap-1.5">
-                <Link href="/extension" onClick={handleLinkClick} className="flex items-center gap-2 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group p-1">
-                  <div className="w-6 h-6 shrink-0 rounded-lg bg-zinc-105 dark:bg-zinc-900 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/40 border border-zinc-200/50 dark:border-zinc-800">
-                    <img src="/extension-icon.png" alt="Keibai Lens" className="w-3.5 h-3.5 rounded-full opacity-80 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  Keibai Lens 拡張機能
+              {/* Footer Meta */}
+              <div className="p-2.5 bg-slate-50/80 dark:bg-slate-850/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
+                <Link href="/company" onClick={handleLinkClick} className="hover:text-slate-600 dark:hover:text-slate-300">
+                  運営: TQC株式会社
                 </Link>
-                <Link href="/trade-find" onClick={handleLinkClick} className="flex items-center gap-2 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group p-1">
-                  <div className="w-6 h-6 shrink-0 rounded-lg bg-zinc-105 dark:bg-zinc-900 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-950/40 border border-zinc-200/50 dark:border-zinc-800">
-                    <span className="text-xs opacity-80 group-hover:opacity-100">⚖️</span>
-                  </div>
-                  不動産取引価格検索 (MLIT)
-                </Link>
-                <Link href="/area-map" onClick={handleLinkClick} className="flex items-center gap-2 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-rose-600 dark:hover:text-rose-400 transition-colors group p-1">
-                  <div className="w-6 h-6 shrink-0 rounded-lg bg-zinc-105 dark:bg-zinc-900 flex items-center justify-center group-hover:bg-rose-50 dark:group-hover:bg-rose-950/40 border border-zinc-200/50 dark:border-zinc-800">
-                    <span className="text-xs opacity-80 group-hover:opacity-100">🌋</span>
-                  </div>
-                  エリア分析マップ
-                </Link>
-                <Link href="/market-insights" onClick={handleLinkClick} className="flex items-center gap-2 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group p-1">
-                  <div className="w-6 h-6 shrink-0 rounded-lg bg-zinc-105 dark:bg-zinc-900 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/40 border border-zinc-200/50 dark:border-zinc-800">
-                    <span className="text-xs opacity-80 group-hover:opacity-100">📈</span>
-                  </div>
-                  市場分析ダッシュボード
-                </Link>
-              </div>
-            </div>
-
-            {/* Section 4: Features */}
-            <div className="space-y-3 pt-3.5 border-t border-zinc-100 dark:border-zinc-800/50">
-              <Link href="/features" onClick={handleLinkClick} className="flex items-center gap-1 text-[10px] font-black tracking-wider uppercase text-zinc-400 hover:text-indigo-600 dark:text-zinc-500 dark:hover:text-indigo-400 transition-colors">
-                機能紹介 (FEATURES) <ChevronRight className="w-3 h-3" />
-              </Link>
-              
-              <div className="space-y-2 pl-1">
-                <div className="flex items-center gap-2 text-xs font-bold text-zinc-650 dark:text-zinc-400">
-                  <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center shrink-0 overflow-hidden">
-                    <img src="/extension-icon.png" alt="Keibai Lens" className="w-3.5 h-3.5 rounded-full opacity-90" />
-                  </div>
-                  Keibai Lensについて
-                </div>
-                <div className="flex flex-wrap gap-1.5 pl-6">
-                  <Link onClick={handleLinkClick} href="/extension" className="text-[10px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/10 text-indigo-750 dark:text-indigo-350 px-2 py-0.5 rounded-lg">日本語</Link>
-                  <Link onClick={handleLinkClick} href="/en/extension" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-lg">EN</Link>
-                  <Link onClick={handleLinkClick} href="/vi/extension" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-lg">VI</Link>
-                  <Link onClick={handleLinkClick} href="/zh/extension" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-lg">ZH</Link>
-                </div>
-              </div>
-
-              <div className="space-y-2 pl-1">
-                <div className="flex items-center gap-2 text-xs font-bold text-zinc-650 dark:text-zinc-400">
-                  <div className="w-4 h-4 rounded bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center shrink-0">
-                    <Map className="w-2.5 h-2.5 text-blue-500" />
-                  </div>
-                  地図検索について
-                </div>
-                <div className="flex flex-wrap gap-1.5 pl-6">
-                  <Link onClick={handleLinkClick} href="/features/map-search" className="text-[10px] bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 text-blue-705 dark:text-blue-350 px-2 py-0.5 rounded-lg">日本語</Link>
-                  <Link onClick={handleLinkClick} href="/en/features/map-search" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-lg">EN</Link>
-                  <Link onClick={handleLinkClick} href="/vi/features/map-search" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-lg">VI</Link>
-                  <Link onClick={handleLinkClick} href="/zh/features/map-search" className="text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-lg">ZH</Link>
+                <div className="flex gap-2">
+                  <Link href="/terms" onClick={handleLinkClick} className="hover:text-slate-600 dark:hover:text-slate-300">
+                    利用規約
+                  </Link>
+                  <span>•</span>
+                  <Link href="/privacy" onClick={handleLinkClick} className="hover:text-slate-600 dark:hover:text-slate-300">
+                    プライバシー
+                  </Link>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Section 5: Insights */}
-            <div className="space-y-2 pt-3.5 border-t border-zinc-100 dark:border-zinc-800/50">
-              <h4 className="text-[10px] font-black tracking-wider uppercase text-zinc-400 dark:text-zinc-500">📰 レポート & ガイド</h4>
-              <div className="flex flex-col gap-1">
-                <Link href="/insights" onClick={handleLinkClick} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs font-bold text-zinc-650 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors group p-1">
-                  <span className="text-xs shrink-0">📰</span>
-                  <span className="line-clamp-1">すべての市場レポートを見る</span>
-                </Link>
-                <Link href="/blogs" onClick={handleLinkClick} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs font-bold text-zinc-650 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group p-1">
-                  <span className="text-xs shrink-0">📖</span>
-                  <span className="line-clamp-1">ナレッジ & ガイド (BLOGS)</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Section 6: Legal & Contact */}
-            <div className="pt-3.5 border-t border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2.5">
-              <div className="text-[10px] text-zinc-400 dark:text-zinc-550 font-semibold leading-relaxed space-y-1.5">
-                <div>運営会社: <Link onClick={handleLinkClick} href="/company" className="hover:text-zinc-900 dark:hover:text-zinc-200 font-bold transition-colors">TQC株式会社</Link></div>
-                <div>所在地: 〒171-0022 東京都豊島区南池袋２丁目３３－６ 佐藤ビル３F</div>
-                <div>TEL: (03) 6907-1219 / FAX (03) 6701-2399</div>
-                <div>Email: <a href="mailto:info@keibai-koubai.com" className="hover:text-blue-600 transition-colors">info@keibai-koubai.com</a></div>
-              </div>
-              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-bold mt-1 text-zinc-400 dark:text-zinc-500">
-                <Link onClick={handleLinkClick} href="/company" className="hover:text-zinc-800 dark:hover:text-zinc-300">運営会社</Link>
-                <Link onClick={handleLinkClick} href="/terms" className="flex items-center gap-0.5 hover:text-zinc-800 dark:hover:text-zinc-300">
-                  <Shield className="w-2.5 h-2.5" /> 利用規約
-                </Link>
-                <Link onClick={handleLinkClick} href="/privacy" className="hover:text-zinc-800 dark:hover:text-zinc-300">プライバシー</Link>
-              </div>
-            </div>
-
-          </div>
         </div>
       )}
 

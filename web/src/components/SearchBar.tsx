@@ -4,8 +4,9 @@ import { useState, Fragment, useEffect, useTransition, useMemo } from 'react';
 import { Transition, Popover, Portal } from '@headlessui/react';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, MapIcon, StarIcon } from '@heroicons/react/20/solid';
+import { RotateCcw, Bookmark, Coins, Building2, Scale, Train, MapPin, Check } from 'lucide-react';
 import { getSearchSuggestions, getFacetedStats, SearchSuggestion } from '../actions/propertyActions';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import useSWR from 'swr';
 
 export interface Station {
@@ -23,10 +24,11 @@ export interface SearchFilters {
   maxPrice?: number;
   newOnly?: boolean;
   prefecture?: string;
+  prefectures?: string[];
   provider?: string;
   providers?: string[];
   maxWalkTime?: number;
-  sortBy?: string;
+  sortBy?: 'newest' | 'priceAsc' | 'areaDesc' | 'viewsDesc' | 'bid_start_asc' | 'bid_start_desc';
   sort?: string;
   keyword?: string;
   isClosingSoon?: boolean;
@@ -80,33 +82,43 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
   });
 
   const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   // Native debounce (replaces use-debounce package)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (keyword.length >= 2) {
-        getSearchSuggestions(keyword).then(setSuggestions).catch(() => setSuggestions([]));
+      const trimmed = keyword.trim();
+      setDebouncedKeyword(trimmed);
+      if (trimmed.length >= 2) {
+        getSearchSuggestions(trimmed).then(setSuggestions).catch(() => setSuggestions([]));
         setIsSuggestionsOpen(true);
       } else {
         setSuggestions([]);
         setIsSuggestionsOpen(false);
       }
-    }, 300);
+    }, 350);
     return () => clearTimeout(timer);
   }, [keyword]);
   const handleSuggestionSelect = (sugg: SearchSuggestion) => {
     setKeyword(sugg.text);
+    setDebouncedKeyword(sugg.text);
     setIsSuggestionsOpen(false);
+    setIsInputFocused(false);
     
     // Explicit Database Text Filter Fallback
     const overrides: any = { keyword: sugg.text };
     if (sugg.type === 'STATION') overrides.stationName = sugg.text;
     else if (sugg.type === 'CITY' && sugg.subtext) overrides.prefecture = sugg.subtext;
     else if (sugg.type === 'LINE') overrides.lineName = sugg.text;
+    else if (sugg.type === 'COURT') {
+      if (sugg.subtext?.includes('公売')) overrides.managingAuthority = sugg.text;
+      else overrides.courtName = sugg.text;
+    }
     
     triggerSearch(overrides);
   };
@@ -115,17 +127,17 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
   // Search state
   const [types, setTypes] = useState<string[]>([]);
   
-  // Drill down states (Simulated region logic)
+  // Drill down states (Region & Prefecture logic)
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
   const [isNationwide, setIsNationwide] = useState(true);
-  const [viewingRegion, setViewingRegion] = useState('');
+  const [viewingRegion, setViewingRegion] = useState('北海道・東北');
   
   const [minPrice, setMinPrice] = useState<number | undefined>();
   const [maxPrice, setMaxPrice] = useState<number | undefined>();
   const [isUrgent, setIsUrgent] = useState(false); // Time filter
   const [provider, setProvider] = useState<string>('ALL'); // Xoá dần hoặc giữ nguyên cho components cũ
-  const [activeProviders, setActiveProviders] = useState<string[]>(['BIT', 'NTA']); // Master source toggle
+  const [activeProviders, setActiveProviders] = useState<string[]>(['BIT', 'NTA', 'KSI', 'MOF']); // Master source toggle
   
   const [walkTime, setWalkTime] = useState<number | undefined>();
   const [minArea, setMinArea] = useState<number | undefined>();
@@ -138,13 +150,13 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
   const [selectedStation, setSelectedStation] = useState<string>('ALL');
 
   // Authority Dropdown state
-  // Authority Dropdown state
   const [selectedCourt, setSelectedCourt] = useState<string>('ALL');
   const [selectedNtaAuth, setSelectedNtaAuth] = useState<string>('ALL');
   const [isBitOpen, setIsBitOpen] = useState(false);
   const [isNtaOpen, setIsNtaOpen] = useState(false);
   
   const router = useRouter();
+  const pathname = usePathname() || '/map';
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -153,7 +165,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
 
   const activeSearchFilters: SearchFilters = useMemo(() => {
     const filters: SearchFilters = { types };
-    if (keyword) filters.keyword = keyword;
+    if (debouncedKeyword) filters.keyword = debouncedKeyword;
     filters.minPrice = minPrice;
     filters.maxPrice = maxPrice;
     filters.isClosingSoon = isUrgent;
@@ -167,12 +179,12 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     filters.courtName = selectedCourt !== 'ALL' ? selectedCourt : undefined;
     filters.managingAuthority = selectedNtaAuth !== 'ALL' ? selectedNtaAuth : undefined;
     return filters;
-  }, [types, keyword, minPrice, maxPrice, isUrgent, isNationwide, selectedPrefectures, provider, activeProviders, walkTime, minArea, selectedLine, selectedStation, selectedCourt, selectedNtaAuth]);
+  }, [types, debouncedKeyword, minPrice, maxPrice, isUrgent, isNationwide, selectedPrefectures, provider, activeProviders, walkTime, minArea, selectedLine, selectedStation, selectedCourt, selectedNtaAuth]);
 
   const { data: stats } = useSWR(
     isMounted ? ['faceted', JSON.stringify(activeSearchFilters)] : null,
     () => getFacetedStats(activeSearchFilters),
-    { keepPreviousData: true }
+    { keepPreviousData: true, revalidateOnFocus: false, dedupingInterval: 30000 }
   );
 
   const railData = stats?.railData || [];
@@ -184,10 +196,19 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
      if (isMounted) {
         const initialOverrides: any = {};
 
-        const lineParam = searchParams.get('line');
+        const lineParam = searchParams.get('line') || searchParams.get('lineName');
         const prefsParam = searchParams.get('prefs');
-        const prefParam = searchParams.get('pref');
+        const prefParam = searchParams.get('pref') || searchParams.get('prefecture');
+        const keywordParam = searchParams.get('keyword');
+        const minPriceParam = searchParams.get('minPrice');
+        const maxPriceParam = searchParams.get('maxPrice');
+        const closingSoonParam = searchParams.get('isClosingSoon');
+        const providerParam = searchParams.get('provider');
+        const typesParam = searchParams.getAll('types[]').length > 0
+          ? searchParams.getAll('types[]')
+          : searchParams.getAll('types');
         const sortParam = searchParams.get('sort') as 'newest' | 'views' | 'ending' | 'priceAsc' | 'areaDesc' | 'gap_desc' | null;
+
         if (lineParam) {
            setSelectedLine(lineParam);
            initialOverrides.lineName = lineParam;
@@ -197,12 +218,51 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
            setSelectedPrefectures(arr);
            setIsNationwide(arr.length === 0);
            initialOverrides.prefectures = arr;
-           const activeRegions = regions.filter(r => prefectures[r] && prefectures[r].some((p: string) => arr.includes(p)));
-           setSelectedRegions(activeRegions);
+           const fullRegions = regions.filter(r => prefectures[r] && prefectures[r].every((p: string) => arr.includes(p)));
+           setSelectedRegions(fullRegions);
+           const firstMatchedRegion = regions.find(r => prefectures[r] && prefectures[r].some((p: string) => arr.includes(p)));
+           if (firstMatchedRegion) setViewingRegion(firstMatchedRegion);
         } else if (prefParam) {
-           setSelectedPrefectures([prefParam]);
-           setIsNationwide(false);
-           initialOverrides.prefectures = [prefParam];
+           const arr = prefParam.split(',').filter(Boolean);
+           setSelectedPrefectures(arr);
+           setIsNationwide(arr.length === 0);
+           initialOverrides.prefectures = arr;
+           const fullRegions = regions.filter(r => prefectures[r] && prefectures[r].every((p: string) => arr.includes(p)));
+           setSelectedRegions(fullRegions);
+           const firstMatchedRegion = regions.find(r => prefectures[r] && prefectures[r].some((p: string) => arr.includes(p)));
+           if (firstMatchedRegion) setViewingRegion(firstMatchedRegion);
+        }
+        if (keywordParam) {
+           setKeyword(keywordParam);
+           setDebouncedKeyword(keywordParam);
+           initialOverrides.keyword = keywordParam;
+        }
+        if (minPriceParam && !isNaN(Number(minPriceParam))) {
+           const val = Number(minPriceParam);
+           setMinPrice(val);
+           initialOverrides.minPrice = val;
+        }
+        if (maxPriceParam && !isNaN(Number(maxPriceParam))) {
+           const val = Number(maxPriceParam);
+           setMaxPrice(val);
+           initialOverrides.maxPrice = val;
+        }
+        if (closingSoonParam === 'true') {
+           setIsUrgent(true);
+           initialOverrides.isClosingSoon = true;
+        }
+        if (providerParam === 'BIT' || providerParam === 'NTA') {
+           setProvider(providerParam);
+           setActiveProviders([providerParam]);
+           initialOverrides.provider = providerParam;
+           initialOverrides.providers = [providerParam];
+        }
+        if (typesParam && typesParam.length > 0) {
+           const parsedTypes = typesParam.flatMap(t => t.split(',')).filter(Boolean);
+           if (parsedTypes.length > 0) {
+              setTypes(parsedTypes);
+              initialOverrides.types = parsedTypes;
+           }
         }
         if (sortParam) {
            setSort(sortParam);
@@ -265,8 +325,6 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     const finalFilters = { ...currentFilters, ...actualOverrides };
 
     onSearch(finalFilters);
-
-    setIsExpanded(false);
   };
 
   const handleClear = () => {
@@ -275,13 +333,13 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     setSelectedRegions([]);
     setSelectedPrefectures([]);
     setIsNationwide(true);
-    setViewingRegion('');
+    setViewingRegion('北海道・東北');
     setMinPrice(undefined);
     setMaxPrice(undefined);
     setMinArea(undefined);
     setIsUrgent(false);
     setProvider('ALL');
-    setActiveProviders(['BIT', 'NTA']);
+    setActiveProviders(['BIT', 'NTA', 'KSI', 'MOF']);
     setWalkTime(undefined);
     setSelectedLine('ALL');
     setSelectedStation('ALL');
@@ -289,19 +347,13 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     setSelectedNtaAuth('ALL');
     setSort('newest');
     onSearch({});
-    router.replace('/', { scroll: false });
+    router.replace(pathname, { scroll: false });
   };
 
   useEffect(() => {
     const fn = () => handleClear();
     window.addEventListener('clear-all-filters', fn);
     return () => window.removeEventListener('clear-all-filters', fn);
-  }, []);
-
-  useEffect(() => {
-    const collapseSearch = () => setIsExpanded(false);
-    window.addEventListener('map-interaction', collapseSearch);
-    return () => window.removeEventListener('map-interaction', collapseSearch);
   }, []);
 
   const handleToggleProvider = (prov: string) => {
@@ -460,62 +512,13 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
   };
 
   return (
-    <div className={`w-full sticky top-0 z-[60] lg:relative lg:z-auto pointer-events-auto transition-all duration-500 ${isExpanded ? 'bg-white/95 dark:bg-zinc-950/95 lg:bg-transparent dark:lg:bg-transparent shadow-sm lg:shadow-none backdrop-blur-md lg:backdrop-blur-none border-b border-zinc-200 dark:border-zinc-800 lg:border-none' : 'bg-transparent border-transparent shadow-none pointer-events-none pb-[42px] lg:pb-0'}`}>
-      
-      {/* =========================================
-          COLLAPSED SUMMARY PILL
-          ========================================= */}
-      <div className={`flex absolute top-1 w-full justify-center transition-all duration-300 z-[70] items-center gap-2 pointer-events-none
-         ${!isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
-      `}>
-         <div className="flex items-center gap-2 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-lg border border-gray-200 dark:border-zinc-700 rounded-full p-1 pl-4 pointer-events-auto">
-           <button 
-             onClick={() => setIsExpanded(true)}
-             className="flex items-center gap-2.5 hover:text-blue-600 transition-colors"
-           >
-              <MagnifyingGlassIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-              <span className="text-xs sm:text-sm font-bold text-zinc-700 dark:text-zinc-200 max-w-[150px] sm:max-w-[200px] truncate">
-                 {getFilterSummary()}
-              </span>
-              <ChevronDownIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-           </button>
-           
-           <div className="w-px h-6 bg-gray-200 dark:bg-zinc-700 mx-1"></div>
-           
-           <button 
-             onClick={handleSaveFilter} 
-             title="この条件を保存"
-             className="flex items-center justify-center gap-1 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 text-yellow-500 hover:text-yellow-600 font-bold py-1.5 px-2 rounded-full transition-all text-[11px] sm:text-xs"
-           >
-             ⭐️
-           </button>
-           <button 
-             onClick={handleClear} 
-             title="条件をクリア"
-             className="flex items-center justify-center gap-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 font-bold py-1.5 px-2 rounded-full transition-all text-[11px] sm:text-xs"
-           >
-             🔄
-           </button>
-           
-           <button onClick={handleApply} className="bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center justify-center py-1.5 px-4 rounded-full shadow-sm text-[11px] sm:text-xs transition-colors ml-1">
-             検索
-           </button>
-         </div>
-      </div>
-
-      {/* =========================================
-          EXPANDED SEARCH CONTAINER
-          ========================================= */}
-      <div className={`w-full transition-all duration-500 lg:bg-transparent lg:backdrop-blur-none
-        origin-top flex flex-col items-center
-        ${isExpanded ? 'max-h-[800px] opacity-100 scale-y-100 overflow-visible' : 'max-h-0 opacity-0 scale-y-95 pointer-events-none overflow-hidden'}
-      `}>
-        
-        {/* UNIVERSAL TOOLBAR (Desktop + Mobile) */}
-        <div className="flex flex-col w-full px-1 sm:px-4 lg:px-8 xl:px-12 pt-2 lg:pt-3 relative max-w-full">
-          <div className="bg-white dark:bg-zinc-900 shadow-md rounded-xl border border-gray-200 dark:border-zinc-800 p-4 lg:p-3 transition-all duration-300">
+    <div className="w-full bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 relative z-[60] pointer-events-auto shrink-0">
+      <div className="w-full flex flex-col">
+        {/* DOCKED B2B TOOLBAR (SUUMO / LIFULL HOME'S / KENBIYA Standard) */}
+        <div className="flex flex-col w-full px-2.5 sm:px-4 lg:px-5 py-2 relative max-w-full">
+          <div className="bg-white dark:bg-zinc-900">
             {/* Main Row: Unified Input */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center w-full gap-2 lg:gap-0 lg:rounded-lg lg:border lg:border-gray-200 dark:lg:border-zinc-700 p-0 lg:p-1 lg:focus-within:ring-2 lg:focus-within:ring-blue-500/50 lg:bg-white dark:lg:bg-zinc-950">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center w-full gap-2 lg:gap-0 lg:rounded-md lg:border lg:border-slate-300 dark:lg:border-zinc-700 p-0 lg:p-1 lg:focus-within:ring-2 lg:focus-within:ring-[#1B4F8A]/30 lg:focus-within:border-[#1B4F8A] lg:bg-white dark:lg:bg-zinc-950 transition-colors">
             
             {/* Search Top / Left */}
             <div className="flex-1 flex items-center w-full rounded-lg lg:rounded-none border border-gray-200 dark:border-zinc-700 lg:border-none p-1.5 lg:p-0 bg-white dark:bg-zinc-950 focus-within:ring-2 lg:focus-within:ring-0 focus-within:ring-blue-500/50 relative z-50">
@@ -530,16 +533,67 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                   className="w-full border-none py-1.5 lg:py-1.5 text-xs lg:text-xs bg-transparent text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:ring-0 outline-none font-bold relative z-10"
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
-                  onFocus={() => { if (suggestions.length > 0) setIsSuggestionsOpen(true); }}
-                  onBlur={() => setTimeout(() => setIsSuggestionsOpen(false), 200)}
+                  onFocus={() => {
+                    setIsInputFocused(true);
+                    if (suggestions.length > 0) setIsSuggestionsOpen(true);
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setIsInputFocused(false);
+                      setIsSuggestionsOpen(false);
+                    }, 200);
+                  }}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleApply(); }}
-                  placeholder="エリア・駅名・キーワードを入力..."
+                  placeholder="エリア・駅名・キーワード（例: 新宿 マンション 2000万以下）..."
                 />
                 {keyword && (
                   <button type="button" onClick={() => { setKeyword(''); triggerSearch({ keyword: '' }); }} className="absolute inset-y-0 right-0 flex items-center text-zinc-400 hover:text-zinc-600 font-bold px-2 z-20">
                     <XMarkIcon className="w-4 h-4" />
                   </button>
                 )}
+
+                {/* Popular Search Intent Chips for Quick Access */}
+                <Transition
+                  show={isInputFocused && !keyword.trim()}
+                  as={Fragment}
+                  enter="transition ease-out duration-100"
+                  enterFrom="transform opacity-0 scale-95"
+                  enterTo="transform opacity-100 scale-100"
+                  leave="transition ease-in duration-75"
+                  leaveFrom="transform opacity-100 scale-100"
+                  leaveTo="transform opacity-0 scale-95"
+                >
+                  <div className="absolute z-[100] mt-3 lg:mt-2 w-full min-w-[320px] bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] rounded-xl p-3 focus:outline-none">
+                    <div className="text-[11px] font-bold text-zinc-400 mb-2 flex items-center gap-1.5">
+                      <MagnifyingGlassIcon className="w-3.5 h-3.5 text-[#1B4F8A]" />
+                      <span>人気の検索条件・スマート入力例</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        '東京 マンション',
+                        '駅徒歩10分以内',
+                        '2000万円以下',
+                        '土地 50坪以上',
+                        '戸建て 1000万以下',
+                        '山手線 駅近'
+                      ].map((chip) => (
+                        <button
+                          key={chip}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setKeyword(chip);
+                            triggerSearch({ keyword: chip });
+                            setIsInputFocused(false);
+                          }}
+                          className="text-xs px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-blue-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 hover:text-[#1B4F8A] dark:text-zinc-200 font-medium transition-colors border border-transparent hover:border-blue-200"
+                        >
+                          {chip}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </Transition>
                 
                 {/* Suggestions Dropdown */}
                 <Transition
@@ -552,27 +606,57 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                   leaveFrom="transform opacity-100 scale-100"
                   leaveTo="transform opacity-0 scale-95"
                 >
-                  <ul className="absolute z-[100] mt-3 lg:mt-2 w-full min-w-[280px] bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] rounded-xl py-1 focus:outline-none max-h-[300px] overflow-y-auto">
-                    {suggestions.map((s, idx) => (
-                      <li
-                        key={idx}
-                        className="cursor-pointer select-none relative py-2.5 px-4 lg:px-3 text-sm lg:text-xs hover:bg-blue-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2 group/item"
-                        onClick={() => handleSuggestionSelect(s)}
-                      >
-                        <span className="text-base leading-none w-5 text-center">
-                          {s.type === 'STATION' ? '🚆' : s.type === 'LINE' ? '🛤️' : s.type === 'CITY' ? '📍' : '🏠'}
-                        </span>
-                        <div className="flex flex-col truncate">
-                          <span className="font-bold text-zinc-900 dark:text-zinc-100 group-hover/item:text-blue-600 dark:group-hover/item:text-blue-400 truncate">
-                            {s.text}
+                  <ul className="absolute z-[100] mt-3 lg:mt-2 w-full min-w-[300px] bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] rounded-xl py-1 focus:outline-none max-h-[320px] overflow-y-auto divide-y divide-zinc-50 dark:divide-zinc-800/50">
+                    {suggestions.map((s, idx) => {
+                      const getBadgeInfo = () => {
+                        switch (s.type) {
+                          case 'STATION':
+                            return { label: '駅', bg: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: <Train className="w-3.5 h-3.5 text-blue-500" /> };
+                          case 'LINE':
+                            return { label: '路線', bg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', icon: <Train className="w-3.5 h-3.5 text-emerald-500" /> };
+                          case 'CITY':
+                            return { label: 'エリア', bg: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', icon: <MapPin className="w-3.5 h-3.5 text-amber-500" /> };
+                          case 'COURT':
+                            return { label: '裁判所/税務署', bg: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300', icon: <Scale className="w-3.5 h-3.5 text-purple-500" /> };
+                          case 'CASE':
+                            return { label: '事件番号', bg: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300', icon: <Bookmark className="w-3.5 h-3.5 text-indigo-500" /> };
+                          default:
+                            return { label: '住所', bg: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300', icon: <Building2 className="w-3.5 h-3.5 text-slate-500" /> };
+                        }
+                      };
+                      const badge = getBadgeInfo();
+
+                      return (
+                        <li
+                          key={idx}
+                          className="cursor-pointer select-none relative py-2.5 px-4 lg:px-3 text-sm lg:text-xs hover:bg-blue-50/70 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2.5 group/item"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSuggestionSelect(s);
+                          }}
+                        >
+                          <span className="w-5 flex items-center justify-center shrink-0">
+                            {badge.icon}
                           </span>
-                          {s.subtext && <span className="text-[10px] text-zinc-400 truncate">{s.subtext}</span>}
-                        </div>
-                        <span className="ml-auto text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
-                          {s.type}
-                        </span>
-                      </li>
-                    ))}
+                          <div className="flex flex-col truncate min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="font-bold text-zinc-900 dark:text-zinc-100 group-hover/item:text-[#1B4F8A] dark:group-hover/item:text-blue-400 truncate">
+                                {s.text}
+                              </span>
+                              {typeof s.count === 'number' && (
+                                <span className="text-[11px] text-zinc-400 font-mono font-medium shrink-0">
+                                  ({s.count}件)
+                                </span>
+                              )}
+                            </div>
+                            {s.subtext && <span className="text-[10px] text-zinc-400 truncate">{s.subtext}</span>}
+                          </div>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 ${badge.bg}`}>
+                            {badge.label}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </Transition>
               </div>
@@ -583,135 +667,281 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
 
             {/* Bottom / Right */}
             <div className="flex items-center justify-between lg:justify-end w-full lg:w-auto rounded-lg lg:rounded-none border border-gray-200 dark:border-zinc-700 lg:border-none p-1.5 lg:p-0 bg-white dark:bg-zinc-950 relative z-40">
-            {/* Region Location Filter */}
+            {/* Region Location Filter (B2B Redesigned Popover) */}
             <Popover className="relative shrink-0 flex items-center">
-              {({ open, close }) => (
+              {({ open, close }) => {
+                const activeRegion = viewingRegion && prefectures[viewingRegion] ? viewingRegion : '北海道・東北';
+                const currentRegionPrefs = prefectures[activeRegion] || [];
+                const allInViewingSelected = currentRegionPrefs.length > 0 && currentRegionPrefs.every(p => selectedPrefectures.includes(p));
+                const nationwideTotal = areaStats['全国'] ?? Object.entries(areaStats).reduce((sum, [k, v]) => k === '全国' ? sum : sum + (v || 0), 0);
+
+                const handleToggleRegionAll = (r: string, e?: React.MouseEvent) => {
+                  if (e) e.stopPropagation();
+                  const rPrefs = prefectures[r] || [];
+                  const isAllSelected = rPrefs.every(p => selectedPrefectures.includes(p));
+                  setViewingRegion(r);
+
+                  if (isAllSelected) {
+                    const nextPrefs = selectedPrefectures.filter(p => !rPrefs.includes(p));
+                    const nextRegions = selectedRegions.filter(x => x !== r);
+                    setSelectedPrefectures(nextPrefs);
+                    setSelectedRegions(nextRegions);
+                    if (nextPrefs.length === 0) setIsNationwide(true);
+                  } else {
+                    setIsNationwide(false);
+                    const nextPrefs = Array.from(new Set([...selectedPrefectures, ...rPrefs]));
+                    const nextRegions = Array.from(new Set([...selectedRegions, r]));
+                    setSelectedPrefectures(nextPrefs);
+                    setSelectedRegions(nextRegions);
+                  }
+                };
+
+                const handleTogglePrefecture = (p: string, r: string) => {
+                  const rPrefs = prefectures[r] || [];
+                  const isSelected = selectedPrefectures.includes(p);
+                  if (isSelected) {
+                    const nextPrefs = selectedPrefectures.filter(x => x !== p);
+                    setSelectedPrefectures(nextPrefs);
+                    setSelectedRegions(prev => prev.filter(x => x !== r));
+                    if (nextPrefs.length === 0) setIsNationwide(true);
+                  } else {
+                    setIsNationwide(false);
+                    const nextPrefs = [...selectedPrefectures, p];
+                    setSelectedPrefectures(nextPrefs);
+                    if (rPrefs.every(rp => nextPrefs.includes(rp))) {
+                      setSelectedRegions(prev => Array.from(new Set([...prev, r])));
+                    }
+                  }
+                };
+
+                return (
                 <>
-                  <Popover.Button ref={refs.setReference} className={`flex items-center text-xs lg:text-xs font-bold px-2 lg:px-2 py-1.5 lg:py-1.5 rounded-md transition-colors ${open || !isNationwide ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white'} outline-none`}>
-                    <MapIcon className="w-4 h-4 mr-1 text-zinc-400" />
-                    {isNationwide ? '全国' : selectedPrefectures.length > 2 ? `${selectedPrefectures[0]}... +${selectedPrefectures.length - 1}` : selectedPrefectures.length > 0 ? selectedPrefectures.join('/') : '都道府県'}
+                  <Popover.Button
+                    ref={refs.setReference}
+                    className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-md border transition-colors outline-none ${
+                      open || (!isNationwide && selectedPrefectures.length > 0)
+                        ? 'bg-[#F0F4F9] text-[#1B4F8A] border-[#1B4F8A]/40 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700'
+                        : 'bg-white text-slate-700 border-transparent hover:bg-slate-50 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <MapIcon className={`w-3.5 h-3.5 shrink-0 ${open || (!isNationwide && selectedPrefectures.length > 0) ? 'text-[#1B4F8A] dark:text-blue-400' : 'text-slate-400'}`} />
+                    <span className="truncate max-w-[130px]">
+                      {isNationwide || selectedPrefectures.length === 0
+                        ? '全国'
+                        : selectedPrefectures.length <= 2
+                        ? selectedPrefectures.join('・')
+                        : `${selectedPrefectures[0]} ほか${selectedPrefectures.length - 1}県`}
+                    </span>
+                    {!isNationwide && selectedPrefectures.length > 0 && (
+                      <span className="bg-[#1B4F8A] text-white text-[10px] font-mono tabular-nums px-1.5 py-0.2 rounded-sm font-bold">
+                        {selectedPrefectures.length}
+                      </span>
+                    )}
+                    <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform ${open ? 'rotate-180 text-[#1B4F8A]' : ''}`} />
                   </Popover.Button>
                   {isMounted && (
                     <Portal>
                       <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-75" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
-                        <Popover.Panel ref={refs.setFloating} style={floatingStyles} className="w-[calc(100vw-32px)] sm:w-[450px] max-w-[450px] bg-white dark:bg-zinc-900 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] ring-1 ring-black/5 z-[9999] border border-zinc-100 dark:border-zinc-800 overflow-hidden flex flex-col">
-                        <div className="flex w-full">
-                          {/* Left Column: Regions */}
-                          <div className="w-5/12 bg-zinc-50 dark:bg-zinc-800/50 p-2 border-r border-zinc-100 dark:border-zinc-800 h-[300px] overflow-y-auto">
-                            <p className="text-xs font-bold text-zinc-400 mb-2 px-2 pt-1 font-sans">地方</p>
+                        <Popover.Panel ref={refs.setFloating} style={floatingStyles} className="w-[calc(100vw-24px)] sm:w-[520px] max-w-[520px] bg-white dark:bg-zinc-900 rounded-lg shadow-[0_12px_32px_-4px_rgba(15,23,42,0.16)] z-[9999] border border-slate-200 dark:border-zinc-800 overflow-hidden flex flex-col">
+                        
+                        {/* Popover Header Bar */}
+                        <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-50 dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800">
+                          <div className="flex items-center gap-1.5">
+                            <MapIcon className="w-3.5 h-3.5 text-[#1B4F8A] dark:text-blue-400" />
+                            <span className="text-xs font-bold text-slate-800 dark:text-zinc-100 tracking-tight">対象エリア・都道府県を選択</span>
+                          </div>
+                          <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 font-mono tabular-nums">
+                            {isNationwide || selectedPrefectures.length === 0
+                              ? `全国すべて (${nationwideTotal.toLocaleString()}件)`
+                              : `選択中: ${selectedPrefectures.length}都道府県`}
+                          </span>
+                        </div>
+
+                        <div className="flex w-full h-[340px]">
+                          {/* Left Column: Regions (Click to inspect, checkbox to select all in region) */}
+                          <div className="w-[45%] bg-slate-50/70 dark:bg-zinc-950/60 p-2 border-r border-slate-200 dark:border-zinc-800 overflow-y-auto flex flex-col gap-0.5">
+                            <p className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 mb-1 px-2 pt-0.5 tracking-wider">地方区分</p>
                             
-                            <button 
+                            <button
+                              type="button"
                               onClick={() => {
                                 setIsNationwide(true);
                                 setSelectedRegions([]);
                                 setSelectedPrefectures([]);
-                              }} 
-                              className={`w-full text-left px-3 py-2 text-sm rounded flex justify-between items-center mb-1 transition-colors ${isNationwide ? 'bg-blue-100 text-blue-700 font-bold shadow-sm dark:bg-blue-900/30 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/50'}`}>
-                              <span>全国</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${isNationwide ? 'bg-blue-500 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500'}`}>
-                                {areaStats['全国'] || 0}
+                              }}
+                              className={`w-full text-left px-2.5 py-2 text-xs rounded-md flex justify-between items-center transition-colors border ${
+                                isNationwide || selectedPrefectures.length === 0
+                                  ? 'bg-[#1B4F8A] text-white font-bold border-[#1B4F8A] shadow-2xs'
+                                  : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border-slate-200/80 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                              }`}
+                            >
+                              <span className="flex items-center gap-2">
+                                <span className={`w-3.5 h-3.5 rounded-xs flex items-center justify-center border ${
+                                  isNationwide || selectedPrefectures.length === 0
+                                    ? 'bg-white text-[#1B4F8A] border-white'
+                                    : 'border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
+                                }`}>
+                                  {(isNationwide || selectedPrefectures.length === 0) && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                </span>
+                                <span>全国すべて</span>
+                              </span>
+                              <span className={`text-[11px] font-mono tabular-nums px-1.5 py-0.5 rounded-xs font-bold ${
+                                isNationwide || selectedPrefectures.length === 0
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
+                              }`}>
+                                {nationwideTotal.toLocaleString()}
                               </span>
                             </button>
+
+                            <div className="my-1 border-t border-slate-200/80 dark:border-zinc-800" />
                             
                             {regions.map(r => {
-                              const regionTotal = prefectures[r] ? prefectures[r].reduce((sum: number, p: string) => sum + (areaStats[p] || 0), 0) : 0;
-                              const isSelected = selectedRegions.includes(r);
-                              const isViewing = viewingRegion === r;
+                              const rPrefs = prefectures[r] || [];
+                              const regionTotal = rPrefs.reduce((sum: number, p: string) => sum + (areaStats[p] || 0), 0);
+                              const selectedCountInRegion = rPrefs.filter(p => selectedPrefectures.includes(p)).length;
+                              const isAllRegionSelected = rPrefs.length > 0 && selectedCountInRegion === rPrefs.length && !isNationwide;
+                              const isPartialRegionSelected = selectedCountInRegion > 0 && selectedCountInRegion < rPrefs.length && !isNationwide;
+                              const isViewing = activeRegion === r;
+
                               return (
-                                <button 
-                                  key={r} 
-                                  onClick={() => {
-                                     setIsNationwide(false);
-                                     setViewingRegion(r);
-                                     if (isSelected) {
-                                       // Deselect
-                                       setSelectedRegions(prev => prev.filter(x => x !== r));
-                                       setSelectedPrefectures(prev => prev.filter(p => !prefectures[r].includes(p)));
-                                     } else {
-                                       // Select
-                                       setSelectedRegions(prev => [...prev, r]);
-                                       const newPrefs = new Set([...selectedPrefectures, ...prefectures[r]]);
-                                       setSelectedPrefectures(Array.from(newPrefs));
-                                     }
-                                  }}
-                                  onMouseEnter={() => setViewingRegion(r)}
-                                  className={`w-full text-left px-3 py-2 text-sm rounded transition-colors flex justify-between items-center relative ${isSelected ? 'bg-blue-100 text-blue-700 font-bold dark:bg-blue-900/30 dark:text-blue-300' : isViewing ? 'bg-zinc-200/50 dark:bg-zinc-700/50' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/50'}`}>
-                                  <span>{r}</span>
-                                  <span className="text-[10px] text-zinc-500">
-                                    {isSelected ? '✓' : ''} ({regionTotal})
-                                  </span>
-                                </button>
+                                <div
+                                  key={r}
+                                  onClick={() => setViewingRegion(r)}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setViewingRegion(r); }}
+                                  className={`w-full text-left px-2.5 py-2 text-xs rounded-md transition-colors flex justify-between items-center cursor-pointer border ${
+                                    isViewing
+                                      ? 'bg-white dark:bg-zinc-800 text-[#1B4F8A] dark:text-blue-300 font-bold border-[#1B4F8A]/40 dark:border-blue-500/40 shadow-2xs'
+                                      : isAllRegionSelected || isPartialRegionSelected
+                                      ? 'bg-[#F0F4F9]/70 dark:bg-blue-950/20 text-slate-800 dark:text-zinc-200 font-semibold border-transparent'
+                                      : 'text-slate-700 dark:text-zinc-300 border-transparent hover:bg-slate-200/60 dark:hover:bg-zinc-800/60'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <button
+                                      type="button"
+                                      title={`${r}全域を選択・解除`}
+                                      onClick={(e) => handleToggleRegionAll(r, e)}
+                                      className={`w-3.5 h-3.5 rounded-xs flex items-center justify-center border shrink-0 transition-colors ${
+                                        isAllRegionSelected
+                                          ? 'bg-[#1B4F8A] border-[#1B4F8A] text-white'
+                                          : isPartialRegionSelected
+                                          ? 'bg-[#1B4F8A]/20 border-[#1B4F8A] text-[#1B4F8A] dark:text-blue-300'
+                                          : 'border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 hover:border-[#1B4F8A]'
+                                      }`}
+                                    >
+                                      {isAllRegionSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                      {isPartialRegionSelected && <span className="w-1.5 h-0.5 bg-[#1B4F8A] dark:bg-blue-400 rounded-full" />}
+                                    </button>
+                                    <span className="truncate">{r}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {selectedCountInRegion > 0 && !isNationwide && (
+                                      <span className="text-[10px] font-mono tabular-nums bg-[#1B4F8A] text-white px-1 rounded-xs font-bold">
+                                        {selectedCountInRegion}
+                                      </span>
+                                    )}
+                                    <span className="text-[11px] font-mono tabular-nums text-slate-400 dark:text-zinc-500">
+                                      ({regionTotal.toLocaleString()})
+                                    </span>
+                                  </div>
+                                </div>
                               );
                             })}
                           </div>
 
-                          {/* Right Column: Prefectures */}
-                          <div className="w-7/12 p-2 h-[300px] overflow-y-auto">
-                            <p className="text-xs font-bold text-zinc-400 mb-2 px-2 pt-1 font-sans">都道府県</p>
+                          {/* Right Column: 2-Column B2B Prefecture Grid */}
+                          <div className="w-[55%] p-3 bg-white dark:bg-zinc-900 overflow-y-auto flex flex-col">
+                            <div className="flex items-center justify-between mb-2.5 pb-1.5 border-b border-slate-100 dark:border-zinc-800">
+                              <span className="text-xs font-bold text-slate-800 dark:text-zinc-100">
+                                {activeRegion}の都道府県
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleRegionAll(activeRegion)}
+                                className="text-[11px] font-semibold text-[#1B4F8A] hover:text-[#143D6C] dark:text-blue-400 dark:hover:text-blue-300 px-2 py-0.5 rounded hover:bg-[#F0F4F9] dark:hover:bg-zinc-800 transition-colors"
+                              >
+                                {allInViewingSelected && !isNationwide ? '全域を解除' : '全域を選択'}
+                              </button>
+                            </div>
                             
-                            {viewingRegion && prefectures[viewingRegion] ? prefectures[viewingRegion].map(p => {
-                              const count = areaStats[p] || 0;
-                              const isSelected = selectedPrefectures.includes(p);
-                              return (
-                                <button key={p} 
-                                  onClick={() => { 
-                                    setIsNationwide(false);
-                                    if (isSelected) {
-                                       setSelectedPrefectures(prev => prev.filter(x => x !== p));
-                                       // If user deselects a prefecture, the parent Region should visually un-select too
-                                       setSelectedRegions(prev => prev.filter(x => x !== viewingRegion));
-                                    } else {
-                                       setSelectedPrefectures(prev => [...prev, p]);
-                                    }
-                                  }} 
-                                  className={`w-full text-left px-3 py-2.5 text-sm rounded flex justify-between items-center transition-colors mb-0.5 ${isSelected ? 'bg-blue-100 text-blue-700 font-bold dark:bg-blue-900/30 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
-                                  <span>{p}</span>
-                                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${isSelected ? 'bg-blue-500 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400'}`}>
-                                    {count}
-                                  </span>
-                                </button>
-                              );
-                            }) : (
-                              <p className="text-sm text-zinc-400 px-3 py-4 text-center mt-10">
-                                👈 左側から地方を<br/>選択してください
-                              </p>
-                            )}
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {currentRegionPrefs.map(p => {
+                                const count = areaStats[p] || 0;
+                                const isSelected = !isNationwide && selectedPrefectures.includes(p);
+                                return (
+                                  <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => handleTogglePrefecture(p, activeRegion)}
+                                    className={`text-left px-2.5 py-2 text-xs rounded-md border flex justify-between items-center transition-all ${
+                                      isSelected
+                                        ? 'bg-[#F0F4F9] border-[#1B4F8A] text-[#1B4F8A] font-bold dark:bg-blue-950/40 dark:border-blue-500 dark:text-blue-300 shadow-2xs'
+                                        : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:border-slate-300'
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-1.5 truncate">
+                                      <span className={`w-3.5 h-3.5 rounded-xs flex items-center justify-center border shrink-0 ${
+                                        isSelected
+                                          ? 'bg-[#1B4F8A] border-[#1B4F8A] text-white'
+                                          : 'border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
+                                      }`}>
+                                        {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                      </span>
+                                      <span className="truncate">{p}</span>
+                                    </span>
+                                    <span className={`text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded-xs font-semibold shrink-0 ${
+                                      isSelected
+                                        ? 'bg-[#1B4F8A] text-white'
+                                        : 'bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400'
+                                    }`}>
+                                      {count.toLocaleString()}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                         
                         {/* Action Footer */}
-                        <div className="flex items-center justify-between p-3 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
-                           <button 
+                        <div className="flex items-center justify-between px-3.5 py-2.5 border-t border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950">
+                           <button
+                             type="button"
                              onClick={() => {
                                 setIsNationwide(true);
                                 setSelectedRegions([]);
                                 setSelectedPrefectures([]);
                              }}
-                             className="text-sm font-bold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 px-3 py-2 transition-colors rounded hover:bg-zinc-200/50"
+                             className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 px-2.5 py-1.5 transition-colors rounded-md hover:bg-slate-200/60 dark:hover:bg-zinc-800"
                            >
-                             クリア
+                             クリア (全国に戻す)
                            </button>
-                           <button 
+                           <button
+                             type="button"
                              onClick={() => {
-                                // Simulate close
                                 const params = new URLSearchParams(searchParams.toString());
-                                if (!isNationwide && selectedPrefectures.length > 0) {
+                                const effectiveNationwide = isNationwide || selectedPrefectures.length === 0;
+                                if (!effectiveNationwide && selectedPrefectures.length > 0) {
                                   params.set('prefs', selectedPrefectures.join(','));
                                   params.delete('pref');
+                                  params.delete('prefecture');
                                 } else {
                                   params.delete('prefs');
                                   params.delete('pref');
+                                  params.delete('prefecture');
                                 }
-                                router.replace(`/?${params.toString()}`, { scroll: false });
+                                const queryStr = params.toString();
+                                router.replace(queryStr ? `${pathname}?${queryStr}` : pathname, { scroll: false });
                                 
-                                handleApply({ prefectures: isNationwide ? undefined : selectedPrefectures });
-                                
-                                // Close HeadlessUI popover natively
+                                handleApply({ prefectures: effectiveNationwide ? undefined : selectedPrefectures });
                                 close();
                              }}
-                             className="text-sm font-bold bg-blue-100 hover:bg-blue-200 text-blue-700 px-6 py-2 rounded shadow-sm transition-colors dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-300"
+                             className="text-xs font-semibold bg-[#1B4F8A] hover:bg-[#143D6C] text-white px-5 py-1.5 rounded-md shadow-2xs transition-colors"
                            >
-                             決定
+                             この条件で決定
                            </button>
                         </div>
                         </Popover.Panel>
@@ -719,28 +949,31 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                     </Portal>
                   )}
                 </>
-              )}
+                );
+              }}
             </Popover>
 
             {/* Action Buttons */}
-            <div className="flex items-center pl-2 lg:pl-1 pr-1 lg:pr-0 gap-1 shrink-0">
-                 <div className="flex items-center gap-0.5 border-r border-zinc-200 dark:border-zinc-700 pr-2 mr-1">
+            <div className="flex items-center pl-2 lg:pl-1 pr-1 lg:pr-0 gap-1.5 shrink-0">
+                 <div className="flex items-center gap-1 border-r border-slate-200 dark:border-slate-800 pr-2 mr-0.5">
                    <button 
                      onClick={handleSaveFilter} 
                      title="この条件を保存 (Save Filter)"
-                     className="flex items-center justify-center gap-1 bg-transparent hover:bg-yellow-50 dark:hover:bg-yellow-900/30 text-yellow-500 hover:text-yellow-600 font-bold py-1.5 px-2 rounded-md transition-all text-xs"
+                     className="flex items-center justify-center gap-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-300 font-medium py-1.5 px-2.5 rounded-md transition-colors text-xs shadow-2xs"
                    >
-                     ⭐️ <span className="hidden sm:inline">保存</span>
+                     <Bookmark className="w-3.5 h-3.5 text-slate-500" />
+                     <span className="hidden sm:inline">保存</span>
                    </button>
                    <button 
                      onClick={handleClear} 
                      title="条件をクリア (Clear All)"
-                     className="flex items-center gap-1 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 font-bold py-1.5 px-2 rounded-md transition-all text-xs"
+                     className="flex items-center gap-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium py-1.5 px-2 rounded-md transition-colors text-xs shadow-2xs"
                    >
-                     🔄 <span className="hidden sm:inline">クリア</span>
+                     <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                     <span className="hidden sm:inline">クリア</span>
                    </button>
                  </div>
-               <button onClick={handleApply} className="bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center justify-center gap-1.5 py-1.5 lg:py-1.5 px-4 lg:px-6 rounded-md shadow-sm text-xs transition-colors tracking-widest">
+               <button onClick={handleApply} className="bg-[#1B4F8A] hover:bg-[#153e6d] text-white font-semibold flex items-center justify-center gap-1.5 py-1.5 lg:py-1.5 px-4 lg:px-5 rounded-md shadow-2xs text-xs transition-colors tracking-wide">
                  <MagnifyingGlassIcon className="w-4 h-4 sm:hidden" />
                  <span className="hidden sm:inline">検索</span>
                </button>
@@ -748,16 +981,12 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
           </div>
         </div>
 
-          {/* Filter Row: Always Visible Inside Expanded View */}
-          <div className="mt-4 lg:mt-2 relative w-full">
-            {/* Horizontal Scroll Fade Indicators */}
-            <div className="absolute left-0 top-0 bottom-0 w-8 lg:w-16 bg-gradient-to-r from-white/90 dark:from-zinc-900/90 to-transparent pointer-events-none z-10 rounded-l-md"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-8 lg:w-16 bg-gradient-to-l from-white/90 dark:from-zinc-900/90 to-transparent pointer-events-none z-10 rounded-r-md"></div>
-
-            <div className="flex items-center justify-between px-2 lg:px-4">
-              <div className="flex items-center gap-4 sm:gap-6 lg:gap-5 w-full overflow-x-auto whitespace-nowrap pb-2 sm:pb-0 scrollbar-hide px-2">
+          {/* Filter Row: Always Visible Docked B2B Filter Strip */}
+          <div className="mt-2 relative w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 sm:gap-2.5 w-full overflow-x-auto whitespace-nowrap pb-1 sm:pb-0 scrollbar-hide">
                  {/* Property Types */}
-                 <div className="flex items-center gap-1.5 lg:gap-1 shrink-0">
+                 <div className="flex items-center gap-1.5 shrink-0">
                    {propertyTypes.map(pt => {
                      const count = typeStats[pt] || 0;
                      return (
@@ -768,27 +997,32 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                            setTypes(newTypes);
                            triggerSearch({ types: newTypes });
                          }}
-                         className={`px-2.5 lg:px-2 py-1 lg:py-1 text-xs lg:text-[11px] font-bold rounded-full transition-colors border flex items-center gap-1 whitespace-nowrap ${types.includes(pt) ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900' : 'bg-transparent text-zinc-600 hover:bg-zinc-100 border-gray-200 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800'}`}
+                         className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors border flex items-center gap-1.5 whitespace-nowrap shadow-2xs ${
+                           types.includes(pt) 
+                             ? 'bg-[#1B4F8A] text-white border-[#1B4F8A] dark:bg-blue-600 dark:border-blue-600' 
+                             : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800'
+                         }`}
                        >
-                         <span>{pt}({count})</span>
+                         <span>{pt}</span>
+                         <span className={`text-[10px] tabular-nums font-semibold ${types.includes(pt) ? 'text-white/80' : 'text-slate-400'}`}>({count})</span>
                        </button>
                      );
                    })}
                  </div>
 
-                 <div className="w-px h-4 lg:h-3 bg-gray-200 dark:bg-zinc-700 shrink-0 mx-1"></div>
+                 <div className="w-px h-4 lg:h-3 bg-slate-200 dark:bg-slate-700 shrink-0 mx-0.5"></div>
 
                  {/* Price Dropdowns */}
-                 <div className="flex items-center gap-2 lg:gap-1 shrink-0">
-                   <span className="text-sm lg:text-sm leading-none mr-1 lg:mr-0">💰</span>
-                   <select value={minPrice || ''} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : undefined; setMinPrice(v); triggerSearch({ minPrice: v }); }} className="text-[11px] lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none">
+                 <div className="flex items-center gap-1.5 shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 shadow-2xs">
+                   <Coins className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                   <select value={minPrice || ''} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : undefined; setMinPrice(v); triggerSearch({ minPrice: v }); }} className="text-xs font-medium border-none bg-transparent outline-none text-slate-700 dark:text-slate-200 cursor-pointer appearance-none">
                      <option value="">下限なし</option>
                      <option value="5000000">500万円</option>
                      <option value="10000000">1000万円</option>
                      <option value="20000000">2000万円</option>
                    </select>
-                   <span className="text-zinc-400 text-[11px] lg:text-xs">~</span>
-                   <select value={maxPrice || ''} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : undefined; setMaxPrice(v); triggerSearch({ maxPrice: v }); }} className="text-[11px] lg:text-xs font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none pl-1">
+                   <span className="text-slate-400 text-xs">〜</span>
+                   <select value={maxPrice || ''} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : undefined; setMaxPrice(v); triggerSearch({ maxPrice: v }); }} className="text-xs font-medium border-none bg-transparent outline-none text-slate-700 dark:text-slate-200 cursor-pointer appearance-none pl-0.5">
                      <option value="">上限なし</option>
                      <option value="5000000">500万円</option>
                      <option value="10000000">1000万円</option>
@@ -796,28 +1030,28 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                    </select>
                  </div>
                  
-                 <div className="w-px h-4 lg:h-3 bg-gray-200 dark:bg-zinc-700 shrink-0"></div>
+                 <div className="w-px h-4 lg:h-3 bg-slate-200 dark:bg-slate-700 shrink-0"></div>
 
                  {/* Authority Dropdowns: BIT Court + NTA Auth */}
                  <div className="flex items-center gap-2 shrink-0">
                    {/* BIT Court Dropdown */}
                    <div className="relative">
                      <div
-                       className={`flex items-center rounded-lg border transition-all overflow-hidden ${
+                       className={`flex items-center rounded-md border transition-all overflow-hidden shadow-2xs ${
                          activeProviders.includes('BIT')
-                           ? selectedCourt !== 'ALL' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 ring-1 ring-blue-400' : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
-                           : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800 opacity-60 grayscale'
+                           ? selectedCourt !== 'ALL' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 ring-1 ring-blue-400' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                           : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 opacity-60 grayscale'
                        }`}
                      >
                        <button
                          onClick={() => handleToggleProvider('BIT')}
-                         className={`flex items-center gap-1 px-2.5 py-1 text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${
+                         className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${
                            activeProviders.includes('BIT') 
-                             ? selectedCourt !== 'ALL' ? 'text-blue-700 dark:text-blue-400' : 'text-zinc-700 dark:text-zinc-300'
-                             : 'text-zinc-400 dark:text-zinc-500'
+                             ? selectedCourt !== 'ALL' ? 'text-blue-700 dark:text-blue-400' : 'text-slate-700 dark:text-slate-200'
+                             : 'text-slate-400 dark:text-slate-500'
                          }`}
                        >
-                         <span>⚖️</span>
+                         <Scale className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                          <span className="max-w-[120px] sm:max-w-[160px] truncate">{selectedCourt !== 'ALL' ? selectedCourt : `BIT 裁判所(${(authorityData?.bit || []).reduce((acc: any, curr: any) => acc + curr.count, 0)})`}</span>
                         </button>
                        <button
@@ -837,7 +1071,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                          <div ref={bitRefs.setFloating} style={bitStyles} className="z-[9999] w-60 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl overflow-hidden">
                            <div className="max-h-52 overflow-y-auto">
                              <button
-                               onClick={() => { setSelectedCourt('ALL'); setProvider('ALL'); setIsBitOpen(false); triggerSearch({ courtName: undefined, provider: undefined }); }}
+                               onClick={() => { setSelectedCourt('ALL'); setProvider('ALL'); setActiveProviders(['BIT', 'NTA', 'KSI', 'MOF']); setIsBitOpen(false); triggerSearch({ courtName: undefined, provider: undefined, providers: ['BIT', 'NTA', 'KSI', 'MOF'] }); }}
                                className={`w-full text-left px-3 py-2 text-xs font-bold flex justify-between items-center hover:bg-zinc-50 dark:hover:bg-zinc-800 ${
                                  selectedCourt === 'ALL' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
                                }`}
@@ -848,7 +1082,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                              {(authorityData?.bit || []).map((item: any) => (
                                <button
                                  key={item.name}
-                                 onClick={() => { setSelectedCourt(item.name); setProvider('BIT'); setIsBitOpen(false); triggerSearch({ courtName: item.name, provider: 'BIT' }); }}
+                                 onClick={() => { setSelectedCourt(item.name); setSelectedNtaAuth('ALL'); setProvider('BIT'); setActiveProviders(['BIT']); setIsBitOpen(false); triggerSearch({ courtName: item.name, managingAuthority: undefined, provider: 'BIT', providers: ['BIT'] }); }}
                                  className={`w-full text-left px-3 py-2 text-xs flex justify-between items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 ${
                                    selectedCourt === item.name ? 'text-blue-600 font-bold bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
                                  }`}
@@ -869,21 +1103,21 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                    {/* NTA Auth Dropdown */}
                    <div className="relative">
                      <div
-                       className={`flex items-center rounded-lg border transition-all overflow-hidden ${
+                       className={`flex items-center rounded-md border transition-all overflow-hidden shadow-2xs ${
                          activeProviders.includes('NTA')
-                           ? selectedNtaAuth !== 'ALL' ? 'bg-red-50 dark:bg-red-900/20 border-red-400 ring-1 ring-red-400' : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
-                           : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800 opacity-60 grayscale'
+                           ? selectedNtaAuth !== 'ALL' ? 'bg-red-50 dark:bg-red-900/20 border-red-400 ring-1 ring-red-400' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                           : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 opacity-60 grayscale'
                        }`}
                      >
                        <button
                          onClick={() => handleToggleProvider('NTA')}
-                         className={`flex items-center gap-1 px-2.5 py-1 text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${
+                         className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${
                            activeProviders.includes('NTA') 
-                             ? selectedNtaAuth !== 'ALL' ? 'text-red-700 dark:text-red-400' : 'text-zinc-700 dark:text-zinc-300'
-                             : 'text-zinc-400 dark:text-zinc-500'
+                             ? selectedNtaAuth !== 'ALL' ? 'text-red-700 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'
+                             : 'text-slate-400 dark:text-slate-500'
                          }`}
                        >
-                         <span>🏛️</span>
+                         <Building2 className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                          <span className="max-w-[120px] sm:max-w-[160px] truncate">{selectedNtaAuth !== 'ALL' ? selectedNtaAuth : `NTA 税務署(${(authorityData?.nta || []).reduce((acc: any, curr: any) => acc + curr.count, 0)})`}</span>
                         </button>
                        <button
@@ -891,8 +1125,8 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                          onClick={() => { setIsNtaOpen(v => !v); setIsBitOpen(false); }}
                          className={`px-1.5 py-1 border-l hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center transition-colors ${
                            activeProviders.includes('NTA')
-                             ? selectedNtaAuth !== 'ALL' ? 'border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300'
-                             : 'border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500'
+                             ? selectedNtaAuth !== 'ALL' ? 'border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' : 'border-slate-200 dark:border-slate-800 text-slate-500'
+                             : 'border-slate-200 dark:border-slate-800 text-slate-400'
                          }`}
                        >
                          <svg className={`w-3 h-3 transition-transform ${isNtaOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
@@ -903,7 +1137,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                          <div ref={ntaRefs.setFloating} style={ntaStyles} className="z-[9999] w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl overflow-hidden">
                            <div className="max-h-52 overflow-y-auto">
                              <button
-                               onClick={() => { setSelectedNtaAuth('ALL'); setProvider('ALL'); setIsNtaOpen(false); triggerSearch({ managingAuthority: undefined, provider: undefined }); }}
+                               onClick={() => { setSelectedNtaAuth('ALL'); setProvider('ALL'); setActiveProviders(['BIT', 'NTA', 'KSI', 'MOF']); setIsNtaOpen(false); triggerSearch({ managingAuthority: undefined, provider: undefined, providers: ['BIT', 'NTA', 'KSI', 'MOF'] }); }}
                                className={`w-full text-left px-3 py-2 text-xs font-bold flex justify-between items-center hover:bg-zinc-50 dark:hover:bg-zinc-800 ${
                                  selectedNtaAuth === 'ALL' ? 'text-red-600 bg-red-50 dark:bg-red-900/20' : 'text-zinc-700 dark:text-zinc-300'
                                }`}
@@ -917,7 +1151,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                              {(authorityData?.nta || []).map((item: any) => (
                                <button
                                  key={item.name}
-                                 onClick={() => { setSelectedNtaAuth(item.name); setProvider('NTA'); setIsNtaOpen(false); triggerSearch({ managingAuthority: item.name, provider: 'NTA' }); }}
+                                 onClick={() => { setSelectedNtaAuth(item.name); setSelectedCourt('ALL'); setProvider('NTA'); setActiveProviders(['NTA']); setIsNtaOpen(false); triggerSearch({ managingAuthority: item.name, courtName: undefined, provider: 'NTA', providers: ['NTA'] }); }}
                                  className={`w-full text-left px-3 py-2 text-xs flex justify-between items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 ${
                                    selectedNtaAuth === item.name ? 'text-red-600 font-bold bg-red-50 dark:bg-red-900/20' : 'text-zinc-700 dark:text-zinc-300'
                                  }`}
@@ -934,12 +1168,39 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                        </Portal>
                      )}
                    </div>
+
+                   {/* KSI (官公庁公売) Toggle */}
+                   <button
+                     onClick={() => handleToggleProvider('KSI')}
+                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium transition-all shadow-2xs shrink-0 ${
+                       activeProviders.includes('KSI')
+                         ? 'bg-white dark:bg-slate-900 border-teal-300 dark:border-teal-800 text-teal-800 dark:text-teal-300 hover:bg-teal-50/50 dark:hover:bg-teal-950/30'
+                         : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 opacity-60 grayscale'
+                     }`}
+                   >
+                     <span className="w-2 h-2 rounded-full bg-[#0F766E] shrink-0" />
+                     <span>官公庁公売</span>
+                   </button>
+
+                   {/* MOF (国有財産売却) Toggle */}
+                   <button
+                     onClick={() => handleToggleProvider('MOF')}
+                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium transition-all shadow-2xs shrink-0 ${
+                       activeProviders.includes('MOF')
+                         ? 'bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-50/50 dark:hover:bg-amber-950/30'
+                         : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 opacity-60 grayscale'
+                     }`}
+                   >
+                     <span className="w-2 h-2 rounded-full bg-[#B45309] shrink-0" />
+                     <span>国有財産売却</span>
+                   </button>
                  </div>
 
                  <div className="w-px h-4 lg:h-3 bg-gray-200 dark:bg-zinc-700 shrink-0"></div>
 
                  {/* Line Filter */}
-                 <div className="flex items-center gap-1 shrink-0 bg-zinc-100 dark:bg-zinc-800 rounded-full px-2 py-0.5">
+                 <div className="flex items-center gap-1 shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 shadow-2xs">
+                   <Train className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                    <select 
                      value={selectedLine} 
                      onChange={(e) => { 
@@ -955,7 +1216,8 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                        } else {
                           params.delete('line');
                        }
-                       router.replace(`/?${params.toString()}`, { scroll: false });
+                       const queryStr = params.toString();
+                       router.replace(queryStr ? `${pathname}?${queryStr}` : pathname, { scroll: false });
                        
                      }} 
                      className={`text-sm lg:text-[11px] font-bold border-none bg-transparent outline-none cursor-pointer appearance-none max-w-[120px] truncate ${selectedLine !== 'ALL' ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-700 dark:text-zinc-300'}`}
@@ -973,7 +1235,8 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                          triggerSearch({ lineName: undefined, stationName: undefined });
                          const params = new URLSearchParams(searchParams.toString());
                          params.delete('line');
-                         router.replace(`/?${params.toString()}`, { scroll: false });
+                         const queryStr = params.toString();
+                         router.replace(queryStr ? `${pathname}?${queryStr}` : pathname, { scroll: false });
                        }}
                        className="text-zinc-400 hover:text-red-500 rounded-full bg-zinc-200 dark:bg-zinc-700 p-0.5 ml-1 transition-colors"
                        title="路線をクリア"
@@ -1004,30 +1267,42 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
 
 
                  {/* Walk Time Filter */}
-                 {walkTime && (
-                   <div className="flex items-center gap-1 shrink-0">
-                     <span className="text-xl lg:text-sm leading-none mr-1">🚶‍♂️</span>
-                     <select value={walkTime || ''} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : undefined; setWalkTime(v); triggerSearch({ maxWalkTime: v }); }} className="text-sm lg:text-[11px] font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none">
-                       <option value="">徒歩制限なし</option>
-                       <option value="5">5分以内</option>
-                       <option value="10">10分以内</option>
-                       <option value="15">15分以内</option>
-                     </select>
-                   </div>
-                 )}
-
+                 <div className="flex items-center gap-1 shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 shadow-2xs">
+                   <select
+                     value={walkTime || ''}
+                     onChange={(e) => {
+                       const v = e.target.value ? Number(e.target.value) : undefined;
+                       setWalkTime(v);
+                       triggerSearch({ maxWalkTime: v });
+                     }}
+                     className={`text-xs lg:text-[11px] font-medium border-none bg-transparent outline-none cursor-pointer appearance-none ${walkTime ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}
+                   >
+                     <option value="">徒歩指定なし</option>
+                     <option value="5">徒歩5分以内</option>
+                     <option value="10">徒歩10分以内</option>
+                     <option value="15">徒歩15分以内</option>
+                     <option value="20">徒歩20分以内</option>
+                   </select>
+                 </div>
 
                  {/* Area Filter */}
-                 {minArea && (
-                   <div className="flex items-center gap-1 shrink-0">
-                     <select value={minArea || ''} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : undefined; setMinArea(v); triggerSearch({ minArea: v }); }} className="text-sm lg:text-[11px] font-bold border-none bg-transparent outline-none text-blue-600 dark:text-blue-400 cursor-pointer appearance-none">
-                       <option value="">広さ指定なし</option>
-                       <option value="50">50m²以上</option>
-                       <option value="100">100m²以上</option>
-                       <option value="150">150m²以上</option>
-                     </select>
-                   </div>
-                 )}
+                 <div className="flex items-center gap-1 shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 shadow-2xs">
+                   <select
+                     value={minArea || ''}
+                     onChange={(e) => {
+                       const v = e.target.value ? Number(e.target.value) : undefined;
+                       setMinArea(v);
+                       triggerSearch({ minArea: v });
+                     }}
+                     className={`text-xs lg:text-[11px] font-medium border-none bg-transparent outline-none cursor-pointer appearance-none ${minArea ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}
+                   >
+                     <option value="">面積指定なし</option>
+                     <option value="50">50m²以上</option>
+                     <option value="100">100m²以上</option>
+                     <option value="150">150m²以上</option>
+                     <option value="200">200m²以上</option>
+                   </select>
+                 </div>
 
                  <div className="w-px h-4 lg:h-3 bg-gray-200 dark:bg-zinc-700 shrink-0"></div>
 
@@ -1040,14 +1315,14 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                      // Sync URL
                      const params = new URLSearchParams(searchParams.toString());
                      params.set('sort', v);
-                     router.replace(`/?${params.toString()}`, { scroll: false });
+                     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
                    }} className="text-sm lg:text-[11px] font-bold border-none bg-transparent outline-none text-blue-600 dark:text-blue-400 cursor-pointer appearance-none">
-                     <option value="gap_desc">💎 割安順 (Gap)</option>
-                     <option value="newest">✨ 新着順</option>
-                     <option value="views">🔥 人気順</option>
-                     <option value="ending">⏳ 入札間近</option>
-                     <option value="priceAsc">💴 安い順</option>
-                     <option value="areaDesc">📐 広い順</option>
+                     <option value="gap_desc">割安順 (市場相場比)</option>
+                     <option value="newest">新着順</option>
+                     <option value="views">閲覧数順</option>
+                     <option value="ending">入札締切が近い順</option>
+                     <option value="priceAsc">価格が安い順</option>
+                     <option value="areaDesc">面積が広い順</option>
                    </select>
                  </div>
               </div>
@@ -1072,18 +1347,6 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
         </div>
         </div>
       </div>
-
-        {/* Desktop & Mobile Handle */}
-        <div className={`flex justify-center w-full px-2 sm:px-4 max-w-4xl relative z-40 transition-all duration-500 overflow-hidden ${!isExpanded ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-12 opacity-100'}`}>
-          <button 
-            onClick={() => setIsExpanded(false)}
-            className="w-[120px] h-[24px] bg-white dark:bg-zinc-900 border border-t-0 border-gray-200 dark:border-zinc-800 rounded-b-xl shadow-md lg:shadow-sm flex items-center justify-center hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors group group-button pointer-events-auto cursor-pointer"
-            title="検索を閉じる"
-          >
-             <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors transform group-active:scale-95" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" /></svg>
-          </button>
-        </div>
-
     </div>
   );
 }

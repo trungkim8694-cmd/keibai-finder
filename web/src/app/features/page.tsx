@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Map, LineChart, ShieldAlert, Cpu } from 'lucide-react';
+import { Map, LineChart, ShieldAlert, Cpu, Flame, Bot } from 'lucide-react';
 
 export const metadata = {
   title: '主要機能 (Features) | Keibai Finder',
@@ -20,7 +20,25 @@ export default function FeaturesIndexPage() {
         </div>
 
         {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          {/* Keyword Trends (New & Featured) */}
+          <Link href="/features/keyword-trends" className="group block bg-white rounded-2xl p-7 border border-rose-200/80 shadow-sm hover:shadow-xl hover:border-rose-400 transition-all relative overflow-hidden">
+            <div className="absolute top-4 right-4">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-200/70">
+                <Flame className="w-3 h-3 fill-rose-500" />
+                AI HOT
+              </span>
+            </div>
+            <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <Flame className="w-6 h-6 text-rose-500 fill-rose-500" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-rose-600 transition-colors">検索需要トレンド分析 (Keyword Trends)</h2>
+            <p className="text-slate-600 text-xs leading-relaxed mb-5">
+              Google・Yahoo!の検索需要ボリューム、前月比急上昇率を可視化。利回り20%超の再建築不可や格安戸建てなど市場の熱狂テーマを即座に特定します。
+            </p>
+            <span className="text-rose-600 font-bold text-xs flex items-center gap-1">トレンドを分析 <span className="group-hover:translate-x-1 transition-transform">→</span></span>
+          </Link>
           
           {/* Map Search */}
           <Link href="/features/map-search" className="group block bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all">

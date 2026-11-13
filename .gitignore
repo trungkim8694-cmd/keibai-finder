@@ -1,6 +1,8 @@
 # SSH Keys & Certificates
 *.pem
 certs/
+scripts/vps_config.env
+*credentials*.json
 
 # Python Virtual Environments
 venv/
@@ -15,6 +17,12 @@ __pycache__/
 *.sqlite
 *.sqlite3
 crawler/**/*.html
+run_output.txt
+run_dev.bat
+run_localhost.bat
+sync_dev.ps1
+web/dev.bat
+web/test_conn.js
 
 # Node & JS (if run in root)
 node_modules/
@@ -24,6 +32,7 @@ node_modules/
 # OS
 .DS_Store
 
-# Agents memory
-.agents
+# Agents
+.agents/*
+!.agents/skills/
 .antigravity

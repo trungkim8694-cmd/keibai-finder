@@ -1,82 +1,131 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Share2 } from 'lucide-react';
+import { Share2, ChevronRight, FileText, Phone } from 'lucide-react';
 import FavoriteButton from '@/components/FavoriteButton';
 import { SocialShareDropdown } from '@/components/Detail/SocialShare';
+import { AgencyLeadModal } from '@/components/Detail/AgencyLeadModal';
 
 export function StickyActionBar({ 
   saleUnitId, 
   predictedPrice, 
   pdfUrl,
   shareTitle,
-  propertyUrl
+  propertyUrl,
+  prefecture,
+  city
 }: { 
   saleUnitId: string, 
   predictedPrice: string, 
   pdfUrl: string | null,
   shareTitle?: string,
-  propertyUrl?: string
+  propertyUrl?: string,
+  prefecture?: string | null,
+  city?: string | null
 }) {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      // Show action bar after scrolling past the main title area (~200px)
-      setIsScrolled(window.scrollY > 200);
+      setIsScrolled(window.scrollY > 180);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <div className="sticky top-0 z-[100] bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-gray-100 dark:border-zinc-800 transition-all duration-300 relative mb-6">
-      <div className="w-full max-w-4xl lg:max-w-7xl mx-auto px-4 py-2 sm:py-3 flex items-center justify-between">
-        
-        {/* Left Side: Back button & Breadcrumb / Action combo */}
-        <div className="flex flex-row items-center gap-1 sm:gap-4 flex-1">
-          <Link href="/" className="text-gray-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 text-sm font-medium flex items-center gap-1.5 transition-colors shrink-0">
-             <span>&larr;</span> <span>リストへ戻る</span>
-          </Link>
+    <>
+      <div className="sticky top-0 z-[100] bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-all duration-200 mb-5">
+        <div className="w-full max-w-7xl mx-auto px-4 py-2 sm:py-2.5 flex items-center justify-between gap-4">
           
-          <div className={`hidden sm:flex items-center transition-all duration-300 overflow-hidden
-            ${isScrolled ? 'opacity-100 w-auto ml-2' : 'opacity-0 w-0 pointer-events-none'}
-          `}>
-             <div className="flex items-center text-[10px] sm:text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded">
-               AI予測: {predictedPrice}
-             </div>
+          {/* Left Side: Visual Breadcrumb for SEO & Navigation */}
+          <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 overflow-hidden min-w-0">
+            <Link 
+              href="/" 
+              className="hover:text-blue-700 dark:hover:text-blue-400 shrink-0 font-medium transition-colors"
+            >
+              ホーム
+            </Link>
+            
+            {prefecture && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 mx-1 text-slate-400 shrink-0" />
+                <Link 
+                  href={`/search/area/${encodeURIComponent(prefecture)}`}
+                  className="hover:text-blue-700 dark:hover:text-blue-400 shrink-0 font-medium transition-colors"
+                >
+                  {prefecture}
+                </Link>
+              </>
+            )}
+
+            {prefecture && city && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 mx-1 text-slate-400 shrink-0" />
+                <Link 
+                  href={`/search/area/${encodeURIComponent(prefecture)}/${encodeURIComponent(city)}`}
+                  className="hover:text-blue-700 dark:hover:text-blue-400 shrink-0 font-medium transition-colors truncate max-w-[120px]"
+                >
+                  {city}
+                </Link>
+              </>
+            )}
+
+            <ChevronRight className="w-3.5 h-3.5 mx-1 text-slate-400 shrink-0" />
+            <span className="text-slate-800 dark:text-slate-200 font-medium truncate max-w-[140px] sm:max-w-[200px]">
+              物件番号: {saleUnitId}
+            </span>
+
+            {/* When scrolled, show predicted price */}
+            {isScrolled && (
+              <div className="hidden md:flex items-center ml-3 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold rounded text-[11px] border border-blue-100 dark:border-blue-800 tabular-nums shrink-0">
+                AI想定: {predictedPrice}
+              </div>
+            )}
           </div>
+
+          {/* Right Side: CTAs & Favorite & Share */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 justify-end">
+            {/* Lead Consultation CTA */}
+            <button
+              type="button"
+              onClick={() => setIsLeadModalOpen(true)}
+              className="h-8 text-xs font-semibold bg-[#1B4F8A] hover:bg-[#153e6d] text-white px-3 sm:px-3.5 rounded-md transition-colors shadow-2xs flex items-center gap-1.5"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              <span>入札相談</span>
+            </button>
+
+            {/* B2B Favorite Button */}
+            <FavoriteButton id={saleUnitId} />
+
+            {/* B2B Share Dropdown */}
+            <SocialShareDropdown url={propertyUrl || ''} title={shareTitle || 'Keibai-Koubai Finder'} />
+
+            {/* Scrolled Quick PDF download */}
+            {isScrolled && pdfUrl && (
+              <a 
+                href={pdfUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hidden lg:flex items-center gap-1 text-xs font-medium border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 h-8 px-2.5 rounded-md hover:bg-slate-50 transition-colors shadow-2xs"
+              >
+                <FileText className="w-3.5 h-3.5 text-blue-600" />
+                <span>3点セット</span>
+              </a>
+            )}
+          </div>
+
         </div>
-
-        {/* Right Side: Sale Unit ID & PDF Action button */}
-        <div className="flex items-center gap-3 sm:gap-4 shrink-0 text-right justify-end">
-          <span className="text-[10px] sm:text-xs text-gray-400 shrink-0 hidden md:inline-block font-medium">物件番号: {saleUnitId}</span>
-
-          {/* Universal Favorite Button */}
-          <div className="mr-0 sm:mr-1">
-             <FavoriteButton id={saleUnitId} />
-          </div>
-
-          <SocialShareDropdown url={propertyUrl || ''} title={shareTitle || 'Keibai Finder'} />
-          
-          <div className={`flex items-center transition-all duration-300
-            ${isScrolled ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4 pointer-events-none absolute right-4'}
-          `}>
-             {pdfUrl && (
-               <a 
-                 href={pdfUrl} 
-                 target="_blank" 
-                 rel="noopener noreferrer" 
-                 className="flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-3 py-1.5 rounded-full hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-sm"
-               >
-                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                 3点セット
-               </a>
-             )}
-          </div>
-        </div>
-
       </div>
-    </div>
+
+      <AgencyLeadModal
+        isOpen={isLeadModalOpen}
+        onClose={() => setIsLeadModalOpen(false)}
+        saleUnitId={saleUnitId}
+        propertyAddress={shareTitle}
+      />
+    </>
   );
 }

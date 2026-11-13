@@ -1,18 +1,31 @@
 import { prisma } from './prisma';
 
-const MLIT_API_KEY = process.env.MLIT_API_KEY || "3cee958080dc40b2854698b6407d4b5a"; // Fallback to provided key
+const MLIT_API_KEY = process.env.MLIT_API_KEY || "";
 const BASE_URL = "https://www.reinfolib.mlit.go.jp/ex-api/external";
 
 export type MlitTransaction = {
-  TradePrice: string;
-  PricePerUnit?: string;
-  UnitPrice?: string;
-  Area?: string;
-  BuildingYear?: string;
-  Period?: string;
-  Type?: string;
-  Municipality?: string;
-  DistrictName?: string;
+  TradePrice: string;             // 取引価格（総額）
+  PricePerUnit?: string;          // 坪単価
+  UnitPrice?: string;             // ㎡単価
+  Area?: string;                  // 面積（㎡）
+  BuildingYear?: string;          // 建築年 (例: 昭和63年, 2018年)
+  Period?: string;                // 取引時期 (例: 2023年第3四半期)
+  Type?: string;                  // 種類 (宅地(土地と建物), 中古マンション等)
+  Prefecture?: string;            // 都道府県名
+  Municipality?: string;          // 市区町村名
+  DistrictName?: string;          // 地区名
+  FloorPlan?: string;             // 間取り (例: 3LDK, 1K)
+  Structure?: string;             // 建物の構造 (RC, 木造, 鉄骨造)
+  NearestStation?: string;        // 最寄駅：名称
+  TimeToNearestStation?: string;  // 最寄駅：徒歩分数 (分)
+  TotalFloorArea?: string;        // 延床面積（㎡）
+  CityPlanning?: string;          // 都市計画区域
+  CoverageRatio?: string;         // 建ぺい率（％）
+  FloorAreaRatio?: string;        // 容積率（％）
+  Renovation?: string;            // 改装 (未改装 / 改装済)
+  Direction?: string;             // 前面道路：方位
+  Classification?: string;        // 前面道路：種類
+  Breadth?: string;               // 前面道路：幅員（ｍ）
 };
 
 /**
@@ -22,10 +35,14 @@ export type MlitTransaction = {
  * - "土地" (Land) -> 宅地(土地) (Land) or 林地 / 農地
  */
 export function mapPropertyTypeToMlit(keibaiType: string): string[] {
-  if (keibaiType === '戸建て') return ['宅地(土地と建物)'];
+  if (['戸建て', '店舗・旅館', '事務所・ビル', '工場・倉庫', '一棟マンション・アパート'].includes(keibaiType)) {
+    return ['宅地(土地と建物)'];
+  }
   if (keibaiType === 'マンション') return ['中古マンション等'];
-  if (keibaiType === '土地' || keibaiType === '農地' || keibaiType === 'その他') return ['宅地(土地)', '林地', '農地'];
-  return ['宅地(土地)']; // Default to land for unknown types, never fallback to houses
+  if (['土地', '農地', '宅地（更地）', 'その他'].includes(keibaiType)) {
+    return ['宅地(土地)', '林地', '農地'];
+  }
+  return ['宅地(土地と建物)', '宅地(土地)'];
 }
 
 /**
@@ -56,7 +73,7 @@ export async function fetchMlitApiData(cityCode: string, year: string): Promise<
 
 /**
  * Get Market Data from Cache or API
- * It aggregates all transactions for a predefined timeframe (e.g. 2023) and specific types.
+ * Reads/saves city-level data in mlitMarketCache (100% cache hit), then filters district in-memory if needed.
  */
 export async function getMarketValuation(cityCode: string, propertyType: string, year: string = '2023', districtQuery: string = '') {
   if (!cityCode) return null;
@@ -64,41 +81,91 @@ export async function getMarketValuation(cityCode: string, propertyType: string,
   const mlitTypes = mapPropertyTypeToMlit(propertyType);
   const searchType = mlitTypes[0]; // Primary type for cache key
   
-  // 1. Check Database Cache (Only if we are NOT using district filtering)
-  if (!districtQuery) {
-    const cached = await prisma.mlitMarketCache.findUnique({
-      where: {
-        municipalityCode_propertyType_year: {
-           municipalityCode: cityCode,
-           propertyType: searchType,
-           year: year
-        }
+  // 1. Check Database Cache for City Level (Always cache city data)
+  let cityTransactions: MlitTransaction[] | null = null;
+  const cached = await prisma.mlitMarketCache.findUnique({
+    where: {
+      municipalityCode_propertyType_year: {
+         municipalityCode: cityCode,
+         propertyType: searchType,
+         year: year
       }
-    });
+    }
+  });
 
-    // Return if valid cache (fetched within 30 days)
-    if (cached && (new Date().getTime() - cached.last_fetched_at.getTime() < 30 * 24 * 60 * 60 * 1000)) {
-       return {
-          avgTradePrice: cached.avgTradePrice ? Number(cached.avgTradePrice) : null,
-          avgArea: cached.avgArea || null,
-          avgPricePerSqm: cached.avgPricePerSqm ? Number(cached.avgPricePerSqm) : null,
-          transactions: cached.transactions as MlitTransaction[] | null
-       };
+  if (cached && (new Date().getTime() - cached.last_fetched_at.getTime() < 30 * 24 * 60 * 60 * 1000) && cached.transactions) {
+     cityTransactions = cached.transactions as MlitTransaction[];
+  }
+
+  // 2. If not cached, fetch all from MLIT API
+  if (!cityTransactions) {
+    const allTrans = await fetchMlitApiData(cityCode, year);
+    cityTransactions = allTrans.filter(t => t.Type && mlitTypes.includes(t.Type));
+
+    // Save back to DB Cache (Latest 200 transactions)
+    const recentToCache = cityTransactions.slice(0, 200);
+    let cAvgPrice: number | null = null;
+    let cAvgArea: number | null = null;
+    let cAvgPricePerSqm: number | null = null;
+
+    if (recentToCache.length > 0) {
+      const total = recentToCache.reduce((sum, t) => sum + (Number(t.TradePrice) || 0), 0);
+      cAvgPrice = Math.round(total / recentToCache.length);
+      const transWithArea = recentToCache.map(t => {
+        const areaNum = Number(t.Area?.replace(/[^0-9.]/g, ''));
+        return { ...t, parsedArea: isNaN(areaNum) || areaNum === 0 ? null : areaNum };
+      }).filter(t => t.parsedArea !== null);
+
+      if (transWithArea.length > 0) {
+        const totalArea = transWithArea.reduce((sum, t) => sum + t.parsedArea!, 0);
+        cAvgArea = Math.round(totalArea / transWithArea.length);
+        const totalPriceWithArea = transWithArea.reduce((sum, t) => sum + (Number(t.TradePrice) || 0), 0);
+        cAvgPricePerSqm = Math.round(totalPriceWithArea / totalArea);
+      }
+    }
+
+    try {
+      await prisma.mlitMarketCache.upsert({
+        where: {
+          municipalityCode_propertyType_year: {
+            municipalityCode: cityCode,
+            propertyType: searchType,
+            year: year
+          }
+        },
+        update: {
+          avgTradePrice: cAvgPrice,
+          avgArea: cAvgArea,
+          avgPricePerSqm: cAvgPricePerSqm,
+          transactions: recentToCache,
+          last_fetched_at: new Date()
+        },
+        create: {
+          municipalityCode: cityCode,
+          propertyType: searchType,
+          year: year,
+          avgTradePrice: cAvgPrice,
+          avgArea: cAvgArea,
+          avgPricePerSqm: cAvgPricePerSqm,
+          transactions: recentToCache
+        }
+      });
+    } catch (dbError) {
+      console.error("Failed to save MLIT Cache:", dbError);
     }
   }
 
-  // 2. Not in cache or expired. Fetch from MLIT
-  const allTrans = await fetchMlitApiData(cityCode, year);
-  
-  // 3. Filter transactions matching the requested property type
-  let matchedTrans = allTrans.filter(t => t.Type && mlitTypes.includes(t.Type));
-  
-  // 3.5 Filter by district if requested
+  // 3. In-memory district filtering if requested
+  let matchedTrans = cityTransactions;
   if (districtQuery && matchedTrans.length > 0) {
-      matchedTrans = matchedTrans.filter(t => t.DistrictName && districtQuery.startsWith(t.DistrictName));
+    const filtered = matchedTrans.filter(t => t.DistrictName && districtQuery.startsWith(t.DistrictName));
+    // If district has enough sample (>= 4), use it, otherwise keep full city dataset
+    if (filtered.length >= 4) {
+      matchedTrans = filtered;
+    }
   }
-  
-  // 4. Calculate Average Trade Price, Average Area, and Price Per Sqm
+
+  // 4. Compute metrics for the active slice
   let avgTradePrice: number | null = null;
   let avgArea: number | null = null;
   let avgPricePerSqm: number | null = null;
@@ -107,7 +174,6 @@ export async function getMarketValuation(cityCode: string, propertyType: string,
      const total = matchedTrans.reduce((sum, t) => sum + (Number(t.TradePrice) || 0), 0);
      avgTradePrice = Math.round(total / matchedTrans.length);
      
-     // Calculate area stats (filter out rows where Area is unparseable or 0)
      const transWithArea = matchedTrans.map(t => {
        const areaNum = Number(t.Area?.replace(/[^0-9.]/g, ''));
        return { ...t, parsedArea: isNaN(areaNum) || areaNum === 0 ? null : areaNum };
@@ -115,54 +181,18 @@ export async function getMarketValuation(cityCode: string, propertyType: string,
 
      if (transWithArea.length > 0) {
         const totalArea = transWithArea.reduce((sum, t) => sum + t.parsedArea!, 0);
-        avgArea = totalArea / transWithArea.length;
-        // Total price of properties that have valid areas / Total area
+        avgArea = Math.round(totalArea / transWithArea.length);
         const totalPriceWithArea = transWithArea.reduce((sum, t) => sum + (Number(t.TradePrice) || 0), 0);
         avgPricePerSqm = Math.round(totalPriceWithArea / totalArea);
      }
-  }
-
-  // We only store the latest 100 transactions to save DB space
-  const recentTrans = matchedTrans.slice(0, 100);
-
-  // 5. Save back to DB Cache (Only if NO district filtering is applied)
-  if (!districtQuery) {
-    try {
-       await prisma.mlitMarketCache.upsert({
-          where: {
-             municipalityCode_propertyType_year: {
-               municipalityCode: cityCode,
-               propertyType: searchType,
-               year: year
-             }
-          },
-          update: {
-             avgTradePrice: avgTradePrice,
-             avgArea: avgArea,
-             avgPricePerSqm: avgPricePerSqm,
-             transactions: recentTrans,
-             last_fetched_at: new Date()
-          },
-          create: {
-             municipalityCode: cityCode,
-             propertyType: searchType,
-             year: year,
-             avgTradePrice: avgTradePrice,
-             avgArea: avgArea,
-             avgPricePerSqm: avgPricePerSqm,
-             transactions: recentTrans
-          }
-       });
-    } catch (dbError) {
-       console.error("Failed to save MLIT Cache:", dbError);
-    }
   }
 
   return {
     avgTradePrice,
     avgArea,
     avgPricePerSqm,
-    transactions: recentTrans
+    count: matchedTrans.length,
+    transactions: matchedTrans.slice(0, 100)
   };
 }
 

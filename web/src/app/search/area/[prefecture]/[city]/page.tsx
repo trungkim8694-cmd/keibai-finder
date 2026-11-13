@@ -1,4 +1,5 @@
 import React from 'react';
+import { prisma } from '@/lib/prisma';
 import { getProperties } from '@/actions/propertyActions';
 import PropertyCard from '@/components/PropertyCard';
 import { Metadata } from 'next';
@@ -7,21 +8,92 @@ import { ArrowLeft } from 'lucide-react';
 
 export const revalidate = 3600; // Cache these pages for 1 hour
 
-export async function generateMetadata({ params }: { params: { prefecture: string, city: string } }): Promise<Metadata> {
+function safeDecodeURIComponent(val: string): string {
+  try {
+    return decodeURIComponent(val);
+  } catch {
+    return val;
+  }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ prefecture: string, city: string }> }): Promise<Metadata> {
   const { prefecture, city } = await params;
-  const decodedPref = decodeURIComponent(prefecture);
-  const decodedCity = decodeURIComponent(city);
-  
+  const decodedPref = safeDecodeURIComponent(prefecture);
+  const decodedCity = safeDecodeURIComponent(city);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const canonicalUrl = `${baseUrl}/search/area/${encodeURIComponent(decodedPref)}/${encodeURIComponent(decodedCity)}`;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // Kiểm tra số lượng và giá thấp nhất để tối ưu CTR và phòng chống Thin Content
+  const properties = await prisma.property.findMany({
+    where: {
+      prefecture: decodedPref,
+      city: { contains: decodedCity },
+      status: 'ACTIVE',
+      OR: [
+        { bid_end_date: { gte: now } },
+        { bid_end_date: null }
+      ],
+    },
+    select: {
+      starting_price: true,
+    },
+    orderBy: {
+      starting_price: { sort: 'asc', nulls: 'last' },
+    },
+    take: 50,
+  });
+
+  const count = properties.length;
+  const minPriceNum = properties[0]?.starting_price ? Number(properties[0].starting_price) : 0;
+  const minPriceMan = minPriceNum > 0 ? Math.round(minPriceNum / 10000) : 0;
+
+  // Thin Content Guard (theo quy chuẩn coreyhaines31/marketingskills)
+  if (count === 0) {
+    return {
+      title: `${decodedPref}${decodedCity}の競売物件・公売物件一覧｜Keibai Finder`,
+      description: `${decodedPref}${decodedCity}の不動産競売・公売情報。現在募集中の物件状況を随時更新中。`,
+      robots: {
+        index: false,
+        follow: true,
+      },
+      alternates: {
+        canonical: canonicalUrl,
+      },
+    };
+  }
+
+  // Dynamic CTR-Magnet Title (theo quy chuẩn AgriciDaniel/claude-seo)
+  const priceSnippet = minPriceMan > 0 ? `・最安${minPriceMan.toLocaleString('ja-JP')}万円〜` : '';
+  const title = `【${currentYear}年最新｜${count}件${priceSnippet}】${decodedPref}${decodedCity}の競売物件・公売物件一覧｜Keibai Finder`;
+  const description = `${decodedPref}${decodedCity}の不動産競売・公売情報を${count}件掲載中。相場より割安な戸建て・マンション・土地の入札価格、AI査定、過去の落札相場をリアルタイム公開。`;
+
   return {
-    title: `【2026年最新】${decodedPref}${decodedCity}の競売物件・公売物件一覧`,
-    description: `${decodedPref}${decodedCity}の不動産競売・公売情報を一覧表示。相場より安い戸建てやマンションが見つかります。AI査定で落札価格の参考に。`,
+    title,
+    description,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      type: 'website',
+    },
   };
 }
 
-export default async function AreaSearchPage({ params }: { params: { prefecture: string, city: string } }) {
+export default async function AreaSearchPage({ params }: { params: Promise<{ prefecture: string, city: string }> }) {
   const { prefecture, city } = await params;
-  const decodedPref = decodeURIComponent(prefecture);
-  const decodedCity = decodeURIComponent(city);
+  const decodedPref = safeDecodeURIComponent(prefecture);
+  const decodedCity = safeDecodeURIComponent(city);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
 
   // Fetch properties filtered by prefecture and city
   const response = await getProperties({
@@ -30,10 +102,60 @@ export default async function AreaSearchPage({ params }: { params: { prefecture:
     limit: 50
   });
 
-  const properties = response.properties || [];
+  const properties = Array.isArray(response) ? response : [];
+
+  // Schema.org ItemList + BreadcrumbList
+  const jsonLdBreadcrumb = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    'itemListElement': [
+      {
+        '@type': 'ListItem',
+        'position': 1,
+        'name': 'ホーム',
+        'item': `${baseUrl}/`,
+      },
+      {
+        '@type': 'ListItem',
+        'position': 2,
+        'name': `${decodedPref}`,
+        'item': `${baseUrl}/search/area/${encodeURIComponent(decodedPref)}`,
+      },
+      {
+        '@type': 'ListItem',
+        'position': 3,
+        'name': `${decodedCity}`,
+        'item': `${baseUrl}/search/area/${encodeURIComponent(decodedPref)}/${encodeURIComponent(decodedCity)}`,
+      },
+    ],
+  };
+
+  const jsonLdItemList = properties.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    'name': `${decodedPref}${decodedCity}の競売物件・公売物件一覧`,
+    'numberOfItems': properties.length,
+    'itemListElement': properties.slice(0, 10).map((prop: any, idx: number) => ({
+      '@type': 'ListItem',
+      'position': idx + 1,
+      'url': `${baseUrl}/property/${prop.sale_unit_id}`,
+      'name': prop.address || `${decodedPref}${decodedCity}の競売物件`,
+    })),
+  } : null;
 
   return (
-    <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+      />
+      {jsonLdItemList && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdItemList) }}
+        />
+      )}
+      <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">
       <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Link href="/" className="inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors mb-2">
@@ -42,7 +164,7 @@ export default async function AreaSearchPage({ params }: { params: { prefecture:
           <h1 className="text-xl lg:text-2xl font-bold text-zinc-900 dark:text-white">
             📍 {decodedPref} {decodedCity}の競売物件・公売物件
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">該当物件: {response.totalCount} 件</p>
+          <p className="text-sm text-zinc-500 mt-1">該当物件: {properties.length} 件</p>
         </div>
       </div>
 
@@ -55,8 +177,8 @@ export default async function AreaSearchPage({ params }: { params: { prefecture:
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {properties.map((property) => (
-              <PropertyCard key={property.sale_unit_id} property={property as any} />
+            {properties.map((property: any) => (
+              <PropertyCard key={property.sale_unit_id} property={property} />
             ))}
           </div>
         )}
@@ -73,5 +195,6 @@ export default async function AreaSearchPage({ params }: { params: { prefecture:
         </div>
       </div>
     </div>
+    </>
   );
 }

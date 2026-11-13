@@ -43,9 +43,9 @@ export async function GET(request: NextRequest) {
       ...c,
       property: propertyMap.get(c.sale_unit_id) || {
         sale_unit_id: c.sale_unit_id,
-        address: "Không rõ địa chỉ",
-        property_type: "Bất động sản",
-        court_name: "Không rõ"
+        address: "住所不明",
+        property_type: "競売物件",
+        court_name: "裁判所不明"
       }
     }));
 

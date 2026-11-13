@@ -13,7 +13,8 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: CORS_HEADERS });
 }
 
-const MLIT_API_KEY = process.env.MLIT_REINFOLIB_API_KEY || '';
+const rawKey = process.env.MLIT_REINFOLIB_API_KEY || process.env.MLIT_API_KEY || '3cee958080dc40b2854698b6407d4b5a';
+const MLIT_API_KEY = rawKey.replace(/["'\\]/g, '').trim();
 
 function latLngToTile(lat: number, lng: number, zoom: number) {
   const x = Math.floor((lng + 180) / 360 * Math.pow(2, zoom));
@@ -28,9 +29,14 @@ async function fetchMLITGeoJSON(layerCode: string, z: number, x: number, y: numb
     const res = await fetch(url, {
         method: 'GET',
         headers: { 'Ocp-Apim-Subscription-Key': MLIT_API_KEY },
-        next: { revalidate: 31536000 } // Tối ưu: Cache 1 năm (31,536,000s). Vercel Edge sẽ giữ các vùng truy cập nhiều suốt 1 năm.
+        next: { revalidate: 31536000 } // Cache 1 year (31,536,000s) on Next.js Server cache
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (res.status === 404) {
+        return { type: 'FeatureCollection', features: [] };
+      }
+      return null;
+    }
     return await res.json();
   } catch (error) {
     return null;
@@ -54,14 +60,19 @@ export async function GET(request: NextRequest) {
   const targetPt = point([lng, lat]);
 
   let result: any = {
-    plan_zone: "未指定 (Chưa xác định)",
-    land_use: "未指定 (Chưa xác định)",
+    plan_zone: "都市計画区域外（指定なし）",
+    land_use: "用途地域指定なし（未指定）",
     coverage: "--%", 
     far: "--%",
     feature: null
   };
 
-  if (!MLIT_API_KEY) return NextResponse.json(result, { status: 200, headers: CORS_HEADERS });
+  const resHeaders = new Headers(CORS_HEADERS);
+  resHeaders.set('Content-Type', 'application/json');
+  // Cache for 7 days on CDN/Edge
+  resHeaders.set('Cache-Control', 'public, s-maxage=604800, stale-while-revalidate=86400');
+
+  if (!MLIT_API_KEY) return NextResponse.json(result, { status: 200, headers: resHeaders });
 
   try {
     const [planData, useData] = await Promise.all([
@@ -74,8 +85,6 @@ export async function GET(request: NextRequest) {
        for (const f of planData.features) {
          if (f.geometry && f.geometry.type.includes('Polygon')) {
            if (booleanPointInPolygon(targetPt, f)) {
-              // A29_004 = 区域区分 (1:市街化区域, 2:市街化調整区域, etc) usually in MLIT KSJ
-              // We'll use broad check on properties. MLIT actual key is area_classification_ja
               result.plan_zone = f.properties?.area_classification_ja || f.properties?.zone_ja || f.properties?.A29_004 || "都市計画区域内";
               break;
            }
@@ -88,7 +97,6 @@ export async function GET(request: NextRequest) {
        for (const f of useData.features) {
          if (f.geometry && f.geometry.type.includes('Polygon')) {
             if (booleanPointInPolygon(targetPt, f)) {
-                // MLIT actual keys: use_area_ja, u_building_coverage_ratio_ja, u_floor_area_ratio_ja
                 result.land_use = f.properties?.use_area_ja || f.properties?.A29_005 || f.properties?.name || "用途地域指定あり";
                 if (f.properties?.u_building_coverage_ratio_ja) result.coverage = f.properties.u_building_coverage_ratio_ja;
                 else if (f.properties?.A29_006) result.coverage = `${f.properties.A29_006}%`;
@@ -96,14 +104,14 @@ export async function GET(request: NextRequest) {
                 if (f.properties?.u_floor_area_ratio_ja) result.far = f.properties.u_floor_area_ratio_ja;
                 else if (f.properties?.A29_007) result.far = `${f.properties.A29_007}%`;
                 
-                result.feature = f; // Pass the entire GeoJSON feature for highlighting
+                result.feature = f; // Pass the entire GeoJSON feature for map highlighting
                 break;
             }
          }
        }
     }
 
-    return NextResponse.json(result, { status: 200, headers: CORS_HEADERS });
+    return NextResponse.json(result, { status: 200, headers: resHeaders });
 
   } catch (err) {
     return NextResponse.json({ error: 'Zoning mapping logic error' }, { status: 500, headers: CORS_HEADERS });

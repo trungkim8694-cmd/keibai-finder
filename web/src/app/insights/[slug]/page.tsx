@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import { Calendar, Tag, ArrowLeft, Globe } from 'lucide-react';
+import { Calendar, Tag, ArrowLeft } from 'lucide-react';
 import ArticleContent from './ArticleContent';
 import type { Metadata, ResolvingMetadata } from 'next';
 
@@ -27,35 +27,18 @@ export async function generateMetadata(
     return { title: 'Not Found' }
   }
 
-  const langKey = (resolvedSearchParams.lang as string) || 'ja';
-  let title = digest.title_ja || '市場分析レポート';
-  let description = `AIが分析する不動産競売・公売市場の掘り出し物トレンドレポート：${title}`;
-
-  if (langKey === 'en' && digest.content_en) {
-    title = digest.title_en || title;
-    description = `AI market analysis report for real estate auction listings: ${title}`;
-  } else if (langKey === 'vi' && digest.content_vi) {
-    title = digest.title_vi || title;
-    description = `Báo cáo phân tích thị trường bất động sản đấu giá bằng AI: ${title}`;
-  } else if (langKey === 'zh' && digest.content_zh) {
-    title = digest.title_zh || title;
-    description = `AI 房地产拍卖市场分析报告：${title}`;
-  }
+  const title = digest.title_ja || '市場分析レポート';
+  const rawDesc = digest.content_ja ? digest.content_ja.replace(/[#*]/g, '').substring(0, 150) : '';
+  const description = rawDesc || `AIが分析する不動産競売・公売市場の掘り出し物トレンドレポート：${title}`;
 
   const baseUrl = 'https://www.keibai-koubai.com';
   const canonicalUrl = `${baseUrl}/insights/${slug}`;
 
   return {
-    title: `${title} | Keibai Market Insights`,
+    title: `${title} | 市場分析・競売インサイト`,
     description: description.substring(0, 160),
     alternates: {
       canonical: canonicalUrl,
-      languages: {
-        'ja': `${canonicalUrl}?lang=ja`,
-        'en': `${canonicalUrl}?lang=en`,
-        'vi': `${canonicalUrl}?lang=vi`,
-        'zh': `${canonicalUrl}?lang=zh`,
-      }
     }
   }
 }
@@ -79,11 +62,9 @@ export async function generateStaticParams() {
   }
 }
 
-export default async function DigestDetailPage({ params, searchParams }: Props) {
+export default async function DigestDetailPage({ params }: Props) {
   const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
   const slug = resolvedParams.slug;
-  const langKey = (resolvedSearchParams.lang as string) || 'ja';
 
   const digest = await prisma.dailyDigest.findUnique({
     where: { slug }
@@ -98,25 +79,13 @@ export default async function DigestDetailPage({ params, searchParams }: Props) 
     // If it's a GUIDE or CAUTION, redirect to /blogs
     if (digest.category === 'GUIDE' || digest.category === 'CAUTION') {
       const { redirect } = require('next/navigation');
-      redirect(`/blogs/${slug}${resolvedSearchParams.lang ? `?lang=${resolvedSearchParams.lang}` : ''}`);
+      redirect(`/blogs/${slug}`);
     }
     notFound();
   }
 
-  // Handle Multi-language
-  let title = digest.title_ja;
-  let rawContent = digest.content_ja;
-
-  if (langKey === 'en' && digest.content_en) {
-    title = digest.title_en || title;
-    rawContent = digest.content_en;
-  } else if (langKey === 'vi' && digest.content_vi) {
-    title = digest.title_vi || title;
-    rawContent = digest.content_vi;
-  } else if (langKey === 'zh' && digest.content_zh) {
-    title = digest.title_zh || title;
-    rawContent = digest.content_zh;
-  }
+  const title = digest.title_ja || digest.title_vi || '市場分析レポート';
+  const rawContent = digest.content_ja || digest.content_vi || '';
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -149,20 +118,12 @@ export default async function DigestDetailPage({ params, searchParams }: Props) 
       />
       <div className="max-w-7xl mx-auto">
         
-        {/* Navigation & Language Select */}
+        {/* Navigation */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <Link href="/insights" className="inline-flex items-center gap-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
             <ArrowLeft className="w-4 h-4" />
             市場分析一覧へ戻る
           </Link>
-
-          <div className="flex items-center gap-2 text-sm bg-white dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <Globe className="w-4 h-4 text-zinc-400 ml-2" />
-            <Link href={`/insights/${slug}?lang=ja`} className={`px-2 py-1 rounded-md transition-colors ${langKey === 'ja' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>日本語</Link>
-            <Link href={`/insights/${slug}?lang=en`} className={`px-2 py-1 rounded-md transition-colors ${langKey === 'en' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>EN</Link>
-            <Link href={`/insights/${slug}?lang=vi`} className={`px-2 py-1 rounded-md transition-colors ${langKey === 'vi' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>VI</Link>
-            <Link href={`/insights/${slug}?lang=zh`} className={`px-2 py-1 rounded-md transition-colors ${langKey === 'zh' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>ZH</Link>
-          </div>
         </div>
 
         {/* Header */}
