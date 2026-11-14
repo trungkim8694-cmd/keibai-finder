@@ -30,6 +30,7 @@ export function MapLayerControl({
   setShowRailways,
 }: MapLayerControlProps) {
   const [showLegend, setShowLegend] = useState(false);
+  const [isOpenMobile, setIsOpenMobile] = useState(false);
 
   const floodLegend = [
     { color: '#f7f5a9', label: '0.5m未満' },
@@ -43,11 +44,12 @@ export function MapLayerControl({
     { color: '#ffe600', label: '土石流危険渓流' },
   ];
 
-  const hasActiveOverlay = showFlood || showLandslide || showRailways;
+  const activeOverlayCount = (showFlood ? 1 : 0) + (showLandslide ? 1 : 0) + (showRailways ? 1 : 0);
+  const hasActiveOverlay = activeOverlayCount > 0;
 
   return (
     <div 
-      className="absolute top-3.5 right-4 lg:right-5 z-[1000] pointer-events-auto flex flex-col items-end gap-2"
+      className="absolute top-3.5 right-3 lg:right-5 z-[1000] pointer-events-auto flex flex-col items-end gap-2"
       onDoubleClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseUp={(e) => e.stopPropagation()}
@@ -55,8 +57,45 @@ export function MapLayerControl({
       onClick={(e) => e.stopPropagation()}
       onMouseMove={(e) => e.stopPropagation()}
     >
-      {/* Unified B2B Map Layer Panel */}
-      <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-slate-200 dark:border-zinc-800 shadow-md rounded-lg p-1.5 flex flex-col gap-1.5 min-w-[170px] select-none">
+      {/* Mobile Toggle Button (Thu gọn bảng trên Mobile để giải phóng 40% tầm nhìn bản đồ) */}
+      <div className="lg:hidden">
+        <button
+          type="button"
+          onClick={() => setIsOpenMobile(v => !v)}
+          className={`h-9 px-3 rounded-full border shadow-[0_4px_14px_rgba(0,0,0,0.12)] backdrop-blur-md flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+            isOpenMobile
+              ? 'bg-[#1B4F8A] text-white border-[#1B4F8A]'
+              : 'bg-white/95 dark:bg-zinc-900/95 text-slate-700 dark:text-zinc-200 border-slate-200 dark:border-zinc-700'
+          }`}
+          title="地図タイプ・ハザードレイヤーの切り替え"
+        >
+          <span className="text-sm">🗺️</span>
+          <span>レイヤー</span>
+          {activeOverlayCount > 0 && (
+            <span className="ml-0.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-mono flex items-center justify-center">
+              {activeOverlayCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Unified B2B Map Layer Panel (Hiển thị cố định trên Desktop, mở dạng Popover thả xuống trên Mobile) */}
+      <div className={`bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-slate-200 dark:border-zinc-800 shadow-xl lg:shadow-md rounded-xl lg:rounded-lg p-2.5 lg:p-1.5 flex flex-col gap-2 lg:gap-1.5 min-w-[200px] lg:min-w-[170px] select-none ${
+        isOpenMobile ? 'flex animate-in fade-in zoom-in-95 duration-150' : 'hidden lg:flex'
+      }`}>
+        <div className="flex items-center justify-between lg:hidden pb-1.5 border-b border-slate-100 dark:border-zinc-800">
+          <span className="text-xs font-bold text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
+            <span>🗺️</span>
+            <span>地図・ハザード設定</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsOpenMobile(false)}
+            className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-slate-900 text-xs font-bold"
+          >
+            ✕
+          </button>
+        </div>
         
         {/* Base Map Switcher: Standard / Satellite / Pale */}
         <div>

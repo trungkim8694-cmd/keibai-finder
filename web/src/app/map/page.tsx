@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { MapIcon, ListBulletIcon } from '@heroicons/react/20/solid';
 
 import SidebarFooter from '@/components/SidebarFooter';
+import MobileMapPeekCard from '@/components/MobileMapPeekCard';
 
 const KeibaiMap = dynamic(() => import('@/components/KeibaiMap'), { 
   ssr: false, 
@@ -159,6 +160,15 @@ export default function DashboardPage() {
   const listProperties = useMemo(() => {
      return [...rawListProperties];
   }, [rawListProperties]);
+
+  const clickedProperty = useMemo(() => {
+    if (!clickedPropertyId) return null;
+    return (
+      (mapProperties as any[]).find((p: any) => p.sale_unit_id === clickedPropertyId) ||
+      (listProperties as any[]).find((p: any) => p.sale_unit_id === clickedPropertyId) ||
+      null
+    );
+  }, [clickedPropertyId, mapProperties, listProperties]);
 
   const isLoading = isListLoading || isMapLoading;
   const isReachingEnd = listDataArray && listDataArray[listDataArray.length - 1]?.length < 20;
@@ -465,6 +475,14 @@ export default function DashboardPage() {
         {/* View History Floating Bar */}
         <ViewHistoryBar />
 
+        {/* Zillow/SUUMO Mobile Peek Card when marker is tapped on mobile */}
+        {viewMode === 'map' && clickedProperty && (
+          <MobileMapPeekCard 
+            property={clickedProperty as SharedProperty}
+            onClose={() => setClickedPropertyId(null)}
+          />
+        )}
+
         {/* Property Quick Drawer (Desktop Slide-Over / Mobile Bottom Sheet) */}
         <PropertyQuickDrawer 
           property={previewProperty}
@@ -472,26 +490,28 @@ export default function DashboardPage() {
           onClose={() => setPreviewProperty(null)}
         />
 
-        {/* Floating Toggle Button (Mobile Only) */}
-        <div 
-          className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[50]"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-        >
-           <button 
-             onClick={() => {
-                const nextMode = viewMode === 'map' ? 'list' : 'map';
-                setViewMode(nextMode);
-                try { sessionStorage.setItem('kb_viewMode', nextMode); } catch (e) {}
-             }}
-             className="bg-zinc-900/85 backdrop-blur-xl dark:bg-zinc-100/90 text-white dark:text-zinc-900 text-[13px] font-bold px-5 py-2.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-center gap-2 border border-white/10 dark:border-zinc-200 transition-all hover:bg-zinc-800 active:scale-95 tracking-wide"
-           >
-             {viewMode === 'map' ? (
-               <><ListBulletIcon className="w-4 h-4" /> リストで見る</>
-             ) : (
-               <><MapIcon className="w-4 h-4" /> 地図で見る</>
-             )}
-           </button>
-        </div>
+        {/* Floating Toggle Button (Mobile Only) - Automatically hidden when Peek Card is active */}
+        {(!clickedProperty || viewMode === 'list') && (
+          <div 
+            className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[45] animate-in fade-in-0 duration-150"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          >
+             <button 
+               onClick={() => {
+                  const nextMode = viewMode === 'map' ? 'list' : 'map';
+                  setViewMode(nextMode);
+                  try { sessionStorage.setItem('kb_viewMode', nextMode); } catch (e) {}
+               }}
+               className="bg-zinc-900/85 backdrop-blur-xl dark:bg-zinc-100/90 text-white dark:text-zinc-900 text-[13px] font-bold px-5 py-2.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-center gap-2 border border-white/10 dark:border-zinc-200 transition-all hover:bg-zinc-800 active:scale-95 tracking-wide"
+             >
+               {viewMode === 'map' ? (
+                 <><ListBulletIcon className="w-4 h-4" /> リストで見る</>
+               ) : (
+                 <><MapIcon className="w-4 h-4" /> 地図で見る</>
+               )}
+             </button>
+          </div>
+        )}
 
       </div>
     </div>

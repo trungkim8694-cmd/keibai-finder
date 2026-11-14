@@ -114,3 +114,10 @@ body {
   background: rgba(15, 23, 42, 0.85) !important;
   color: #FFFFFF !important;
 }
+
+/* Mobile-First: Hide bulky Leaflet popups on mobile (< 1024px) in favor of sleek Zillow-style Bottom Peek Card */
+@media (max-width: 1023px) {
+  .leaflet-popup.custom-property-popup {
+    display: none !important;
+  }
+}

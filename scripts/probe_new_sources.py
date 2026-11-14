@@ -1,14 +1,21 @@
-import requests
-from bs4 import BeautifulSoup
-
-HEADERS = {"User-Agent": "Mozilla/5.0"}
-for u in [
-    "https://lfb.mof.go.jp/kantou/content/pagekt_cnt_20260909001.html",
-    "https://lfb.mof.go.jp/hokkaido/kokuyuu/pagehkhp017000068.html",
-    "https://lfb.mof.go.jp/fukuoka/html/kokuyubaikyaku/index.html",
-]:
-    r = requests.get(u, headers=HEADERS, timeout=15)
-    r.encoding = r.apparent_encoding
-    soup = BeautifulSoup(r.text, "html.parser")
-    pdfs = [(a.get_text(" ", strip=True), a["href"]) for a in soup.find_all("a", href=True) if ".pdf" in a["href"].lower()]
-    print(u, "-> PDFs:", len(pdfs), "sample:", pdfs[:4])
+import os, psycopg2
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'web', '.env.local'))
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'web', '.env'))
+conn = psycopg2.connect(os.getenv('DATABASE_URL'))
+cur = conn.cursor()
+cur.execute("""
+    SELECT sale_unit_id, property_type, starting_price, mlit_estimated_price, mlit_investment_gap
+    FROM "Property" WHERE sale_unit_id = '00000002727';
+""")
+print("00000002727:", cur.fetchone())
+cur.execute("""
+    SELECT source_provider, COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE mlit_estimated_price IS NOT NULL AND mlit_estimated_price > 0) AS has_est
+    FROM "Property" WHERE status = 'ACTIVE'
+    GROUP BY 1 ORDER BY 1;
+""")
+for r in cur.fetchall():
+    print("Coverage:", r)
+cur.close()
+conn.close()

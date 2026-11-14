@@ -904,6 +904,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
       <StickyActionBar 
         saleUnitId={property.sale_unit_id} 
         predictedPrice={formattedWinningBid} 
+        startPrice={formattedStartPrice}
         pdfUrl={property.pdf_url} 
         propertyUrl={propertyUrl}
         shareTitle={propertyTitle}

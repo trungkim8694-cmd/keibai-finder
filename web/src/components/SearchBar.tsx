@@ -154,6 +154,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
   const [selectedNtaAuth, setSelectedNtaAuth] = useState<string>('ALL');
   const [isBitOpen, setIsBitOpen] = useState(false);
   const [isNtaOpen, setIsNtaOpen] = useState(false);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   
   const router = useRouter();
   const pathname = usePathname() || '/map';
@@ -956,10 +957,26 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
             {/* Action Buttons */}
             <div className="flex items-center pl-2 lg:pl-1 pr-1 lg:pr-0 gap-1.5 shrink-0">
                  <div className="flex items-center gap-1 border-r border-slate-200 dark:border-slate-800 pr-2 mr-0.5">
+                   {/* Mobile Filter Button (SUUMO / HOME'S Style Sheet Launcher) */}
+                   <button 
+                     type="button"
+                     onClick={() => setIsMobileFilterOpen(true)}
+                     className="lg:hidden flex items-center justify-center gap-1.5 bg-[#F0F4F9] hover:bg-blue-100 dark:bg-blue-950/60 border border-[#1B4F8A]/30 text-[#1B4F8A] dark:text-blue-300 font-bold py-1.5 px-2.5 rounded-md text-xs shadow-2xs"
+                     title="詳細条件で絞り込み"
+                   >
+                     <span className="text-xs">⚙️</span>
+                     <span>絞り込み</span>
+                     {(types.length > 0 || minPrice || maxPrice || walkTime || minArea || selectedLine !== 'ALL' || selectedCourt !== 'ALL' || selectedNtaAuth !== 'ALL') && (
+                       <span className="w-4 h-4 rounded-full bg-[#1B4F8A] text-white text-[10px] font-mono flex items-center justify-center">
+                         {(types.length > 0 ? 1 : 0) + (minPrice || maxPrice ? 1 : 0) + (walkTime ? 1 : 0) + (minArea ? 1 : 0) + (selectedLine !== 'ALL' ? 1 : 0) + (selectedCourt !== 'ALL' || selectedNtaAuth !== 'ALL' ? 1 : 0)}
+                       </span>
+                     )}
+                   </button>
+
                    <button 
                      onClick={handleSaveFilter} 
                      title="この条件を保存 (Save Filter)"
-                     className="flex items-center justify-center gap-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-300 font-medium py-1.5 px-2.5 rounded-md transition-colors text-xs shadow-2xs"
+                     className="hidden sm:flex items-center justify-center gap-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-300 font-medium py-1.5 px-2.5 rounded-md transition-colors text-xs shadow-2xs"
                    >
                      <Bookmark className="w-3.5 h-3.5 text-slate-500" />
                      <span className="hidden sm:inline">保存</span>
@@ -1347,6 +1364,210 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
         </div>
         </div>
       </div>
+
+      {/* SUUMO / LIFULL HOME'S Style Mobile Filter Bottom Sheet Modal */}
+      {isMobileFilterOpen && (
+        <div className="lg:hidden fixed inset-0 z-[100000] flex flex-col bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="mt-auto w-full max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col overflow-hidden border-t border-slate-200 dark:border-zinc-800 animate-in slide-in-from-bottom duration-250">
+            {/* Sheet Header */}
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-slate-50 dark:bg-zinc-950">
+              <div className="flex items-center gap-2">
+                <span className="text-base">⚙️</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-zinc-100">詳細条件で絞り込み</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 flex items-center justify-center font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Sheet Body: Touch-friendly Thumb-Zone Controls */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-5">
+              {/* 1. 物件種別 */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 dark:text-zinc-400 block mb-2">物件種別 (複数選択可)</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {propertyTypes.map(pt => {
+                    const isSelected = types.includes(pt);
+                    const count = typeStats[pt] || 0;
+                    return (
+                      <button
+                        key={pt}
+                        type="button"
+                        onClick={() => {
+                          const next = isSelected ? types.filter(t => t !== pt) : [...types, pt];
+                          setTypes(next);
+                        }}
+                        className={`h-11 px-3 rounded-lg border text-xs font-semibold flex items-center justify-between transition-colors ${
+                          isSelected
+                            ? 'bg-[#1B4F8A] text-white border-[#1B4F8A]'
+                            : 'bg-slate-50 dark:bg-zinc-800/60 border-slate-200 dark:border-zinc-700 text-slate-800 dark:text-zinc-200'
+                        }`}
+                      >
+                        <span>{pt}</span>
+                        <span className={`text-[11px] font-mono ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. 価格帯 */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 dark:text-zinc-400 block mb-2">売却基準価額 (価格帯)</label>
+                <div className="grid grid-cols-2 gap-2 items-center">
+                  <select
+                    value={minPrice || ''}
+                    onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : undefined)}
+                    className="h-11 px-3 rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none"
+                  >
+                    <option value="">下限なし</option>
+                    <option value="3000000">300万円以上</option>
+                    <option value="5000000">500万円以上</option>
+                    <option value="10000000">1000万円以上</option>
+                    <option value="20000000">2000万円以上</option>
+                    <option value="30000000">3000万円以上</option>
+                  </select>
+                  <select
+                    value={maxPrice || ''}
+                    onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : undefined)}
+                    className="h-11 px-3 rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none"
+                  >
+                    <option value="">上限なし</option>
+                    <option value="5000000">500万円以下</option>
+                    <option value="10000000">1000万円以下</option>
+                    <option value="20000000">2000万円以下</option>
+                    <option value="30000000">3000万円以下</option>
+                    <option value="50000000">5000万円以下</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 3. 駅徒歩時間 & 面積 */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 dark:text-zinc-400 block mb-2">駅徒歩</label>
+                  <select
+                    value={walkTime || ''}
+                    onChange={(e) => setWalkTime(e.target.value ? Number(e.target.value) : undefined)}
+                    className="w-full h-11 px-3 rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none"
+                  >
+                    <option value="">指定なし</option>
+                    <option value="5">徒歩5分以内</option>
+                    <option value="10">徒歩10分以内</option>
+                    <option value="15">徒歩15分以内</option>
+                    <option value="20">徒歩20分以内</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 dark:text-zinc-400 block mb-2">専有/土地面積</label>
+                  <select
+                    value={minArea || ''}
+                    onChange={(e) => setMinArea(e.target.value ? Number(e.target.value) : undefined)}
+                    className="w-full h-11 px-3 rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none"
+                  >
+                    <option value="">指定なし</option>
+                    <option value="50">50m²以上</option>
+                    <option value="100">100m²以上</option>
+                    <option value="150">150m²以上</option>
+                    <option value="200">200m²以上</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 4. 出典機関 (BIT / NTA / KSI / MOF) */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 dark:text-zinc-400 block mb-2">公示元・情報源</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'BIT', label: 'BIT 裁判所競売' },
+                    { id: 'NTA', label: 'NTA 国税庁公売' },
+                    { id: 'KSI', label: 'KSI 官公庁公売' },
+                    { id: 'MOF', label: 'MOF 国有財産売却' }
+                  ].map(prov => {
+                    const isChecked = activeProviders.includes(prov.id);
+                    return (
+                      <button
+                        key={prov.id}
+                        type="button"
+                        onClick={() => handleToggleProvider(prov.id)}
+                        className={`h-11 px-3 rounded-lg border text-xs font-semibold flex items-center justify-between transition-colors ${
+                          isChecked
+                            ? 'bg-blue-50 border-blue-500 text-blue-800 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-200'
+                            : 'bg-slate-50 dark:bg-zinc-800/40 border-slate-200 dark:border-zinc-700 text-slate-400 opacity-70'
+                        }`}
+                      >
+                        <span>{prov.label}</span>
+                        <span>{isChecked ? '✓' : ''}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 5. 沿線・駅 */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 dark:text-zinc-400 block mb-2">主要鉄道路線</label>
+                <select
+                  value={selectedLine}
+                  onChange={(e) => {
+                    setSelectedLine(e.target.value);
+                    setSelectedStation('ALL');
+                  }}
+                  className="w-full h-11 px-3 rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-semibold text-slate-800 dark:text-zinc-100 outline-none"
+                >
+                  <option value="ALL">全国すべての路線</option>
+                  {(railData as any[]).map((r: any) => (
+                    <option key={r.line} value={r.line}>{r.line} ({r.count})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Sheet Footer: Apply & Reset Actions */}
+            <div className="p-4 border-t border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setTypes([]);
+                  setMinPrice(undefined);
+                  setMaxPrice(undefined);
+                  setWalkTime(undefined);
+                  setMinArea(undefined);
+                  setSelectedLine('ALL');
+                  setSelectedStation('ALL');
+                  setActiveProviders(['BIT', 'NTA', 'KSI', 'MOF']);
+                }}
+                className="w-1/3 h-12 rounded-xl border border-slate-300 dark:border-zinc-700 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                全条件リセット
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerSearch({
+                    types,
+                    minPrice,
+                    maxPrice,
+                    maxWalkTime: walkTime,
+                    minArea,
+                    lineName: selectedLine !== 'ALL' ? selectedLine : undefined,
+                    stationName: selectedStation !== 'ALL' ? selectedStation : undefined,
+                    providers: activeProviders,
+                  });
+                  setIsMobileFilterOpen(false);
+                }}
+                className="w-2/3 h-12 rounded-xl bg-[#1B4F8A] hover:bg-[#143D6C] text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <span>この条件で検索する</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

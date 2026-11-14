@@ -346,8 +346,8 @@ function CustomMapControls() {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
       </button>
 
-      {/* Zoom Controls */}
-      <div className="flex flex-col bg-white/95 backdrop-blur-md border border-slate-200 shadow-[0_4px_12px_rgba(0,0,0,0.12)] rounded-full overflow-hidden">
+      {/* Zoom Controls (Chỉ hiển thị trên Desktop vì Mobile người dùng 100% dùng thao tác vuốt 2 ngón tay Pinch-to-zoom) */}
+      <div className="hidden lg:flex flex-col bg-white/95 backdrop-blur-md border border-slate-200 shadow-[0_4px_12px_rgba(0,0,0,0.12)] rounded-full overflow-hidden">
         <button onClick={handleZoomIn} className="w-10 h-10 flex items-center justify-center text-xl text-slate-700 hover:bg-slate-50 hover:text-[#1B4F8A] transition-all active:bg-slate-100 font-medium border-b border-slate-200 cursor-pointer" title="ズームイン">
           +
         </button>
@@ -386,7 +386,7 @@ function MapRegionalQuickJumps() {
 
   return (
     <div
-      className="absolute top-3.5 left-4 z-[1000] pointer-events-auto max-w-[calc(100%-140px)] sm:max-w-none"
+      className="absolute top-3.5 left-3 sm:left-4 z-[1000] pointer-events-auto max-w-[calc(100%-110px)] lg:max-w-none"
       onDoubleClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseUp={(e) => e.stopPropagation()}
