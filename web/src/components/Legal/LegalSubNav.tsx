@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, FileText, Shield, ChevronRight } from 'lucide-react';
+import { Building2, FileText, Shield, ChevronRight, Mail } from 'lucide-react';
 
 interface LegalSubNavProps {
   currentPageTitle: string;
@@ -12,6 +12,7 @@ export default function LegalSubNav({ currentPageTitle }: LegalSubNavProps) {
 
   const navItems = [
     { href: '/company', label: '会社概要 (Company Profile)', icon: Building2 },
+    { href: '/contact', label: 'お問い合わせ (Contact)', icon: Mail },
     { href: '/terms', label: '利用規約 (Terms of Service)', icon: FileText },
     { href: '/privacy', label: 'プライバシーポリシー (Privacy Policy)', icon: Shield },
   ];

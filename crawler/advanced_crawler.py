@@ -234,7 +234,8 @@ def check_and_update_db(sale_unit_id, pdf_url, raw_data, final_images, thumbnail
     conn.close()
 
 def extract_pdf_images(pdf_bytes, sale_unit_id):
-    """Trích xuất ảnh chụp thực tế từ 3点セット PDF và upload lên Cloudflare R2"""
+    """Trích xuất ảnh chụp thực tế từ 3点セット PDF và lưu vào VPS local / Cloudflare R2"""
+    global s3_client
     pdf_images = []
     if not pdf_bytes or len(pdf_bytes) < 1000:
         return pdf_images
@@ -279,7 +280,8 @@ def extract_pdf_images(pdf_bytes, sale_unit_id):
             pil_high.save(img_byte_arr, format="WEBP", quality=80)
             img_bytes = img_byte_arr.getvalue()
 
-            if s3_client and R2_BUCKET:
+            saved_to_r2 = False
+            if s3_client and R2_BUCKET and r2_public_url:
                 try:
                     s3_client.put_object(
                         Bucket=R2_BUCKET,
@@ -289,10 +291,13 @@ def extract_pdf_images(pdf_bytes, sale_unit_id):
                     )
                     public_img_url = f"{r2_public_url}/properties/{sale_unit_id}/{image_filename}"
                     pdf_images.append(public_img_url)
+                    saved_to_r2 = True
                     print(f"      [R2 Upload] Đã tải ảnh: {image_filename}", flush=True)
                 except Exception as up_e:
-                    print(f"      [R2 Error] {up_e}", flush=True)
-            elif os.path.isdir(LOCAL_IMAGE_DIR) or LOCAL_IMAGE_DIR:
+                    print(f"      [R2 Fallback -> VPS Local] R2 bucket không khả dụng ({up_e}), chuyển sang lưu trực tiếp trên VPS.", flush=True)
+                    s3_client = None
+
+            if not saved_to_r2 and (os.path.isdir(LOCAL_IMAGE_DIR) or LOCAL_IMAGE_DIR):
                 try:
                     prop_dir = os.path.join(LOCAL_IMAGE_DIR, sale_unit_id)
                     os.makedirs(prop_dir, exist_ok=True)
@@ -431,13 +436,15 @@ def crawl_property_detail(session, item, prop_form_fields, prefecture):
             print(f"      [PDF Warning] Lỗi tải 3点セット: {pdf_e}", flush=True)
 
     final_images = []
-    for p_img in pdf_images:
-        if p_img not in final_images:
-            final_images.append(p_img)
+    # Ưu tiên ảnh chụp ngoại quan / đại diện lấy từ nguồn web về (summary_images)
     if summary_images:
         for s_img in summary_images:
             if s_img not in final_images:
                 final_images.append(s_img)
+    # Sau đó mới bổ sung các ảnh bóc tách trích xuất từ PDF (pdf_images)
+    for p_img in pdf_images:
+        if p_img not in final_images:
+            final_images.append(p_img)
 
     thumbnail_url = final_images[0] if final_images else None
 

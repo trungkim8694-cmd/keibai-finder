@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { resolvePropertyImages } from '@/lib/propertyImageHelper';
 
 export async function getUserFavorites(userId: string) {
   if (!userId) return [];
@@ -37,29 +38,13 @@ export async function getUserFavorites(userId: string) {
     if (p) {
       sanitizedProperty = JSON.parse(JSON.stringify(p, (k, v) => typeof v === 'bigint' ? Number(v) : v));
       
-      const rawImages = sanitizedProperty.images || [];
-      const mappedImages = rawImages.map((img: string) => 
-          img.startsWith('./') ? `https://www.koubai.nta.go.jp/auctionx/public${img.substring(1)}` : img
-      );
-
-      const isPermanent = (url: string) => Boolean(url && (url.includes('r2.dev') || url.includes('supabase.co')));
-      const sortedImages = [...mappedImages].sort((a, b) => {
-          const aPerm = isPermanent(a);
-          const bPerm = isPermanent(b);
-          if (aPerm && !bPerm) return -1;
-          if (!aPerm && bPerm) return 1;
-          return 0;
+      const { thumbnailUrl: mappedThumbnail, images: sortedImages } = resolvePropertyImages({
+        thumbnailUrl: sanitizedProperty.thumbnailUrl,
+        images: sanitizedProperty.images,
+        raw_display_data: sanitizedProperty.raw_display_data,
+        source_provider: sanitizedProperty.source_provider,
       });
       sanitizedProperty.images = sortedImages;
-
-      const permanentImage = sortedImages.find(isPermanent);
-      const mappedThumbnail = permanentImage
-        ? permanentImage
-        : (sanitizedProperty.source_provider === 'NTA' && sortedImages.length > 0
-            ? sortedImages[0]
-            : (sanitizedProperty.thumbnailUrl 
-                ? sanitizedProperty.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp') 
-                : (sortedImages.length > 0 ? sortedImages[0] : null)));
       sanitizedProperty.thumbnailUrl = mappedThumbnail;
 
       if (!sanitizedProperty.contact_url && sanitizedProperty.raw_display_data) {

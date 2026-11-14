@@ -238,7 +238,7 @@ export async function sendUnverifiedAgencyClaimLeadEmail(params: {
       </p>
     </div>
     <div class="footer">
-      keibai-koubai.com 運営元: 株式会社TQC (東京都港区芝浦3-4-1 グランパークタワー)<br>
+      keibai-koubai.com 運営元: 株式会社ＴＱＣ (東京都豊島区南池袋二丁目３３−６ 佐藤ビルディング３Ｆ)<br>
       お問い合わせ: info@keibai-koubai.com
     </div>
   </div>
@@ -309,6 +309,193 @@ export async function sendAdminLeadNotification(params: {
   return sendEmail({
     to: ADMIN_NOTIFICATION_EMAIL,
     subject,
+    html,
+  });
+}
+
+/**
+ * 4. Send contact form submission notification to TQC Operations team
+ */
+export async function sendContactInquiryNotificationEmail(params: {
+  categoryLabel: string;
+  companyName?: string;
+  name: string;
+  furigana?: string;
+  email: string;
+  phone?: string;
+  preferredContact: string;
+  subject: string;
+  message: string;
+  ipAddress?: string;
+}) {
+  const emailSubject = `【keibai-koubai お問い合わせ】${params.subject}（${params.name}様）`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 640px; margin: 24px auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .header { background-color: #1B4F8A; color: #ffffff; padding: 20px 24px; text-align: left; }
+    .header h1 { margin: 0; font-size: 16px; font-weight: 700; }
+    .content { padding: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    td.label { width: 140px; font-weight: bold; background: #f8fafc; color: #475569; }
+    .message-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; white-space: pre-wrap; font-size: 13px; color: #1e293b; line-height: 1.7; margin-top: 8px; }
+    .footer { background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; font-size: 11px; color: #64748b; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>【keibai-koubai.com】お問い合わせ受付通知</h1>
+    </div>
+    <div class="content">
+      <p style="font-size: 13px; color: #334155; margin-bottom: 16px;">
+        公式ポータルサイトのお問い合わせフォームより、新しいメッセージを受信いたしました。
+      </p>
+
+      <table>
+        <tr>
+          <td class="label">お問い合わせ種別</td>
+          <td><strong style="color: #1B4F8A;">${params.categoryLabel}</strong></td>
+        </tr>
+        ${params.companyName ? `
+        <tr>
+          <td class="label">貴社名・組織名</td>
+          <td>${params.companyName}</td>
+        </tr>` : ''}
+        <tr>
+          <td class="label">お名前</td>
+          <td><strong>${params.name}</strong> 様 ${params.furigana ? `(${params.furigana})` : ''}</td>
+        </tr>
+        <tr>
+          <td class="label">メールアドレス</td>
+          <td><a href="mailto:${params.email}" style="color: #1B4F8A; font-weight: bold;">${params.email}</a></td>
+        </tr>
+        ${params.phone ? `
+        <tr>
+          <td class="label">電話番号</td>
+          <td><a href="tel:${params.phone}" style="color: #334155;">${params.phone}</a></td>
+        </tr>` : ''}
+        <tr>
+          <td class="label">希望連絡方法</td>
+          <td>${params.preferredContact === 'PHONE' ? 'お電話でのご連絡希望' : 'メールでのご連絡希望'}</td>
+        </tr>
+        <tr>
+          <td class="label">件名</td>
+          <td><strong>${params.subject}</strong></td>
+        </tr>
+        <tr>
+          <td class="label">お問い合わせ内容</td>
+          <td>
+            <div class="message-box">${params.message}</div>
+          </td>
+        </tr>
+        ${params.ipAddress ? `
+        <tr>
+          <td class="label">送信元IP</td>
+          <td style="color: #94a3b8; font-size: 11px;">${params.ipAddress}</td>
+        </tr>` : ''}
+      </table>
+    </div>
+    <div class="footer">
+      受信先: 株式会社ＴＱＣ 管理事務局 (${ADMIN_NOTIFICATION_EMAIL})<br>
+      所在地: 〒171-0022 東京都豊島区南池袋二丁目３３−６ 佐藤ビルディング３Ｆ
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  return sendEmail({
+    to: ADMIN_NOTIFICATION_EMAIL,
+    subject: emailSubject,
+    html,
+    replyTo: params.email,
+  });
+}
+
+/**
+ * 5. Send automated confirmation (Auto-reply) to the user who submitted the contact form
+ */
+export async function sendContactAutoReplyEmail(params: {
+  name: string;
+  email: string;
+  subject: string;
+  categoryLabel: string;
+  message: string;
+}) {
+  const emailSubject = `【keibai-koubai.com】お問い合わせありがとうございます（受付完了）`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.7; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 24px auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .header { background-color: #1B4F8A; color: #ffffff; padding: 22px 24px; text-align: left; }
+    .header h1 { margin: 0; font-size: 16px; font-weight: 700; }
+    .content { padding: 24px; }
+    .salutation { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+    .intro { font-size: 13px; color: #334155; margin-bottom: 20px; line-height: 1.8; }
+    .summary-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin: 20px 0; font-size: 12px; }
+    .summary-title { font-weight: bold; color: #1B4F8A; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+    .summary-item { margin-bottom: 6px; }
+    .summary-label { color: #64748b; font-weight: 600; }
+    .footer { background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; font-size: 11px; color: #64748b; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>keibai-koubai.com | お問い合わせ受付完了</h1>
+    </div>
+    <div class="content">
+      <div class="salutation">${params.name} 様</div>
+      <div class="intro">
+        この度は、全国競売・公売物件ポータル「keibai-koubai.com」にお問い合わせいただき誠にありがとうございます。<br><br>
+        お客様からのお問い合わせを正常に受け付けいたしました。<br>
+        内容を確認の上、担当者より1〜2営業日以内にご連絡差し上げますので、今しばらくお待ちくださいますようお願い申し上げます。
+      </div>
+
+      <div class="summary-box">
+        <div class="summary-title">送信内容の控え</div>
+        <div class="summary-item"><span class="summary-label">お問い合わせ種別：</span>${params.categoryLabel}</div>
+        <div class="summary-item"><span class="summary-label">件名：</span>${params.subject}</div>
+        <div class="summary-item" style="margin-top: 10px;">
+          <span class="summary-label">お問い合わせ内容：</span>
+          <div style="margin-top: 4px; padding: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; white-space: pre-wrap; font-size: 12px; color: #334155;">${params.message}</div>
+        </div>
+      </div>
+
+      <p style="font-size: 11px; color: #94a3b8; line-height: 1.6;">
+        ※ 本メールはシステムによる自動送信です。心当たりのない場合は、大変恐れ入りますが本メールを破棄していただきますようお願いいたします。<br>
+        ※ お急ぎの場合は、下記運営元のお電話窓口まで直接お問い合わせください。
+      </p>
+    </div>
+
+    <div class="footer">
+      <strong>運営元：株式会社ＴＱＣ (TQC Co., Ltd.)</strong><br>
+      宅地建物取引業者免許：東京都知事 (01) 第107650号<br>
+      所属団体：公益社団法人 全日本不動産協会 / 不動産保証協会<br>
+      所在地：〒171-0022 東京都豊島区南池袋二丁目３３−６ 佐藤ビルディング３Ｆ<br>
+      代表電話：03-6907-1219（平日 09:30〜18:00） / FAX：03-6701-2399<br>
+      WEB：<a href="https://keibai-koubai.com" style="color: #1B4F8A;">https://keibai-koubai.com</a>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  return sendEmail({
+    to: params.email,
+    subject: emailSubject,
     html,
   });
 }

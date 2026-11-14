@@ -2,16 +2,16 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { 
-  MapPin, 
-  Train, 
-  Search, 
-  Building2, 
-  TrendingUp, 
-  Clock, 
-  ChevronRight, 
-  ShieldCheck, 
-  Coins, 
+import {
+  MapPin,
+  Train,
+  Search,
+  Building2,
+  TrendingUp,
+  Clock,
+  ChevronRight,
+  ShieldCheck,
+  Coins,
   Flame,
   ArrowRight,
   Database,
@@ -28,16 +28,37 @@ import HomeMapPreview from '@/components/HomeMapPreview';
 export const revalidate = 1800; // Cache 30 minutes for fast SSR
 
 export const metadata: Metadata = {
-  title: '全国の競売物件・公売物件一括検索＆相場分析ポータル｜Keibai Finder',
-  description: '全国の地方裁判所（BIT）および税務署（国税庁公売）で公示された競売・公売物件を一括横断検索。47都道府県・主要沿線・予算別のデータハブや、地図検索、国土交通省の取引相場データに基づく割安物件リサーチを提供します。',
+  title: {
+    absolute: '全国の競売物件・公売物件一括検索＆相場分析ポータル｜Keibai Finder',
+  },
+  description:
+    '全国の地方裁判所（BIT）および税務署（国税庁公売）で公示された競売・公売物件を一括横断検索。47都道府県・主要沿線・予算別のデータハブや、地図検索、国土交通省の取引相場データに基づく割安物件リサーチを提供します。',
   alternates: {
     canonical: 'https://www.keibai-koubai.com',
   },
   openGraph: {
     title: '全国の競売物件・公売物件一括検索＆相場分析ポータル｜Keibai Finder',
-    description: '市場価格より割安な不動産を見つける。全国の競売・公売物件を都道府県・沿線・価格帯・地図から横断検索。',
+    description:
+      '市場価格より割安な不動産を見つける。全国の競売・公売物件を都道府県・沿線・価格帯・地図から横断検索。',
     url: 'https://www.keibai-koubai.com',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
     type: 'website',
+    images: [
+      {
+        url: '/keibaikoubai.webp',
+        width: 1200,
+        height: 630,
+        alt: 'Keibai Finder - 全国の競売物件・公売物件一括検索＆相場分析ポータル',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '全国の競売物件・公売物件一括検索＆相場分析ポータル｜Keibai Finder',
+    description:
+      '全国の地方裁判所（BIT）・国税局の競売・公売物件を一括検索。国土交通省の成約相場データ連携で割安物件を発掘。',
+    images: ['/keibaikoubai.webp'],
   },
 };
 
@@ -117,6 +138,10 @@ export default async function HomePage() {
         lat: { not: null },
         lng: { not: null },
       },
+      orderBy: {
+        updated_at: 'desc',
+      },
+      take: 300,
       select: {
         sale_unit_id: true,
         lat: true,
@@ -162,8 +187,86 @@ export default async function HomePage() {
     mlit_investment_gap: p.mlit_investment_gap,
   }));
 
+  const homeStructuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': 'https://www.keibai-koubai.com/#webpage',
+        url: 'https://www.keibai-koubai.com',
+        name: '全国の競売物件・公売物件一括検索＆相場分析ポータル｜Keibai Finder',
+        description:
+          '全国の地方裁判所（BIT）および税務署（国税庁公売）で公示された競売・公売物件を一括横断検索。国土交通省の取引相場データに基づく割安物件リサーチを提供。',
+        inLanguage: 'ja',
+        isPartOf: {
+          '@id': 'https://www.keibai-koubai.com/#website',
+        },
+        about: {
+          '@id': 'https://www.keibai-koubai.com/#dataset',
+        },
+        mainEntity: {
+          '@id': 'https://www.keibai-koubai.com/#latest-properties',
+        },
+      },
+      {
+        '@type': 'Dataset',
+        '@id': 'https://www.keibai-koubai.com/#dataset',
+        name: '全国不動産競売（BIT）・公売物件・落札結果および国土交通省取引相場統合データベース',
+        description: `日本全国の地方裁判所（BIT）の競売物件、国税局・税務署の公売物件（現在公示中 ${totalActiveCount} 件）、過去の落札結果データ、および国土交通省不動産情報ライブラリ（MLIT）の成約価格を統合・分析した不動産データセット。`,
+        url: 'https://www.keibai-koubai.com',
+        inLanguage: 'ja',
+        isAccessibleForFree: true,
+        creator: {
+          '@id': 'https://www.keibai-koubai.com/#organization',
+        },
+        keywords: [
+          '競売物件',
+          '公売物件',
+          'BIT 不動産競売',
+          '官公庁オークション',
+          '落札結果',
+          '売却基準価額',
+          '不動産取引価格情報',
+        ],
+      },
+      {
+        '@type': 'ItemList',
+        '@id': 'https://www.keibai-koubai.com/#latest-properties',
+        name: '新着競売・公売物件速報（最新12件）',
+        numberOfItems: serializedProperties.length,
+        itemListOrder: 'https://schema.org/ItemListOrderDescending',
+        itemListElement: serializedProperties.slice(0, 12).map((prop, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          item: {
+            '@type': 'RealEstateListing',
+            '@id': `https://www.keibai-koubai.com/property/${prop.sale_unit_id}`,
+            url: `https://www.keibai-koubai.com/property/${prop.sale_unit_id}`,
+            name: `${prop.address || prop.prefecture || '全国'}の${prop.property_type || '不動産'}（${prop.source_provider === 'NTA' ? '公売物件' : '競売物件'}）`,
+            ...(prop.starting_price
+              ? {
+                offers: {
+                  '@type': 'Offer',
+                  price: Number(prop.starting_price),
+                  priceCurrency: 'JPY',
+                  availability: 'https://schema.org/InStock',
+                },
+              }
+              : {}),
+          },
+        })),
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-slate-100 font-sans pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(homeStructuredData).replace(/</g, '\\u003c'),
+        }}
+      />
       {/* 1. HERO SECTION (Minimalist Japanese B2B) */}
       <section className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 pt-10 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
@@ -287,7 +390,15 @@ export default async function HomePage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 shadow-2xs">
-                    <img src="/extension-icon.png" alt="Keibai Lens" className="w-full h-full object-cover" />
+                    <img
+                      src="/extension-icon.png"
+                      alt="Keibai Lens Chrome拡張機能アイコン"
+                      width={32}
+                      height={32}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">Chrome拡張</span>
                 </div>
@@ -314,7 +425,13 @@ export default async function HomePage() {
                 都道府県から競売・公売物件を探す
               </h2>
             </div>
-            <span className="text-[11px] text-slate-400">全国47都道府県対応</span>
+            <Link
+              href="/search/area"
+              className="text-xs font-semibold text-[#1B4F8A] dark:text-blue-400 hover:underline inline-flex items-center gap-0.5"
+            >
+              <span>全国47都道府県一覧</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
           <div className="mt-6 space-y-6">
@@ -329,7 +446,7 @@ export default async function HomePage() {
                     return (
                       <Link
                         key={pref}
-                        href={`/map?prefecture=${encodeURIComponent(pref)}`}
+                        href={`/search/area/${encodeURIComponent(pref)}`}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-slate-200 dark:border-zinc-700/80 bg-slate-50 dark:bg-zinc-800 hover:bg-white dark:hover:bg-zinc-700 hover:border-[#1B4F8A] transition-colors"
                       >
                         <span className="text-slate-700 dark:text-slate-300">{pref}</span>
@@ -459,14 +576,20 @@ export default async function HomePage() {
                 主要沿線・鉄道路線から探す
               </h2>
             </div>
-            <span className="text-[11px] text-slate-400">通勤・賃貸需要の高い沿線</span>
+            <Link
+              href="/search/station"
+              className="text-xs font-semibold text-[#1B4F8A] dark:text-blue-400 hover:underline inline-flex items-center gap-0.5"
+            >
+              <span>全国の路線・駅一覧</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-6 text-xs">
             {POPULAR_LINES.map((line) => (
               <Link
                 key={line.name}
-                href={`/map?lineName=${encodeURIComponent(line.name)}`}
+                href={`/search/station/${encodeURIComponent(line.name)}`}
                 className="px-3 py-2 rounded border border-slate-200 dark:border-zinc-700/80 bg-slate-50 dark:bg-zinc-800/60 hover:border-[#1B4F8A] transition-colors flex items-center justify-between"
               >
                 <span className="text-slate-700 dark:text-slate-300 font-medium truncate">

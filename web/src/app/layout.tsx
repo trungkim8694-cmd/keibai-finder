@@ -64,13 +64,17 @@ export default function RootLayout({
         '@id': 'https://www.keibai-koubai.com/#website',
         url: 'https://www.keibai-koubai.com',
         name: 'Keibai Finder',
+        alternateName: ['競売ファインダー', 'Keibai-Koubai Finder'],
         description: '全国不動産競売・公売物件一括検索＆落札相場データベース',
         inLanguage: 'ja',
+        publisher: {
+          '@id': 'https://www.keibai-koubai.com/#organization',
+        },
         potentialAction: {
           '@type': 'SearchAction',
           target: {
             '@type': 'EntryPoint',
-            urlTemplate: 'https://www.keibai-koubai.com/search?keyword={search_term_string}',
+            urlTemplate: 'https://www.keibai-koubai.com/map?keyword={search_term_string}',
           },
           'query-input': 'required name=search_term_string',
         },
@@ -79,8 +83,31 @@ export default function RootLayout({
         '@type': 'Organization',
         '@id': 'https://www.keibai-koubai.com/#organization',
         name: 'Keibai Finder',
+        legalName: 'TQC株式会社',
         url: 'https://www.keibai-koubai.com',
-        logo: 'https://www.keibai-koubai.com/extension-icon.png',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.keibai-koubai.com/extension-icon.png',
+          width: 512,
+          height: 512,
+        },
+        telephone: '+81-3-6907-1219',
+        email: 'info@keibai-koubai.com',
+        address: {
+          '@type': 'PostalAddress',
+          postalCode: '171-0022',
+          addressRegion: '東京都',
+          addressLocality: '豊島区',
+          streetAddress: '南池袋２丁目３３－６ 佐藤ビル３F',
+          addressCountry: 'JP',
+        },
+        knowsAbout: [
+          '不動産競売',
+          '公売物件',
+          'BIT不動産競売物件情報',
+          '国土交通省不動産取引価格情報',
+          '不動産投資分析',
+        ],
       },
     ],
   };
@@ -90,7 +117,9 @@ export default function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
+          }}
         />
         {/* Google Analytics 4 (GA4) */}
         <script

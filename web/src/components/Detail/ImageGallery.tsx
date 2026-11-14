@@ -11,17 +11,8 @@ export function ImageGallery({ images }: ImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Filter out PDF references and sort permanent images (R2, Supabase) first
-  const isPermanent = (url: string) => Boolean(url && (url.includes('r2.dev') || url.includes('supabase.co')));
-  const validImages = images
-    .filter(url => url && !url.toLowerCase().endsWith('.pdf'))
-    .sort((a, b) => {
-      const aPerm = isPermanent(a);
-      const bPerm = isPermanent(b);
-      if (aPerm && !bPerm) return -1;
-      if (!aPerm && bPerm) return 1;
-      return 0;
-    });
+  // Filter out PDF references, preserving resolved priority (source image first, extracted images fallback)
+  const validImages = images.filter(url => url && !url.toLowerCase().endsWith('.pdf'));
 
   const openLightbox = (index: number) => {
     setActiveIndex(index);

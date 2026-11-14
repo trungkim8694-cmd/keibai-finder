@@ -21,6 +21,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: ['GPTBot', 'OAI-SearchBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended'],
         allow: [
           '/',
+          '/llms.txt',
           '/property/*',
           '/search/*',
           '/blogs/*',

@@ -15,6 +15,7 @@ export interface MapLayerControlProps {
   setShowLandslide: (v: boolean) => void;
   showRailways: boolean;
   setShowRailways: (v: boolean) => void;
+  hasRegionBar?: boolean;
 }
 
 export function MapLayerControl({
@@ -28,6 +29,7 @@ export function MapLayerControl({
   setShowLandslide,
   showRailways,
   setShowRailways,
+  hasRegionBar = false,
 }: MapLayerControlProps) {
   const [showLegend, setShowLegend] = useState(false);
   const [isOpenMobile, setIsOpenMobile] = useState(false);
@@ -48,36 +50,50 @@ export function MapLayerControl({
   const hasActiveOverlay = activeOverlayCount > 0;
 
   return (
-    <div 
-      className="absolute top-3.5 right-3 lg:right-5 z-[1000] pointer-events-auto flex flex-col items-end gap-2"
-      onDoubleClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      onMouseUp={(e) => e.stopPropagation()}
-      onWheel={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-      onMouseMove={(e) => e.stopPropagation()}
-    >
-      {/* Mobile Toggle Button (Thu gọn bảng trên Mobile để giải phóng 40% tầm nhìn bản đồ) */}
-      <div className="lg:hidden">
-        <button
-          type="button"
-          onClick={() => setIsOpenMobile(v => !v)}
-          className={`h-9 px-3 rounded-full border shadow-[0_4px_14px_rgba(0,0,0,0.12)] backdrop-blur-md flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-            isOpenMobile
-              ? 'bg-[#1B4F8A] text-white border-[#1B4F8A]'
-              : 'bg-white/95 dark:bg-zinc-900/95 text-slate-700 dark:text-zinc-200 border-slate-200 dark:border-zinc-700'
-          }`}
-          title="地図タイプ・ハザードレイヤーの切り替え"
-        >
-          <span className="text-sm">🗺️</span>
-          <span>レイヤー</span>
-          {activeOverlayCount > 0 && (
-            <span className="ml-0.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-mono flex items-center justify-center">
-              {activeOverlayCount}
-            </span>
-          )}
-        </button>
-      </div>
+    <>
+      {/* Mobile Backdrop to close popover when clicking anywhere outside */}
+      {isOpenMobile && (
+        <div 
+          className="lg:hidden fixed inset-0 z-[999] bg-slate-900/10 backdrop-blur-[0.5px]"
+          onClick={() => setIsOpenMobile(false)}
+          onTouchStart={() => setIsOpenMobile(false)}
+        />
+      )}
+
+      <div 
+        className={`absolute right-2.5 lg:right-5 z-[1000] pointer-events-auto flex flex-col items-end gap-2 transition-all duration-150 ${
+          hasRegionBar ? 'top-[52px] lg:top-3.5' : 'top-2.5 lg:top-3.5'
+        }`}
+        onDoubleClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onMouseMove={(e) => e.stopPropagation()}
+      >
+        {/* Mobile Toggle Button (Thu gọn bảng trên Mobile để giải phóng tối đa tầm nhìn bản đồ) */}
+        <div className="lg:hidden">
+          <button
+            type="button"
+            onClick={() => setIsOpenMobile(v => !v)}
+            className={`h-8 px-2.5 rounded-full border shadow-[0_2px_8px_rgba(0,0,0,0.10)] backdrop-blur-md flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+              isOpenMobile
+                ? 'bg-[#1B4F8A] text-white border-[#1B4F8A]'
+                : 'bg-white/95 dark:bg-zinc-900/95 text-slate-700 dark:text-zinc-200 border-slate-200/90 dark:border-zinc-700/90 hover:bg-slate-50'
+            }`}
+            title="地図タイプ・ハザードレイヤーの切り替え"
+          >
+            <span className="text-xs">🗺️</span>
+            <span>レイヤー</span>
+            {activeOverlayCount > 0 && (
+              <span className="ml-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#1B4F8A] text-white text-[10px] font-mono flex items-center justify-center font-bold">
+                {activeOverlayCount}
+              </span>
+            )}
+          </button>
+        </div>
 
       {/* Unified B2B Map Layer Panel (Hiển thị cố định trên Desktop, mở dạng Popover thả xuống trên Mobile) */}
       <div className={`bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-slate-200 dark:border-zinc-800 shadow-xl lg:shadow-md rounded-xl lg:rounded-lg p-2.5 lg:p-1.5 flex flex-col gap-2 lg:gap-1.5 min-w-[200px] lg:min-w-[170px] select-none ${
@@ -298,5 +314,6 @@ export function MapLayerControl({
         </div>
       )}
     </div>
+    </>
   );
 }

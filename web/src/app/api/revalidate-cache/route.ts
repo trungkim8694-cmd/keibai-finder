@@ -13,9 +13,15 @@ export async function POST(request: NextRequest) {
     revalidateTag('daily-properties');
     revalidateTag('stats');
     
-    // 2. Dọn dẹp Page Cache (ISR)
+    // 2. Dọn dẹp Page Cache (ISR) & Sitemap
     revalidatePath('/market-insights');
     revalidatePath('/insights');
+    revalidatePath('/blogs');
+    revalidatePath('/auction/schedule');
+    revalidatePath('/auction-results');
+    revalidatePath('/search/area');
+    revalidatePath('/search/station');
+    revalidatePath('/sitemap.xml');
     revalidatePath('/');
 
     console.log('[Webhook] Successfully revalidated properties and stats cache at 4AM');

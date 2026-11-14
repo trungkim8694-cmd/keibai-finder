@@ -38,6 +38,7 @@ import {
   sortAndFormatSectionData,
   resolveAuctionRelistHistory
 } from '@/lib/propertyDataNormalizer';
+import { resolvePropertyImages } from '@/lib/propertyImageHelper';
 import { Phone } from 'lucide-react';
 
 const getPropertyById = cache(async (id: string) => {
@@ -68,7 +69,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const property = await getPropertyById(id);
   
-  if (!property) return { title: '物件が見つかりません' };
+  if (!property) return { title: '物件が見つかりません', robots: { index: false, follow: false } };
 
   const priceNum = property.starting_price ? Number(property.starting_price) : 0;
   // Format price in Man-yen for better CTR
@@ -77,16 +78,31 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const address = property.address?.substring(0, 20) || '';
   const providerMeta = getSourceProviderMeta(property.source_provider);
   const tagStr = property.source_provider === 'BIT' ? '競売物件' : `${providerMeta.badgeText}物件`;
+
+  const now = new Date();
+  const bidEndDate = property.bid_end_date ? new Date(property.bid_end_date) : null;
+  const isExpired = (bidEndDate !== null && !isNaN(bidEndDate.getTime()) && bidEndDate < now) || property.status !== 'ACTIVE';
+  const isRichEntity = Boolean(property.address && property.address !== 'Unknown' && property.address.trim().length > 2);
+
+  const statusPrefix = property.status === 'SOLD'
+    ? '【落札結果・過去実績】'
+    : isExpired
+      ? '【入札終了・過去実績】'
+      : '';
+
+  const title = `${statusPrefix}【${priceFormatted}】${address}の${typeStr}｜${property.court_name ? property.court_name + ' ' : ''}${tagStr}情報`;
+  const description = isExpired
+    ? `【過去の${tagStr}アーカイブ】${property.address}の${typeStr}（基準価格: ${priceFormatted}）。入札期間終了後の価格推移・AI査定・周辺の現在入札可能な類似物件データを公開中。`
+    : `${property.address}の${typeStr}（${tagStr}）。基準価格は${priceFormatted}です。市場価格より安い不動産をお探しならKeibai Finder. 過去の落札相場やAIによる価格査定データを公開中。`;
   
-  const title = `【${priceFormatted}】${address}の${typeStr}｜${property.court_name ? property.court_name + ' ' : ''}${tagStr}情報`;
-  const description = `${property.address}の${typeStr}（${tagStr}）。基準価格は${priceFormatted}です。市場価格より安い不動産をお探しならKeibai Finder. 過去の落札相場やAIによる価格査定データを公開中。`;
-  
-  // Use first permanent image as openGraph image (fallback to first image)
-  let ogImage = undefined;
-  if (property.images && Array.isArray(property.images) && property.images.length > 0) {
-     const isPerm = (u: string) => Boolean(u && (u.startsWith('/vps-images/') || u.includes('r2.dev') || u.includes('supabase.co')));
-     ogImage = property.images.find(isPerm) || property.images[0] || undefined;
-  }
+  // Resolve thumbnail and images priority: Source image first, extracted images fallback
+  const { thumbnailUrl: resolvedOgThumb } = resolvePropertyImages({
+    thumbnailUrl: property.thumbnailUrl,
+    images: property.images,
+    raw_display_data: property.raw_display_data,
+    source_provider: property.source_provider,
+  });
+  const ogImage = resolvedOgThumb || undefined;
 
   const baseUrl = process.env.NEXTAUTH_URL || 'https://www.keibai-koubai.com';
   const canonicalUrl = `${baseUrl}/property/${id}`;
@@ -94,6 +110,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title,
     description,
+    robots: {
+      index: isRichEntity,
+      follow: true,
+    },
     alternates: {
       canonical: canonicalUrl,
     },
@@ -454,7 +474,11 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         "@type": "Offer",
         "priceCurrency": "JPY",
         "price": jsonLdPrice,
-        "availability": isAvailable ? "https://schema.org/InStock" : "https://schema.org/Discontinued",
+        "availability": isAvailable
+          ? "https://schema.org/InStock"
+          : property.status === "SOLD"
+            ? "https://schema.org/SoldOut"
+            : "https://schema.org/OutOfStock",
         ...(validThroughStr ? { "validThrough": validThroughStr } : {}),
         ...(priceValidUntilStr ? { "priceValidUntil": priceValidUntilStr } : {}),
         "url": `${baseUrl}/property/${id}`
@@ -579,18 +603,16 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     </div>
   );
 
-  const isPerm = (u: string) => Boolean(u && (u.includes('r2.dev') || u.includes('supabase.co')));
-  const rawPropImages = Array.isArray((property as any).images) ? (property as any).images as string[] : [];
-  const sortedGalleryImages = [...rawPropImages].sort((a, b) => {
-    const aP = isPerm(a);
-    const bP = isPerm(b);
-    if (aP && !bP) return -1;
-    if (!aP && bP) return 1;
-    return 0;
+  // Priority: Source images first (thumbnail at index 0), followed by extracted images
+  const { thumbnailUrl: resolvedDetailThumbnail, images: resolvedGalleryImages } = resolvePropertyImages({
+    thumbnailUrl: property.thumbnailUrl,
+    images: (property as any).images,
+    raw_display_data: property.raw_display_data,
+    source_provider: property.source_provider,
   });
 
-  const ImageGalleryUI = sortedGalleryImages.length > 0 ? (
-    <ImageGallery images={sortedGalleryImages} />
+  const ImageGalleryUI = resolvedGalleryImages.length > 0 ? (
+    <ImageGallery images={resolvedGalleryImages} />
   ) : null;
 
   const CourtValuationUI = (
@@ -897,7 +919,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
           <ViewTracker 
             id={id} 
             label={property.address || property.court_name || id} 
-            image={sortedGalleryImages.find(isPerm) || property.thumbnailUrl} 
+            image={resolvedDetailThumbnail || undefined} 
           />
         )}
       {/* Sticky Sub-Header Action Bar with Breadcrumbs */}
@@ -913,6 +935,39 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
       />
 
       <main className="w-full max-w-7xl mx-auto mt-6 px-4 overflow-x-hidden">
+        {!isAvailable && (
+          <div className="mb-6 rounded-lg border border-amber-300 dark:border-amber-800/80 bg-amber-50/90 dark:bg-amber-950/40 p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-2.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
+                <span>{property.status === 'SOLD' ? '落札結果・過去実績アーカイブ' : '入札期間終了・過去データアーカイブ'}</span>
+              </div>
+              <p className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100">
+                この物件の入札受付は終了しています（過去の市場相場・AI査定記録として公開中）。
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                同じエリア（{property.prefecture || '全国'}{property.city || ''}）で現在入札可能な競売・公売物件を引き続きご確認いただけます。
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              {safeNearbyActive && safeNearbyActive.length > 0 && (
+                <a
+                  href="#nearby-active-section"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#1B4F8A] hover:bg-[#153e6d] text-white text-xs font-bold transition-colors"
+                >
+                  <span>現在募集中の周辺物件（{safeNearbyActive.length}件）を見る ↓</span>
+                </a>
+              )}
+              {property.prefecture && (
+                <Link
+                  href={property.city ? `/search/area/${encodeURIComponent(property.prefecture)}/${encodeURIComponent(property.city)}` : `/search/area/${encodeURIComponent(property.prefecture)}`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 text-[#1B4F8A] dark:text-blue-400 border border-slate-300 dark:border-zinc-700 text-xs font-bold transition-colors"
+                >
+                  <span>{property.prefecture}{property.city || ''}の最新一覧へ ↗</span>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
         
         {/* --- MOBILE LAYOUT (Single Column) --- */}
         <div className="flex lg:hidden max-w-4xl mx-auto flex-col w-full">
@@ -968,7 +1023,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         </div>
 
         {/* --- INTERNAL LINKING SPIDERWEB HUB & ACTIVE NEARBY CARDS (SEO SILO MATRIX) --- */}
-        <div className="w-full mt-10 space-y-10">
+        <div id="nearby-active-section" className="w-full mt-10 space-y-10 scroll-mt-24">
           {safeNearbyActive && safeNearbyActive.length > 0 && (
             <NearbyActiveGrid 
               properties={safeNearbyActive} 

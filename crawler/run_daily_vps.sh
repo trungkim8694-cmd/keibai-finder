@@ -91,6 +91,7 @@ MOF_STATUS="Bỏ qua ⏭️"
 MLIT_STATUS="Bỏ qua ⏭️"
 SEO_STATUS="Bỏ qua ⏭️"
 CACHE_STATUS="Chưa chạy ⏳"
+INDEX_STATUS="Chưa chạy ⏳"
 
 # 2.5. Bước 0: Tự động lưu trữ (Archived) các tài sản đã quá hạn đấu giá (bid_end_date < NOW())
 echo ""
@@ -219,9 +220,9 @@ fi
 # 8. Bước 5: Revalidate Cache Webhook
 echo ""
 echo "------------------------------------------------------------------------------"
-echo "👉 BƯỚC 5/5: Xóa bộ đệm Cache Next.js (Revalidation)..."
+echo "👉 BƯỚC 5/6: Xóa bộ đệm Cache Next.js (Revalidation)..."
 echo "------------------------------------------------------------------------------"
-FRONTEND_TARGET="${FRONTEND_URL:-http://localhost:3000}"
+FRONTEND_TARGET="${FRONTEND_URL:-https://www.keibai-koubai.com}"
 WEBHOOK_KEY="${WEBHOOK_SECRET:-keibai_super_secret_4am}"
 
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
@@ -236,14 +237,27 @@ else
     echo "⚠️ Revalidation trả về mã HTTP: $HTTP_CODE"
 fi
 
-# 9. Gửi báo cáo Telegram
+# 9. Bước 6: Tự động bắn Index (IndexNow + Bing Webmaster API + Google Indexing API + GSC Sitemap Ping)
+echo ""
+echo "------------------------------------------------------------------------------"
+echo "👉 BƯỚC 6/6: Bắn Index tự động cho Google & Bing (fast_index_submitter.py)..."
+echo "------------------------------------------------------------------------------"
+if python3 fast_index_submitter.py; then
+    INDEX_STATUS="Đã bắn IndexNow + Bing + Google thành công ✅"
+    echo "✅ Fast Indexing Engine hoàn thành thành công."
+else
+    INDEX_STATUS="Có lỗi khi bắn Index ⚠️"
+    echo "⚠️ Fast Indexing Engine gặp sự cố!"
+fi
+
+# 10. Gửi báo cáo Telegram
 echo ""
 echo "=============================================================================="
 echo "📢 GỬI BÁO CÁO TELEGRAM TỔNG KẾT TIẾN TRÌNH..."
 echo "=============================================================================="
 if [ -f "telegram_notify.py" ]; then
     JST_TIME="$(TZ='Asia/Tokyo' date +'%Y-%m-%d %H:%M JST')"
-    REPORT="🏠 <b>Keibai Finder - VPS Daily Crawler Report</b>%0A📅 $JST_TIME%0A1️⃣ Toà án BIT (Đang mở): $BIT_STATUS%0A2️⃣ Thuế Quốc gia NTA (Đang mở): $NTA_STATUS%0A3️⃣ Kết quả NTA (Đã đấu giá): $NTA_RES_STATUS%0A4️⃣ Công bán KSI (官公庁公売): $KSI_STATUS%0A5️⃣ Tài sản Quốc hữu MOF (国有財産): $MOF_STATUS%0A6️⃣ Thẩm định giá MLIT: $MLIT_STATUS%0A7️⃣ Bản tin AI Insights: $SEO_STATUS%0A8️⃣ Bộ đệm Next.js: $CACHE_STATUS"
+    REPORT="🏠 <b>Keibai Finder - VPS Daily Crawler Report</b>%0A📅 $JST_TIME%0A1️⃣ Toà án BIT (Đang mở): $BIT_STATUS%0A2️⃣ Thuế Quốc gia NTA (Đang mở): $NTA_STATUS%0A3️⃣ Kết quả NTA (Đã đấu giá): $NTA_RES_STATUS%0A4️⃣ Công bán KSI (官公庁公売): $KSI_STATUS%0A5️⃣ Tài sản Quốc hữu MOF (国有財産): $MOF_STATUS%0A6️⃣ Thẩm định giá MLIT: $MLIT_STATUS%0A7️⃣ Bản tin AI Insights: $SEO_STATUS%0A8️⃣ Bộ đệm Next.js: $CACHE_STATUS%0A9️⃣ Bắn Index (Google/Bing): $INDEX_STATUS"
     python3 telegram_notify.py "$REPORT" || echo "⚠️ Không thể gửi thông báo Telegram."
 fi
 

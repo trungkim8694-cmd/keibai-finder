@@ -3,17 +3,17 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  Building2, 
-  MapPin, 
-  Train, 
-  TrendingUp, 
-  ShieldCheck, 
-  FileText, 
-  Layers, 
-  Globe, 
+import {
+  Building2,
+  MapPin,
+  Train,
+  TrendingUp,
+  ShieldCheck,
+  FileText,
+  Layers,
+  Globe,
   ExternalLink,
-  Flame 
+  Flame
 } from 'lucide-react';
 
 export default function GlobalFooter() {
@@ -39,20 +39,20 @@ export default function GlobalFooter() {
               </p>
               <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-slate-600">
                 {[
-                  { name: '東京都', href: '/map?prefecture=%E6%9D%B1%E4%BA%AC%E9%83%BD' },
-                  { name: '神奈川県', href: '/map?prefecture=%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C' },
-                  { name: '埼玉県', href: '/map?prefecture=%E5%9F%BC%E7%8E%89%E7%9C%8C' },
-                  { name: '千葉県', href: '/map?prefecture=%E5%8D%83%E8%91%89%E7%9C%8C' },
-                  { name: '大阪府', href: '/map?prefecture=%E5%A4%A7%E9%98%AA%E5%BA%9C' },
-                  { name: '兵庫県', href: '/map?prefecture=%E5%85%B5%E5%BA%AB%E7%9C%8C' },
-                  { name: '京都府', href: '/map?prefecture=%E4%BA%AC%E9%83%BD%E5%BA%9C' },
-                  { name: '愛知県', href: '/map?prefecture=%E6%84%9B%E7%9F%A5%E7%9C%8C' },
-                  { name: '福岡県', href: '/map?prefecture=%E7%A6%8F%E5%B2%A1%E7%9C%8C' },
-                  { name: '北海道', href: '/map?prefecture=%E5%8C%97%E6%B5%B7%E9%81%93' },
-                  { name: '宮城県', href: '/map?prefecture=%E5%AE%AE%E5%9F%8E%E7%9C%8C' },
-                  { name: '広島県', href: '/map?prefecture=%E5%BA%83%E5%B3%B6%E7%9C%8C' },
-                  { name: '静岡県', href: '/map?prefecture=%E9%9D%99%E5%B2%A1%E7%9C%8C' },
-                  { name: '茨城県', href: '/map?prefecture=%E8%8C%A8%E5%9F%8E%E7%9C%8C' },
+                  { name: '東京都', href: '/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD' },
+                  { name: '神奈川県', href: '/search/area/%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C' },
+                  { name: '埼玉県', href: '/search/area/%E5%9F%BC%E7%8E%89%E7%9C%8C' },
+                  { name: '千葉県', href: '/search/area/%E5%8D%83%E8%91%89%E7%9C%8C' },
+                  { name: '大阪府', href: '/search/area/%E5%A4%A7%E9%98%AA%E5%BA%9C' },
+                  { name: '兵庫県', href: '/search/area/%E5%85%B5%E5%BA%AB%E7%9C%8C' },
+                  { name: '京都府', href: '/search/area/%E4%BA%AC%E9%83%BD%E5%BA%9C' },
+                  { name: '愛知県', href: '/search/area/%E6%84%9B%E7%9F%A5%E7%9C%8C' },
+                  { name: '福岡県', href: '/search/area/%E7%A6%8F%E5%B2%A1%E7%9C%8C' },
+                  { name: '北海道', href: '/search/area/%E5%8C%97%E6%B5%B7%E9%81%93' },
+                  { name: '宮城県', href: '/search/area/%E5%AE%AE%E5%9F%8E%E7%9C%8C' },
+                  { name: '広島県', href: '/search/area/%E5%BA%83%E5%B3%B6%E7%9C%8C' },
+                  { name: '静岡県', href: '/search/area/%E9%9D%99%E5%B2%A1%E7%9C%8C' },
+                  { name: '茨城県', href: '/search/area/%E8%8C%A8%E5%9F%8E%E7%9C%8C' },
                 ].map((item) => (
                   <Link
                     key={item.name}
@@ -246,6 +246,11 @@ export default function GlobalFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/contact" className="hover:text-blue-700 hover:underline transition-colors">
+                  お問い合わせ (Contact)
+                </Link>
+              </li>
+              <li>
                 <Link href="/terms" className="hover:text-blue-700 hover:underline transition-colors">
                   利用規約 (Terms of Service)
                 </Link>
@@ -269,7 +274,7 @@ export default function GlobalFooter() {
             </p>
             <p>所在地: 〒171-0022 東京都豊島区南池袋２丁目３３－６ 佐藤ビル３F</p>
             <p>代表連絡先: TEL (03) 6907-1219 / FAX (03) 6701-2399</p>
-            <p>お問い合わせ: <a href="mailto:info@keibai-koubai.com" className="text-blue-600 font-medium hover:underline">info@keibai-koubai.com</a></p>
+            <p>お問い合わせ: <Link href="/contact" className="text-blue-600 font-medium hover:underline">お問い合わせフォーム</Link>（<a href="mailto:info@keibai-koubai.com" className="text-blue-600 hover:underline">info@keibai-koubai.com</a>）</p>
           </div>
 
           <div className="text-[11px] text-slate-500 space-y-1.5 max-w-md">

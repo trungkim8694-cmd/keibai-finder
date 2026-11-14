@@ -347,6 +347,13 @@ export default function HeaderNavMenu() {
                 >
                   ナレッジ & コラム
                 </Link>
+                <Link
+                  href="/contact"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="font-semibold text-[#1B4F8A] dark:text-blue-400"
+                >
+                  お問い合わせ (Contact)
+                </Link>
               </div>
             </div>
           </div>

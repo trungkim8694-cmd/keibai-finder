@@ -94,6 +94,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/company`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/contact`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/terms`,
       lastModified: new Date(),
       changeFrequency: 'yearly' as const,
@@ -108,28 +120,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    // 2. Dynamic Property pages
-    // Fetch up to 10,000 recent active properties for sitemap to avoid memory bloat
-    const activeProperties = await prisma.property.findMany({
-      where: { 
-        status: 'ACTIVE',
-      },
-      select: {
-        sale_unit_id: true,
-        updated_at: true,
-      },
-      orderBy: {
-        created_at: 'desc',
-      },
-      take: 10000,
-    });
+    // 2. Dynamic Property pages (Active + Recently Transitioned Archive/Sold for Lifecycle SEO)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [activeProperties, recentArchivedProperties] = await Promise.all([
+      prisma.property.findMany({
+        where: {
+          status: 'ACTIVE',
+          address: { not: 'Unknown' },
+        },
+        select: {
+          sale_unit_id: true,
+          updated_at: true,
+        },
+        orderBy: {
+          created_at: 'desc',
+        },
+        take: 10000,
+      }),
+      prisma.property.findMany({
+        where: {
+          status: { in: ['SOLD', 'ARCHIVED'] },
+          address: { not: 'Unknown' },
+          updated_at: { gte: thirtyDaysAgo },
+        },
+        select: {
+          sale_unit_id: true,
+          updated_at: true,
+        },
+        orderBy: {
+          updated_at: 'desc',
+        },
+        take: 2500,
+      }),
+    ]);
 
-    const propertyRoutes = activeProperties.map((prop) => ({
-      url: `${baseUrl}/property/${prop.sale_unit_id}`,
-      lastModified: prop.updated_at || new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    }));
+    const propertyRoutes: MetadataRoute.Sitemap = [
+      ...activeProperties.map((prop) => ({
+        url: `${baseUrl}/property/${prop.sale_unit_id}`,
+        lastModified: prop.updated_at || new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 0.85,
+      })),
+      ...recentArchivedProperties.map((prop) => ({
+        url: `${baseUrl}/property/${prop.sale_unit_id}`,
+        lastModified: prop.updated_at || new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      })),
+    ];
 
     // 3. Programmatic SEO Routes (Area)
     // Extract distinct active prefectures and cities to prevent "Submitted URL marked 'noindex'"

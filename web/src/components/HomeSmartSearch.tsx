@@ -263,14 +263,14 @@ export default function HomeSmartSearch({ prefCountMap = {} }: HomeSmartSearchPr
             <span>急上昇トレンド:</span>
           </span>
           <Link
-            href="/search?keyword=%E5%86%8D%E5%BB%BA%E7%AF%89%E4%B8%8D%E5%8F%AF"
+            href="/map?keyword=%E5%86%8D%E5%BB%BA%E7%AF%89%E4%B8%8D%E5%8F%AF"
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-400 bg-rose-50/70 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-medium transition-colors"
           >
             <span>#再建築不可</span>
             <span className="text-[9px] font-bold px-1 rounded bg-rose-200/60 dark:bg-rose-900/80 text-rose-700 dark:text-rose-300">HOT</span>
           </Link>
           <Link
-            href="/search?property_type=%E6%88%B8%E5%BB%BA%E3%81%A6&maxPrice=5000000"
+            href="/map?types[]=%E6%88%B8%E5%BB%BA%E3%81%A6&maxPrice=5000000"
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-900/60 hover:border-amber-400 bg-amber-50/70 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-medium transition-colors"
           >
             <span>#500万以下戸建て</span>
@@ -284,7 +284,7 @@ export default function HomeSmartSearch({ prefCountMap = {} }: HomeSmartSearchPr
             <span className="text-[9px] font-bold px-1 rounded bg-emerald-200/60 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300">高利回り</span>
           </Link>
           <Link
-            href="/search?managing_authority=%E5%9B%BD%E7%A8%8E%E5%B1%80"
+            href="/map?provider=NTA"
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-400 bg-blue-50/70 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 font-medium transition-colors"
           >
             <span>#国税局公売</span>
@@ -302,19 +302,19 @@ export default function HomeSmartSearch({ prefCountMap = {} }: HomeSmartSearchPr
         <div className="flex flex-wrap items-center justify-center gap-1.5 text-[11px] text-slate-500">
           <span className="font-semibold text-slate-400">主要地域:</span>
           <Link
-            href="/map?prefecture=%E6%9D%B1%E4%BA%AC%E9%83%BD"
+            href="/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD"
             className="px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-zinc-700 hover:border-[#1B4F8A] hover:text-[#1B4F8A] bg-slate-50/80 dark:bg-zinc-800 transition-colors"
           >
             東京都 ({prefCountMap['東京都'] || 0})
           </Link>
           <Link
-            href="/map?prefecture=%E5%A4%A7%E9%98%AA%E5%BA%9C"
+            href="/search/area/%E5%A4%A7%E9%98%AA%E5%BA%9C"
             className="px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-zinc-700 hover:border-[#1B4F8A] hover:text-[#1B4F8A] bg-slate-50/80 dark:bg-zinc-800 transition-colors"
           >
             大阪府 ({prefCountMap['大阪府'] || 0})
           </Link>
           <Link
-            href="/map?prefecture=%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C"
+            href="/search/area/%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C"
             className="px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-zinc-700 hover:border-[#1B4F8A] hover:text-[#1B4F8A] bg-slate-50/80 dark:bg-zinc-800 transition-colors"
           >
             神奈川県 ({prefCountMap['神奈川県'] || 0})

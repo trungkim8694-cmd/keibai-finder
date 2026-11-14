@@ -8,6 +8,7 @@ import { revalidatePath, unstable_cache } from 'next/cache';
 import { headers } from 'next/headers';
 import { parseSmartKeyword } from '@/lib/keywordParser';
 import { resolveAuctionRelistHistory } from '@/lib/propertyDataNormalizer';
+import { resolvePropertyImages, isExtractedImage, normalizeImageUrl } from '@/lib/propertyImageHelper';
 
 let relistLookupCache: { timestamp: number; map: Map<string, { roundCount: number; priceDropYen: number }> } | null = null;
 const RELIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -716,6 +717,7 @@ async function getPropertiesCore(filters: SearchFilters) {
                 address: true,
                 views: true,
                 thumbnailUrl: true,
+                images: true,
                 prefecture: true,
                 city: true,
                 area: true,
@@ -750,11 +752,19 @@ async function getPropertiesCore(filters: SearchFilters) {
                   coordinateMap.set(key, count + 1);
                }
 
-               const resolvedThumb = d.thumbnailUrl
-                 ? (d.thumbnailUrl.startsWith('./')
-                     ? `https://www.koubai.nta.go.jp/auctionx/public${d.thumbnailUrl.substring(1)}`
-                     : d.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp'))
-                 : null;
+               let resolvedThumb: string | null = null;
+                if (d.thumbnailUrl && !isExtractedImage(d.thumbnailUrl)) {
+                   resolvedThumb = normalizeImageUrl(d.thumbnailUrl);
+                } else if (d.images && Array.isArray(d.images)) {
+                   const sourceImg = d.images.find((img: string) => !isExtractedImage(img));
+                   if (sourceImg) {
+                      resolvedThumb = normalizeImageUrl(sourceImg);
+                   } else if (d.thumbnailUrl) {
+                      resolvedThumb = normalizeImageUrl(d.thumbnailUrl);
+                   }
+                } else if (d.thumbnailUrl) {
+                   resolvedThumb = normalizeImageUrl(d.thumbnailUrl);
+                }
 
                const resolvedArea = d.area != null ? Math.round(Number(d.area)) : null;
                const auctionSchedule = formatBidPeriod(d.bid_start_date, d.bid_end_date);
@@ -962,34 +972,13 @@ async function mapPropertiesWithStations(data: any[]) {
       const auctionRound = relistInfo ? relistInfo.roundCount : extractAuctionRoundFromData(p.raw_display_data);
       const priceDropYen = relistInfo ? relistInfo.priceDropYen : 0;
 
-        const rawImages = p.images || [];
-        const mappedImages = rawImages.map((img: string) => 
-            img.startsWith('./') ? `https://www.koubai.nta.go.jp/auctionx/public${img.substring(1)}` : img
-        );
-
-        // Sort images so permanent storage (VPS Nginx, Cloudflare R2, Supabase) comes first
-        const isPermanent = (url: string) => Boolean(url && (url.startsWith('/vps-images/') || url.includes('r2.dev') || url.includes('supabase.co')));
-        const sortedImages = [...mappedImages].sort((a, b) => {
-            const aPerm = isPermanent(a);
-            const bPerm = isPermanent(b);
-            if (aPerm && !bPerm) return -1;
-            if (!aPerm && bPerm) return 1;
-            return 0;
+        // Resolve thumbnail and images priority: Source image first, extracted images fallback
+        const { thumbnailUrl: mappedThumbnail, images: sortedImages } = resolvePropertyImages({
+          thumbnailUrl: p.thumbnailUrl,
+          images: p.images,
+          raw_display_data: p.raw_display_data,
+          source_provider: p.source_provider,
         });
-
-        // Priority for thumbnail:
-        // 1. Permanent image in images (Cloudflare R2 / Supabase)
-        // 2. NTA first image if NTA
-        // 3. thumbnailUrl if exists (with bit.sikkou.jp domain fix)
-        // 4. First image in sortedImages
-        const permanentImage = sortedImages.find(isPermanent);
-        const mappedThumbnail = permanentImage
-          ? permanentImage
-          : ((p.source_provider === 'NTA' || p.source_provider === 'KSI') && sortedImages.length > 0
-              ? sortedImages[0]
-              : (p.thumbnailUrl 
-                  ? p.thumbnailUrl.replace('bit.sikkou.jp', 'www.bit.courts.go.jp') 
-                  : (sortedImages.length > 0 ? sortedImages[0] : null)));
 
         return {
           sale_unit_id: p.sale_unit_id,

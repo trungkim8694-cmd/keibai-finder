@@ -386,15 +386,17 @@ function MapRegionalQuickJumps() {
 
   return (
     <div
-      className="absolute top-3.5 left-3 sm:left-4 z-[1000] pointer-events-auto max-w-[calc(100%-110px)] lg:max-w-none"
+      className="absolute top-2.5 left-2.5 right-2.5 lg:top-3.5 lg:left-4 lg:right-auto lg:max-w-none z-[1000] pointer-events-auto"
       onDoubleClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseUp={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
       onMouseMove={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center gap-1 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-slate-200/90 dark:border-zinc-700/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)] overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-slate-200/90 dark:border-zinc-700/90 shadow-[0_2px_12px_rgba(0,0,0,0.08)] overflow-x-auto overscroll-contain no-scrollbar scroll-smooth">
         <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 pl-1 pr-1.5 shrink-0 flex items-center gap-1">
           <span>🗾</span>
           <span className="hidden sm:inline">地域:</span>
@@ -713,6 +715,7 @@ export default function KeibaiMapInner({
         {mode === 'list' && <MapRegionalQuickJumps />}
 
         <MapLayerControl 
+          hasRegionBar={mode === 'list'}
           baseMapMode={baseMapMode}
           setBaseMapMode={setBaseMapMode}
           focusJapan={focusJapan}
