@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { MlitTransaction } from '@/lib/mlitApi';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { MapPin, Building, Calendar, Layers } from 'lucide-react';
@@ -22,6 +22,11 @@ export function NearbyTransactions({
   currentBasePriceNum,
   currentArea
 }: NearbyTransactionsProps) {
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   if (!transactions || transactions.length === 0) return null;
 
   // Transform Data for Scatter Chart (Area vs Price)
@@ -137,44 +142,50 @@ export function NearbyTransactions({
          </div>
 
          <div className="h-60 w-full mt-1">
-            <ResponsiveContainer width="100%" height="100%">
-               <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
-                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-zinc-800" />
-                 <XAxis 
-                    type="number" 
-                    dataKey="area" 
-                    name="面積" 
-                    unit="㎡" 
-                    tick={{ fill: '#94a3b8', fontSize: 11 }} 
-                    axisLine={false} 
-                    tickLine={false} 
-                    domain={['auto', 'auto']}
-                 />
-                 <YAxis 
-                    type="number" 
-                    dataKey="priceMan" 
-                    name="価格" 
-                    tick={{ fill: '#94a3b8', fontSize: 11 }} 
-                    tickFormatter={(val) => {
-                      if (val >= 10000) return `${(val / 10000).toFixed(1)}億`;
-                      return `${val.toLocaleString('ja-JP')}万`;
-                    }}
-                    axisLine={false} 
-                    tickLine={false} 
-                    width={58}
-                 />
-                 <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                 <Scatter name="取引実績" data={combinedScatterData}>
-                   {combinedScatterData.map((entry, index) => (
-                     <Cell 
-                       key={`cell-${index}`} 
-                       fill={entry.isCurrent ? '#E11D48' : '#1B4F8A'} 
-                       fillOpacity={entry.isCurrent ? 1 : 0.65}
-                     />
-                   ))}
-                 </Scatter>
-               </ScatterChart>
-            </ResponsiveContainer>
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                 <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-zinc-800" />
+                   <XAxis 
+                      type="number" 
+                      dataKey="area" 
+                      name="面積" 
+                      unit="㎡" 
+                      tick={{ fill: '#94a3b8', fontSize: 11 }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                      domain={['auto', 'auto']}
+                   />
+                   <YAxis 
+                      type="number" 
+                      dataKey="priceMan" 
+                      name="価格" 
+                      tick={{ fill: '#94a3b8', fontSize: 11 }} 
+                      tickFormatter={(val) => {
+                        if (val >= 10000) return `${(val / 10000).toFixed(1)}億`;
+                        return `${val.toLocaleString('ja-JP')}万`;
+                      }}
+                      axisLine={false} 
+                      tickLine={false} 
+                      width={58}
+                   />
+                   <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                   <Scatter name="取引実績" data={combinedScatterData}>
+                     {combinedScatterData.map((entry, index) => (
+                       <Cell 
+                         key={`cell-${index}`} 
+                         fill={entry.isCurrent ? '#E11D48' : '#1B4F8A'} 
+                         fillOpacity={entry.isCurrent ? 1 : 0.65}
+                       />
+                     ))}
+                   </Scatter>
+                 </ScatterChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-xs text-slate-400">
+                グラフ読み込み中...
+              </div>
+            )}
          </div>
 
          {/* 5 Representative Recent Transactions Table */}

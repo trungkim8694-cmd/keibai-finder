@@ -6,7 +6,6 @@ import {
   Search, 
   TrendingUp, 
   Flame, 
-  Sparkles, 
   ArrowUpRight, 
   HelpCircle, 
   CheckCircle2, 
@@ -173,20 +172,22 @@ export default function KeywordTrendsClient({ initialKeywords, stats }: Props) {
             />
             {searchTerm && (
               <button 
+                type="button"
                 onClick={() => setSearchTerm('')} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-0 top-1/2 -translate-y-1/2 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                aria-label="検索条件をクリア"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">並び替え:</span>
             <select
               value={sortBy}
               onChange={(e: any) => setSortBy(e.target.value)}
-              className="h-9 px-3 text-xs bg-slate-50 dark:bg-[#0D1117] border border-slate-200 dark:border-slate-700 rounded-md text-slate-800 dark:text-slate-200 focus:outline-none"
+              className="flex-1 sm:flex-initial h-9 px-3 text-xs bg-slate-50 dark:bg-[#0D1117] border border-slate-200 dark:border-slate-700 rounded-md text-slate-800 dark:text-slate-200 focus:outline-none"
             >
               <option value="growth">急上昇順（成長率）</option>
               <option value="volume">月間検索数（多い順）</option>
@@ -196,7 +197,7 @@ export default function KeywordTrendsClient({ initialKeywords, stats }: Props) {
             <select
               value={selectedLevel}
               onChange={(e: any) => setSelectedLevel(e.target.value)}
-              className="h-9 px-3 text-xs bg-slate-50 dark:bg-[#0D1117] border border-slate-200 dark:border-slate-700 rounded-md text-slate-800 dark:text-slate-200 focus:outline-none"
+              className="flex-1 sm:flex-initial h-9 px-3 text-xs bg-slate-50 dark:bg-[#0D1117] border border-slate-200 dark:border-slate-700 rounded-md text-slate-800 dark:text-slate-200 focus:outline-none"
             >
               <option value="ALL">全ステータス</option>
               <option value="BREAKING">急上昇のみ</option>
@@ -301,16 +302,17 @@ export default function KeywordTrendsClient({ initialKeywords, stats }: Props) {
 
                   <td className="py-3 px-3.5 text-right space-x-2">
                     <button
+                      type="button"
                       onClick={() => setActiveModalKeyword(item)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700"
+                      className="inline-flex items-center gap-1 min-h-[36px] px-2.5 py-1.5 rounded text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
                     >
-                      <Bot className="w-3.5 h-3.5 text-[#1B4F8A] dark:text-sky-400" />
+                      <FileText className="w-3.5 h-3.5 text-[#1B4F8A] dark:text-sky-400" />
                       <span>AI構成案</span>
                     </button>
 
                     <Link
                       href={item.targetUrl}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-semibold bg-[#1B4F8A] hover:bg-[#143D6C] text-white transition-colors"
+                      className="inline-flex items-center gap-1 min-h-[36px] px-2.5 py-1.5 rounded text-xs font-semibold bg-[#1B4F8A] hover:bg-[#143D6C] text-white transition-colors"
                     >
                       <span>物件確認</span>
                       <ArrowUpRight className="w-3 h-3" />
@@ -352,15 +354,16 @@ export default function KeywordTrendsClient({ initialKeywords, stats }: Props) {
 
               <div className="flex items-center justify-end gap-2 pt-1">
                 <button
+                  type="button"
                   onClick={() => setActiveModalKeyword(item)}
-                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+                  className="flex-1 inline-flex items-center justify-center gap-1 min-h-[40px] px-3 py-2 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 cursor-pointer"
                 >
-                  <Bot className="w-3.5 h-3.5 text-[#1B4F8A]" />
+                  <FileText className="w-3.5 h-3.5 text-[#1B4F8A]" />
                   <span>AI構成案</span>
                 </button>
                 <Link
                   href={item.targetUrl}
-                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded text-xs font-semibold bg-[#1B4F8A] text-white"
+                  className="flex-1 inline-flex items-center justify-center gap-1 min-h-[40px] px-3 py-2 rounded text-xs font-semibold bg-[#1B4F8A] text-white"
                 >
                   <span>物件を見る</span>
                   <ArrowUpRight className="w-3 h-3" />
@@ -374,7 +377,7 @@ export default function KeywordTrendsClient({ initialKeywords, stats }: Props) {
       {/* 4. AI Agent Topic Modal */}
       {activeModalKeyword && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="b2b-card bg-white dark:bg-[#151B22] border border-slate-200 dark:border-slate-800 rounded-xl max-w-2xl w-full p-5 sm:p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="b2b-card bg-white dark:bg-[#151B22] border border-slate-200 dark:border-slate-800 rounded-lg max-w-2xl w-full p-5 sm:p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-start justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div>
@@ -386,15 +389,17 @@ export default function KeywordTrendsClient({ initialKeywords, stats }: Props) {
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setActiveModalKeyword(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                className="min-w-[40px] min-h-[40px] rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                aria-label="モーダルを閉じる"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Metrics Grid */}
-            <div className="grid grid-cols-3 gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
               <div>
                 <span className="text-slate-400 text-[10px] block">月間検索数</span>
                 <span className="font-bold text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100">
@@ -431,35 +436,36 @@ export default function KeywordTrendsClient({ initialKeywords, stats }: Props) {
               </ul>
             </div>
 
-            {/* AI Agent System Prompt */}
+            {/* AI Agent System Prompt - Anti-AI styling */}
             <div className="space-y-1.5">
               <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-500" />
+                <FileText className="w-4 h-4 text-[#1B4F8A] dark:text-sky-400" />
                 AI Content Writer Agent への推奨指示（System Prompt）
               </h4>
-              <div className="p-3 rounded-lg bg-slate-900 text-slate-200 font-mono text-xs leading-relaxed border border-slate-800 select-all">
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/80 text-slate-800 dark:text-slate-200 font-mono text-xs leading-relaxed border border-slate-200 dark:border-slate-800 select-all">
                 {activeModalKeyword.agentPrompt}
               </div>
             </div>
 
             {/* Footer Actions */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
               <Link
                 href={`/blogs?q=${encodeURIComponent(activeModalKeyword.keyword)}`}
-                className="text-xs text-slate-500 hover:text-[#1B4F8A] dark:hover:text-sky-400 underline"
+                className="text-xs text-slate-500 hover:text-[#1B4F8A] dark:hover:text-sky-400 underline text-center sm:text-left py-1"
               >
                 関連コラム一覧を見る
               </Link>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setActiveModalKeyword(null)}
-                  className="px-4 py-2 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200"
+                  className="min-h-[40px] px-4 py-2 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer text-center"
                 >
                   閉じる
                 </button>
                 <Link
                   href={activeModalKeyword.targetUrl}
-                  className="px-4 py-2 text-xs font-semibold rounded-md bg-[#1B4F8A] hover:bg-[#143D6C] text-white flex items-center gap-1.5"
+                  className="min-h-[40px] px-4 py-2 text-xs font-semibold rounded-md bg-[#1B4F8A] hover:bg-[#143D6C] text-white flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <span>該当物件を即時検索</span>
                   <ExternalLink className="w-3.5 h-3.5" />

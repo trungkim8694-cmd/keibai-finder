@@ -19,27 +19,49 @@ export async function generateMetadata(
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
   const slug = resolvedParams.slug;
-  const article = await prisma.dailyDigest.findUnique({
+  let article = await prisma.dailyDigest.findUnique({
     where: { slug }
   });
+
+  if (!article) {
+    article = await prisma.dailyDigest.findFirst({
+      where: {
+        previousSlugs: { has: slug }
+      }
+    });
+  }
 
   if (!article) {
     return { title: 'Not Found' }
   }
 
-  const title = article.title_ja || article.title_vi || '実務ナレッジ・投資ガイド';
-  const rawContent = article.content_ja || article.content_vi || '';
+  const title = article.title_ja || '実務ナレッジ・投資ガイド';
+  const rawContent = article.content_ja || '';
   const description = rawContent.replace(/[#*]/g, '').substring(0, 160);
   const baseUrl = 'https://www.keibai-koubai.com';
   const canonicalUrl = `${baseUrl}/blogs/${slug}`;
+  const ogImage = article.featuredImage || '/keibaikoubai.webp';
 
   return {
-    title: `${title} | 不動産競売・公売ナレッジ`,
+    title: `${title} - 不動産競売・公売ナレッジ`,
     description,
     alternates: {
       canonical: canonicalUrl,
-    }
-  }
+    },
+    openGraph: {
+      title: `${title}｜Keibai Finder`,
+      description,
+      url: canonicalUrl,
+      siteName: 'Keibai Finder',
+      locale: 'ja_JP',
+      type: 'article',
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: [ogImage],
+    },
+  };
 }
 
 export const revalidate = 3600;
@@ -52,12 +74,19 @@ export async function generateStaticParams() {
           in: ['GUIDE', 'CAUTION']
         }
       },
-      select: { slug: true }
+      select: { slug: true, previousSlugs: true }
     });
 
-    return articles.map((article) => ({
-      slug: article.slug,
-    }));
+    const paramsList: { slug: string }[] = [];
+    for (const a of articles) {
+      paramsList.push({ slug: a.slug });
+      if (a.previousSlugs && a.previousSlugs.length > 0) {
+        for (const ps of a.previousSlugs) {
+          paramsList.push({ slug: ps });
+        }
+      }
+    }
+    return paramsList;
   } catch {
     return [];
   }
@@ -67,9 +96,17 @@ export default async function LogDetailPage({ params }: Props) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
-  const article = await prisma.dailyDigest.findUnique({
+  let article = await prisma.dailyDigest.findUnique({
     where: { slug }
   });
+
+  if (!article) {
+    article = await prisma.dailyDigest.findFirst({
+      where: {
+        previousSlugs: { has: slug }
+      }
+    });
+  }
 
   if (!article) {
     notFound();
@@ -102,8 +139,8 @@ export default async function LogDetailPage({ params }: Props) {
     take: 3
   });
 
-  const title = article.title_ja || article.title_vi || '実務ナレッジ・投資ガイド';
-  const rawContent = article.content_ja || article.content_vi || '';
+  const title = article.title_ja || '実務ナレッジ・投資ガイド';
+  const rawContent = article.content_ja || '';
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -134,7 +171,7 @@ export default async function LogDetailPage({ params }: Props) {
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0D1117] text-slate-900 dark:text-slate-100 py-6 sm:py-8">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd).replace(/</g, '\\u003c') }}
       />
       
       {/* Container: Max-w-7xl (1280px) matching /auction-results */}

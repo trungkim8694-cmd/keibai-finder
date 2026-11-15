@@ -116,11 +116,11 @@ export default function ClientWrapper({ initialSlug = [], regionName = '全国' 
   };
 
   return (
-    <div className="flex flex-col w-full h-full relative bg-[#F8FAFC] dark:bg-[#0D1117] text-slate-900 dark:text-slate-100 font-sans">
+    <div className="flex flex-col flex-1 min-h-0 w-full relative bg-[#F8FAFC] dark:bg-[#0D1117] text-slate-900 dark:text-slate-100 font-sans">
       
       {/* Top Header Bar (Unified Corporate B2B Theme) */}
       <header className="w-full bg-white dark:bg-[#151B22] border-b border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 shadow-xs print:hidden">
-        <div className="max-w-[1600px] mx-auto px-4 py-2 flex flex-row items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-row items-center justify-between gap-3">
           
           {/* Left: Branding & Region Title */}
           <div className="min-w-0 flex flex-col justify-center">
@@ -178,7 +178,7 @@ export default function ClientWrapper({ initialSlug = [], regionName = '全国' 
             </div>
 
             <div className="hidden lg:flex items-center gap-1">
-              <TradeSocialShare title={`🔥 ${regionName} エリア分析マップ（災害・都市計画）| Keibai Finder`} />
+              <TradeSocialShare title={`${regionName} エリア分析マップ（災害・都市計画）| Keibai Finder`} />
               <PrintButton />
             </div>
           </div>
@@ -195,7 +195,7 @@ export default function ClientWrapper({ initialSlug = [], regionName = '全国' 
       </div>
 
       {/* Main Full-View GIS Map Workspace (100% Full Width & Height) */}
-      <main className="flex-1 w-full h-full overflow-hidden relative">
+      <main className="flex-1 min-h-0 w-full overflow-hidden relative">
         <HazardMapTool 
           externalPoint={targetPoint} 
           flyPoint={flyPoint} 

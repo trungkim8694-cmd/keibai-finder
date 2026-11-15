@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: { params: Promise<{ line: str
   // Thin Content Guard
   if (count === 0) {
     return {
-      title: `${decodedLine}・${decodedStation}駅周辺の競売物件・公売物件一覧｜Keibai Finder`,
+      title: `${decodedLine}・${decodedStation}駅周辺の競売物件・公売物件一覧`,
       description: `${decodedLine}沿線・${decodedStation}駅周辺の不動産競売・公売情報。駅徒歩圏内の物件状況を随時更新中。`,
       robots: {
         index: false,
@@ -66,7 +66,7 @@ export async function generateMetadata({ params }: { params: Promise<{ line: str
 
   // Dynamic CTR-Magnet Title
   const priceSnippet = minPriceMan > 0 ? `・最安${minPriceMan.toLocaleString('ja-JP')}万円〜` : '';
-  const title = `【${currentYear}年最新｜${count}件${priceSnippet}】${decodedLine}・${decodedStation}駅近くの競売物件・公売物件一覧｜Keibai Finder`;
+  const title = `【${currentYear}年最新｜${count}件${priceSnippet}】${decodedLine}・${decodedStation}駅近くの競売物件・公売物件一覧`;
   const description = `${decodedLine}沿線の${decodedStation}駅周辺にある不動産競売・公売情報を${count}件掲載。駅徒歩圏内の戸建てやマンションなど、相場より安い割安物件が見つかります。`;
 
   return {
@@ -80,10 +80,17 @@ export async function generateMetadata({ params }: { params: Promise<{ line: str
       canonical: canonicalUrl,
     },
     openGraph: {
-      title,
+      title: `${title}｜Keibai Finder`,
       description,
       url: canonicalUrl,
+      siteName: 'Keibai Finder',
+      locale: 'ja_JP',
       type: 'website',
+      images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: `${decodedLine}・${decodedStation}駅周辺の競売物件` }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: ['/keibaikoubai.webp'],
     },
   };
 }
@@ -143,12 +150,12 @@ export default async function StationSearchPage({ params }: { params: Promise<{ 
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb).replace(/</g, '\\u003c') }}
       />
       {jsonLdItemList && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdItemList) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdItemList).replace(/</g, '\\u003c') }}
         />
       )}
       <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">

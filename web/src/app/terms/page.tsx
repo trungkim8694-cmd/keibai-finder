@@ -6,9 +6,46 @@ import { FileText, ShieldAlert, Award } from 'lucide-react';
 export const metadata: Metadata = {
   title: '利用規約 (Terms of Service) | 株式会社ＴＱＣ',
   description: '株式会社ＴＱＣ（東京都知事免許 (01) 第107650号）が運営する「Keibai-Koubai Finder」の利用規約です。当サービスをご利用いただくにあたり遵守いただく条件および免責事項を定めています。',
+  alternates: {
+    canonical: 'https://www.keibai-koubai.com/terms',
+  },
+  openGraph: {
+    title: '利用規約 (Terms of Service) | 株式会社ＴＱＣ',
+    description: 'Keibai-Koubai Finderの利用規約および免責事項。',
+    url: 'https://www.keibai-koubai.com/terms',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
+    type: 'website',
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: 'Keibai Finder 利用規約' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
+  },
 };
 
 export default function TermsPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': 'https://www.keibai-koubai.com/terms#webpage',
+        url: 'https://www.keibai-koubai.com/terms',
+        name: '利用規約 (Terms of Service)',
+        inLanguage: 'ja',
+        isPartOf: { '@id': 'https://www.keibai-koubai.com/#website' },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://www.keibai-koubai.com' },
+          { '@type': 'ListItem', position: 2, name: '利用規約', item: 'https://www.keibai-koubai.com/terms' },
+        ],
+      },
+    ],
+  };
+
   const articles = [
     { id: 'article-1', title: '第1条（総則および適用範囲）' },
     { id: 'article-2', title: '第2条（定義）' },
@@ -25,6 +62,10 @@ export default function TermsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0D1117] py-8 px-4 sm:px-6 lg:px-8 font-sans">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       {/* 1280px Standard PC Frame (max-w-7xl) */}
       <div className="max-w-7xl mx-auto">
         {/* Breadcrumb & Sub Navigation Tabs */}

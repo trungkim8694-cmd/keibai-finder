@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Calendar, Tag, ArrowLeft } from 'lucide-react';
 import ArticleContent from './ArticleContent';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -35,12 +35,25 @@ export async function generateMetadata(
   const canonicalUrl = `${baseUrl}/insights/${slug}`;
 
   return {
-    title: `${title} | 市場分析・競売インサイト`,
+    title: `${title} - 市場分析・競売インサイト`,
     description: description.substring(0, 160),
     alternates: {
       canonical: canonicalUrl,
-    }
-  }
+    },
+    openGraph: {
+      title: `${title}｜Keibai Finder`,
+      description: description.substring(0, 160),
+      url: canonicalUrl,
+      siteName: 'Keibai Finder',
+      locale: 'ja_JP',
+      type: 'article',
+      images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: ['/keibaikoubai.webp'],
+    },
+  };
 }
 
 export const revalidate = 3600;
@@ -78,7 +91,6 @@ export default async function DigestDetailPage({ params }: Props) {
   if (digest.category !== 'MARKET_REPORT') {
     // If it's a GUIDE or CAUTION, redirect to /blogs
     if (digest.category === 'GUIDE' || digest.category === 'CAUTION') {
-      const { redirect } = require('next/navigation');
       redirect(`/blogs/${slug}`);
     }
     notFound();
@@ -114,7 +126,7 @@ export default async function DigestDetailPage({ params }: Props) {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-12 px-4 sm:px-6 lg:px-8">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd).replace(/</g, '\\u003c') }}
       />
       <div className="max-w-7xl mx-auto">
         

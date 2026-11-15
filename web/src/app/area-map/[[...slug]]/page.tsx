@@ -12,14 +12,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const region = decodedParts.length > 0 ? decodedParts.join(' ') : '全国';
   const prefix = region !== '全国' ? `${region}の` : '';
   
+  const canonicalPath = resolvedParams.slug
+    ? `/area-map/${resolvedParams.slug.join('/')}`
+    : '/area-map';
+
   return {
     metadataBase: new URL('https://www.keibai-koubai.com'),
-    title: `【登録不要】${prefix}不動産エリア分析マップ｜災害・都市計画・競売物件 (Keibai Finder)`,
+    title: `【登録不要】${prefix}不動産エリア分析マップ｜災害・都市計画・競売物件`,
     description: `登録不要で完全無料！${region}の住所を入力するだけで、洪水、土砂などの自然災害リスクと、都市計画・用途地域、周辺の競売・公売物件を1画面で一括確認できます。不動産投資やマイホーム購入前の物件調査に最適。`,
     keywords: `エリア分析, 用途地域, 都市計画, ハザードマップ, 住所検索, ${region}, 不動産, 災害リスク, 競売物件, 面倒な登録なし`,
     alternates: {
-      canonical: resolvedParams.slug ? `/area-map/${resolvedParams.slug.join('/')}` : '/area-map',
-    }
+      canonical: `https://www.keibai-koubai.com${canonicalPath}`,
+    },
+    openGraph: {
+      title: `【登録不要】${prefix}不動産エリア分析マップ｜Keibai Finder`,
+      description: `${region}の自然災害リスクと都市計画・用途地域、周辺の競売・公売物件を一括確認。`,
+      url: `https://www.keibai-koubai.com${canonicalPath}`,
+      siteName: 'Keibai Finder',
+      locale: 'ja_JP',
+      type: 'website',
+      images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: '不動産エリア分析マップ' }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: ['/keibaikoubai.webp'],
+    },
   };
 }
 
@@ -93,8 +110,8 @@ export default async function HazardMapPage({ params }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] w-full overflow-hidden bg-[#F8FAFC] dark:bg-[#0D1117]">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+    <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-[#F8FAFC] dark:bg-[#0D1117]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       
       {/* Programmatic SEO Text Block - Visually hidden but readable by Googlebot and Screen Readers */}
       <div className="sr-only">

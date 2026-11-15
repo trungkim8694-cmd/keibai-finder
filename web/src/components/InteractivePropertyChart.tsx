@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, CartesianGrid } from 'recharts';
 import { TrendingDown, TrendingUp, AlertCircle, Building2 } from 'lucide-react';
 
@@ -9,6 +9,11 @@ type ChartProps = {
 };
 
 export default function InteractivePropertyChart({ property }: ChartProps) {
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   if (!property) return null;
 
   const startingPrice = Number(property.starting_price) || 0;
@@ -87,31 +92,37 @@ export default function InteractivePropertyChart({ property }: ChartProps) {
 
       {/* Chart container */}
       <div className="h-[220px] w-[100%] mt-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 20, left: -20, bottom: 0 }} barSize={40}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#52525b" opacity={0.2} />
-            <XAxis 
-              type="number" 
-              tickFormatter={(val) => `¥${(val / 10000).toLocaleString()}万`} 
-              stroke="#71717a" 
-              fontSize={12}
-            />
-            <YAxis 
-              dataKey="name" 
-              type="category" 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: '#71717a', fontSize: 13, fontWeight: 'bold' }} 
-              width={110}
-            />
-            <Tooltip cursor={{ fill: 'transparent' }} content={<CustomTooltip />} />
-            <Bar dataKey="price" radius={[0, 6, 6, 0]}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        {isMounted ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 20, left: -20, bottom: 0 }} barSize={40}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#52525b" opacity={0.2} />
+              <XAxis 
+                type="number" 
+                tickFormatter={(val) => `¥${(val / 10000).toLocaleString()}万`} 
+                stroke="#71717a" 
+                fontSize={12}
+              />
+              <YAxis 
+                dataKey="name" 
+                type="category" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#71717a', fontSize: 13, fontWeight: 'bold' }} 
+                width={110}
+              />
+              <Tooltip cursor={{ fill: 'transparent' }} content={<CustomTooltip />} />
+              <Bar dataKey="price" radius={[0, 6, 6, 0]}>
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full w-full animate-pulse bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-xs text-zinc-400">
+            グラフ読み込み中...
+          </div>
+        )}
       </div>
 
       <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between">

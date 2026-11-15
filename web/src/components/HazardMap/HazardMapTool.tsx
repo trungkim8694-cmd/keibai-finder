@@ -7,7 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import useSWR from 'swr';
 import japanMaskData from '@/data/japanMask.json';
 import { StreetViewModal } from '@/components/StreetViewModal';
-import { Compass, ExternalLink, X, AlertTriangle, ShieldCheck, MapPin, Building, Waves } from 'lucide-react';
+import { Compass, ExternalLink, X, AlertTriangle, ShieldCheck, MapPin, Building, Waves, ChevronDown, ChevronUp } from 'lucide-react';
 
 export type BaseMapMode = 'pale' | 'standard' | 'satellite';
 
@@ -231,10 +231,12 @@ function MapRegionalQuickJumps() {
   return (
     <div
       ref={controlRef}
-      className="absolute top-3.5 left-4 z-[1000] pointer-events-auto max-w-[calc(100%-190px)] select-none"
+      className="absolute top-3.5 left-2.5 sm:left-4 z-[1000] pointer-events-auto max-w-[calc(100%-20px)] lg:max-w-[calc(100%-220px)] select-none"
       onDoubleClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseUp={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
@@ -295,8 +297,16 @@ function UnifiedMapLayerPanel({
   zoningOpacity: number;
   setZoningOpacity: (v: number) => void;
 }) {
+  const [isOpenMobile, setIsOpenMobile] = useState(false);
   const [showLegends, setShowLegends] = useState(false);
   const isAllOff = !hazardState.flood && !hazardState.landslide && !hazardState.tsunami && !hazardState.stormSurge && !hazardState.shelter;
+
+  const activeLayerCount = useMemo(() => {
+    if (mapMode === 'hazard') {
+      return Object.values(hazardState).filter(Boolean).length;
+    }
+    return 1;
+  }, [mapMode, hazardState]);
 
   const layers = [
     { key: 'flood', label: '洪水浸水想定', dotColor: 'bg-blue-500' },
@@ -330,16 +340,54 @@ function UnifiedMapLayerPanel({
   }, []);
 
   return (
-    <div 
-      ref={controlRef}
-      className="absolute top-3.5 right-4 lg:right-6 z-[1000] pointer-events-auto flex flex-col items-end gap-2 select-none"
-      onDoubleClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      onMouseUp={(e) => e.stopPropagation()}
-      onWheel={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-md rounded-lg p-2 flex flex-col gap-2 w-44">
+    <>
+      {/* Mobile Backdrop to close popover when clicking anywhere outside */}
+      {isOpenMobile && (
+        <div 
+          className="lg:hidden fixed inset-0 z-[999] bg-slate-900/10 backdrop-blur-[0.5px]"
+          onClick={() => setIsOpenMobile(false)}
+          onTouchStart={() => setIsOpenMobile(false)}
+        />
+      )}
+
+      <div 
+        ref={controlRef}
+        className="absolute top-[52px] lg:top-3.5 right-2.5 lg:right-6 z-[1000] pointer-events-auto flex flex-col items-end gap-2 select-none"
+        onDoubleClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mobile Toggle Button Pill */}
+        <div className="lg:hidden">
+          <button
+            type="button"
+            onClick={() => setIsOpenMobile((v) => !v)}
+            className={`h-8 px-2.5 rounded-full border shadow-md backdrop-blur-md flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+              isOpenMobile
+                ? 'bg-[#1B4F8A] text-white border-[#1B4F8A]'
+                : 'bg-white/95 dark:bg-[#151B22]/95 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
+            title="地図タイプ・レイヤーの切り替え"
+          >
+            <span className="text-xs">🗺️</span>
+            <span>レイヤー</span>
+            {activeLayerCount > 0 && (
+              <span className={`ml-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-mono flex items-center justify-center font-bold ${
+                isOpenMobile ? 'bg-white text-[#1B4F8A]' : 'bg-[#1B4F8A] text-white'
+              }`}>
+                {activeLayerCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className={`bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-lg lg:shadow-md rounded-lg p-2 flex-col gap-2 w-48 sm:w-44 ${
+          isOpenMobile ? 'flex animate-in fade-in zoom-in-95 duration-150' : 'hidden lg:flex'
+        }`}>
         
         {/* Base Map Switcher: Standard / Satellite / Pale */}
         <div>
@@ -488,7 +536,9 @@ function UnifiedMapLayerPanel({
 
       {/* Dynamic Legends Container */}
       {showLegends && mapMode === 'hazard' && (
-        <div className="bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-md rounded-lg p-3 w-48 text-xs flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 max-h-[50vh] overflow-y-auto">
+        <div className={`bg-white/95 dark:bg-[#151B22]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-md rounded-lg p-3 w-48 text-xs flex-col gap-3 animate-in fade-in slide-in-from-top-1 max-h-[50vh] overflow-y-auto ${
+          isOpenMobile ? 'flex' : 'hidden lg:flex'
+        }`}>
           <div>
             <div className="font-semibold text-slate-800 dark:text-slate-200 mb-1.5 border-b border-slate-100 dark:border-slate-800 pb-1">浸水想定区域（洪水）</div>
             <div className="flex flex-col gap-1">
@@ -514,6 +564,7 @@ function UnifiedMapLayerPanel({
         </div>
       )}
     </div>
+    </>
   );
 }
 
@@ -593,6 +644,7 @@ export default function HazardMapTool({
   });
 
   const [activePoint, setActivePoint] = useState<[number, number] | null>(null);
+  const [isReportCollapsed, setIsReportCollapsed] = useState<boolean>(false);
   const [zoningOpacity, setZoningOpacity] = useState<number>(40);
 
   // Google Street View 360° modal state
@@ -610,14 +662,15 @@ export default function HazardMapTool({
   useEffect(() => {
     if (externalPoint) {
       setActivePoint(externalPoint);
+      setIsReportCollapsed(false);
     }
   }, [externalPoint]);
 
   const targetIcon = useMemo(() => L.divIcon({
     className: 'bg-transparent border-0',
     html: `<div class="relative flex items-center justify-center">
-             <div class="absolute inline-flex h-11 w-11 rounded-full bg-red-400 opacity-40 animate-ping"></div>
-             <div class="relative inline-flex flex items-center justify-center w-9 h-9 rounded-full border-2 border-white shadow-lg bg-red-600 text-white z-50">
+             <div class="absolute inline-flex h-10 w-10 rounded-full bg-red-500/20"></div>
+             <div class="relative inline-flex flex items-center justify-center w-9 h-9 rounded-full border-2 border-white shadow-md bg-red-600 text-white z-50">
                <span class="text-base">📍</span>
              </div>
            </div>`,
@@ -642,6 +695,7 @@ export default function HazardMapTool({
 
   const handlePointSelect = (lat: number, lng: number) => {
     setActivePoint([lat, lng]);
+    setIsReportCollapsed(false);
     setCurrentAddress(''); // Clicked on custom coordinate
     if (onLocationSelected) {
       onLocationSelected(lat, lng);
@@ -799,24 +853,51 @@ export default function HazardMapTool({
       {/* Comprehensive Due Diligence Analysis Report Card (Bảng Báo Cáo Thẩm Định Địa Điểm) */}
       {activePoint && (
         <div 
-          className="absolute top-14 left-4 z-[1000] w-[360px] sm:w-[380px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-130px)] overflow-y-auto bg-white/98 dark:bg-[#151B22]/98 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-2xl rounded-xl p-3.5 flex flex-col gap-3 pointer-events-auto select-none animate-in fade-in slide-in-from-left-2"
+          className={`fixed md:absolute inset-x-0 bottom-0 md:bottom-auto md:top-14 md:left-4 z-[1000] w-full md:w-[380px] md:max-w-[calc(100vw-32px)] bg-white/98 dark:bg-[#151B22]/98 backdrop-blur-md border-t md:border border-slate-200/90 dark:border-slate-800 shadow-lg rounded-t-2xl md:rounded-xl p-3.5 flex flex-col gap-3 pointer-events-auto select-none animate-in fade-in slide-in-from-bottom-2 md:slide-in-from-left-2 transition-all duration-200 ${
+            isReportCollapsed 
+              ? 'max-h-[64px] overflow-hidden' 
+              : 'max-h-[55vh] md:max-h-[calc(100vh-130px)] overflow-y-auto'
+          }`}
           onDoubleClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onMouseUp={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Card Header: Title & Close Button */}
+          {/* Mobile Bottom Sheet Pull Handle */}
+          <div 
+            className="md:hidden flex items-center justify-center -mt-1 pb-1 cursor-pointer"
+            onClick={() => setIsReportCollapsed((v) => !v)}
+            title={isReportCollapsed ? "レポートを展開" : "レポートを折りたたむ"}
+          >
+            <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+          </div>
+
+          {/* Card Header: Title & Close/Collapse Buttons */}
           <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-            <div>
+            <div 
+              className="cursor-pointer md:cursor-default flex-1 min-w-0 pr-2"
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                  setIsReportCollapsed((v) => !v);
+                }
+              }}
+            >
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 tracking-tight">
                   地点総合診断レポート
                 </h3>
+                {isReportCollapsed && (
+                  <span className="md:hidden text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-medium">
+                    展開
+                  </span>
+                )}
               </div>
               {currentAddress && (
-                <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-0.5 truncate max-w-[260px]">
+                <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-0.5 truncate max-w-[240px] sm:max-w-[260px]">
                   📍 {currentAddress}
                 </div>
               )}
@@ -824,15 +905,36 @@ export default function HazardMapTool({
                 北緯 {activePoint[0].toFixed(4)}° / 東経 {activePoint[1].toFixed(4)}°
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setActivePoint(null)}
-              className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-              title="レポートを閉じる"
-            >
-              <X className="w-4 h-4" />
-            </button>
+
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Mobile Collapse / Expand Button */}
+              <button
+                type="button"
+                onClick={() => setIsReportCollapsed((v) => !v)}
+                className="md:hidden w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title={isReportCollapsed ? "レポートを展開する" : "レポートを折りたたむ"}
+                aria-label={isReportCollapsed ? "レポートを展開する" : "レポートを折りたたむ"}
+              >
+                {isReportCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePoint(null);
+                  setIsReportCollapsed(false);
+                }}
+                className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title="レポートを閉じる"
+                aria-label="レポートを閉じる"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
+
+          <div className={`flex flex-col gap-3 ${isReportCollapsed ? 'hidden md:flex' : 'flex'}`}>
 
           {/* Sub-Tabs: 災害リスク vs 都市計画 */}
           <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg text-xs font-semibold">
@@ -1047,6 +1149,8 @@ export default function HazardMapTool({
             </a>
           </div>
 
+          </div>
+
         </div>
       )}
 
@@ -1057,7 +1161,7 @@ export default function HazardMapTool({
           onClose={() => setStreetViewTarget(null)}
           lat={streetViewTarget.lat}
           lng={streetViewTarget.lng}
-          propertyTitle={streetViewTarget.title}
+          title={streetViewTarget.title}
           address={streetViewTarget.address}
         />
       )}

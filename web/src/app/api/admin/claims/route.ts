@@ -1,54 +1,62 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { requireAdminSession, isPrismaNotFoundError } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
+class ActionError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const { errorResponse } = await requireAdminSession();
+    if (errorResponse) return errorResponse;
 
     const body = await request.json();
     const { action, claimId, delistId, reason } = body;
 
-    // 1. Approve Claim Request
+    // 1. Approve Claim Request (Atomic Transaction)
     if (action === 'approve_claim' && claimId) {
-      const claim = await prisma.companyClaimRequest.findUnique({
-        where: { id: claimId },
-        include: { company: true },
-      });
+      const updatedClaim = await prisma.$transaction(async (tx) => {
+        const claim = await tx.companyClaimRequest.findUnique({
+          where: { id: claimId },
+        });
+        if (!claim) {
+          throw new ActionError('申請データが見つかりません', 404);
+        }
+        if (claim.status !== 'PENDING') {
+          throw new ActionError('この申請は既に処理済みです', 409);
+        }
 
-      if (!claim) {
-        return NextResponse.json({ error: '申請データが見つかりません' }, { status: 404 });
-      }
+        const user = await tx.user.findUnique({
+          where: { email: claim.applicantEmail.toLowerCase().trim() },
+          select: { id: true },
+        });
+        const resolvedUserId = user?.id ?? claim.userId ?? null;
 
-      // Find user if applicant email has an account
-      const user = await prisma.user.findUnique({
-        where: { email: claim.applicantEmail.toLowerCase().trim() },
-      });
+        await tx.realEstateCompany.update({
+          where: { id: claim.companyId },
+          data: {
+            isVerified: true,
+            isClaimed: true,
+            claimedUserId: resolvedUserId,
+          },
+        });
 
-      // Update Company
-      await prisma.realEstateCompany.update({
-        where: { id: claim.companyId },
-        data: {
-          isVerified: true,
-          isClaimed: true,
-          claimedUserId: user ? user.id : claim.userId || null,
-        },
-      });
-
-      // Update Claim Request
-      const updatedClaim = await prisma.companyClaimRequest.update({
-        where: { id: claimId },
-        data: {
-          status: 'APPROVED',
-          reviewedAt: new Date(),
-        },
+        return tx.companyClaimRequest.update({
+          where: { id: claimId },
+          data: {
+            status: 'APPROVED',
+            reviewedAt: new Date(),
+            userId: resolvedUserId,
+          },
+        });
       });
 
       revalidatePath('/admin/claims');
@@ -64,13 +72,27 @@ export async function POST(request: Request) {
 
     // 2. Reject Claim Request
     if (action === 'reject_claim' && claimId) {
-      const updatedClaim = await prisma.companyClaimRequest.update({
-        where: { id: claimId },
-        data: {
-          status: 'REJECTED',
-          rejectionReason: reason || '書類不鮮明または本人確認が取れなかったため却下されました。',
-          reviewedAt: new Date(),
-        },
+      const updatedClaim = await prisma.$transaction(async (tx) => {
+        const claim = await tx.companyClaimRequest.findUnique({
+          where: { id: claimId },
+        });
+        if (!claim) {
+          throw new ActionError('申請データが見つかりません', 404);
+        }
+        if (claim.status !== 'PENDING') {
+          throw new ActionError('この申請は既に処理済みです', 409);
+        }
+        return tx.companyClaimRequest.update({
+          where: { id: claimId },
+          data: {
+            status: 'REJECTED',
+            rejectionReason:
+              typeof reason === 'string' && reason.trim()
+                ? reason.trim()
+                : '書類不鮮明または本人確認が取れなかったため却下されました。',
+            reviewedAt: new Date(),
+          },
+        });
       });
 
       revalidatePath('/admin/claims');
@@ -83,24 +105,28 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Approve Delist Request
+    // 3. Approve Delist Request (Atomic Transaction)
     if (action === 'approve_delist' && delistId) {
-      const delist = await prisma.companyDelistRequest.findUnique({
-        where: { id: delistId },
-      });
+      await prisma.$transaction(async (tx) => {
+        const delist = await tx.companyDelistRequest.findUnique({
+          where: { id: delistId },
+        });
+        if (!delist) {
+          throw new ActionError('削除申請データが見つかりません', 404);
+        }
+        if (delist.status !== 'PENDING') {
+          throw new ActionError('この削除申請は既に処理済みです', 409);
+        }
 
-      if (!delist) {
-        return NextResponse.json({ error: '削除申請データが見つかりません' }, { status: 404 });
-      }
+        await tx.realEstateCompany.update({
+          where: { id: delist.companyId },
+          data: { status: 'DELISTED' },
+        });
 
-      await prisma.realEstateCompany.update({
-        where: { id: delist.companyId },
-        data: { status: 'DELISTED' },
-      });
-
-      await prisma.companyDelistRequest.update({
-        where: { id: delistId },
-        data: { status: 'PROCESSED' },
+        await tx.companyDelistRequest.update({
+          where: { id: delistId },
+          data: { status: 'PROCESSED' },
+        });
       });
 
       revalidatePath('/admin/claims');
@@ -112,9 +138,20 @@ export async function POST(request: Request) {
 
     // 4. Reject Delist Request
     if (action === 'reject_delist' && delistId) {
-      await prisma.companyDelistRequest.update({
-        where: { id: delistId },
-        data: { status: 'REJECTED' },
+      await prisma.$transaction(async (tx) => {
+        const delist = await tx.companyDelistRequest.findUnique({
+          where: { id: delistId },
+        });
+        if (!delist) {
+          throw new ActionError('削除申請データが見つかりません', 404);
+        }
+        if (delist.status !== 'PENDING') {
+          throw new ActionError('この削除申請は既に処理済みです', 409);
+        }
+        await tx.companyDelistRequest.update({
+          where: { id: delistId },
+          data: { status: 'REJECTED' },
+        });
       });
 
       revalidatePath('/admin/claims');
@@ -122,8 +159,17 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: '不正なアクションです' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof ActionError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    if (isPrismaNotFoundError(error)) {
+      return NextResponse.json({ error: '対象データが見つかりません' }, { status: 404 });
+    }
     console.error('Admin claims action error:', error);
-    return NextResponse.json({ error: error.message || '内部エラー' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '内部エラー' },
+      { status: 500 }
+    );
   }
 }

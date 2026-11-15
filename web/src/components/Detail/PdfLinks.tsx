@@ -1,6 +1,22 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { FileText, Download, ExternalLink, HelpCircle, Phone, MapPin } from 'lucide-react';
+import { 
+  FileText, 
+  Download, 
+  ExternalLink, 
+  HelpCircle, 
+  Phone, 
+  MapPin, 
+  ChevronDown, 
+  ChevronUp, 
+  BookOpen, 
+  Clock, 
+  AlertTriangle, 
+  ArrowRight,
+  ShieldCheck
+} from 'lucide-react';
 
 interface PdfLinksProps {
   saleUnitId?: string;
@@ -55,6 +71,8 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
     
   const ntaMapUrl = rawDisplayData?.nta_map_link;
   const eTaxLink = rawDisplayData?.etax_link;
+
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   return (
     <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-5">
@@ -229,6 +247,106 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3 leading-relaxed">
         ※ 入札参加にあたっては、必ず管轄裁判所または国税庁が公示する公式「3点セット（現況調査報告書・評価書・物件明細書）」の原本をご確認ください。
       </p>
+
+      {/* --- SEO & BEGINNER GUIDE: 3点セット 読み方 & 期間入札の流れ (Keyword #1 & #4) --- */}
+      <div className="mt-4 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/70 dark:bg-zinc-900/60 text-xs">
+        <button
+          type="button"
+          onClick={() => setIsGuideOpen(!isGuideOpen)}
+          className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded bg-[#1B4F8A]/10 text-[#1B4F8A] dark:text-sky-400 font-bold text-[11px]">初心者ガイド</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200">
+              3点セットの読み方・チェックポイントと期間入札の流れ
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-slate-500 text-[11px]">
+            <span>{isGuideOpen ? '閉じる' : '解説を見る'}</span>
+            {isGuideOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </div>
+        </button>
+
+        {isGuideOpen && (
+          <div className="px-4 pb-4 pt-1 space-y-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-900">
+            {/* 3 Documents Breakdown */}
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-2 text-xs">
+                <BookOpen className="w-3.5 h-3.5 text-[#1B4F8A] dark:text-sky-400" />
+                <span>3点セット（裁判所資料）の読み方と重要確認ポイント</span>
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                <div className="p-2.5 rounded bg-slate-50 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700">
+                  <div className="font-bold text-[#1B4F8A] dark:text-sky-400 mb-1 text-[11px]">① 物件明細書（最重要）</div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    落札者が引き受ける権利関係を明記。賃借権が対抗できるか、抵当権が抹消されるか、法定地上権の成立可否を必ず確認します。
+                  </p>
+                </div>
+                <div className="p-2.5 rounded bg-slate-50 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700">
+                  <div className="font-bold text-[#1B4F8A] dark:text-sky-400 mb-1 text-[11px]">② 現況調査報告書（占有状況）</div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    裁判所の執行官が現地訪問した調査結果。債務者が居住中か空き家か、賃借人の有無、室内の損耗や荷物の残置状況が記されています。
+                  </p>
+                </div>
+                <div className="p-2.5 rounded bg-slate-50 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700">
+                  <div className="font-bold text-[#1B4F8A] dark:text-sky-400 mb-1 text-[11px]">③ 評価書（価格＆法規制）</div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    不動産鑑定士による売却基準価額の算定根拠。用途地域・建蔽率・容積率、再建築不可や接道状況、周辺の市場取引相場が記載されます。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bidding Process Timeline */}
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-2 text-xs">
+                <Clock className="w-3.5 h-3.5 text-[#1B4F8A] dark:text-sky-400" />
+                <span>裁判所 期間入札の手続きと流れ（4ステップ）</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-[11px]">
+                <div className="p-2 rounded bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40">
+                  <span className="font-bold text-[#1B4F8A] dark:text-blue-300 block mb-0.5">Step 1. 保証金納付</span>
+                  <span className="text-slate-600 dark:text-slate-400 leading-tight block">
+                    売却基準価額の20%以上の入札保証金を裁判所指定口座へ事前振込。
+                  </span>
+                </div>
+                <div className="p-2 rounded bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40">
+                  <span className="font-bold text-[#1B4F8A] dark:text-blue-300 block mb-0.5">Step 2. 期間入札書提出</span>
+                  <span className="text-slate-600 dark:text-slate-400 leading-tight block">
+                    入札書・振込証明書・住民票等を管轄裁判所執行官室へ郵送または持参。
+                  </span>
+                </div>
+                <div className="p-2 rounded bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40">
+                  <span className="font-bold text-[#1B4F8A] dark:text-blue-300 block mb-0.5">Step 3. 開札日</span>
+                  <span className="text-slate-600 dark:text-slate-400 leading-tight block">
+                    開札期日に最高価買受申出人が決定。落札できなかった場合は保証金が全額返還。
+                  </span>
+                </div>
+                <div className="p-2 rounded bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40">
+                  <span className="font-bold text-[#1B4F8A] dark:text-blue-300 block mb-0.5">Step 4. 代金納付・引渡し</span>
+                  <span className="text-slate-600 dark:text-slate-400 leading-tight block">
+                    残代金を納付して所有権移転登記。占有者がいる場合は引渡命令を申立。
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* In-depth Link */}
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 dark:border-zinc-800 text-[11px]">
+              <span className="text-slate-500 dark:text-slate-400">
+                さらに詳しい競売入札の実務ノウハウや立ち退きリスクの対処法はこちら
+              </span>
+              <Link
+                href="/blogs"
+                className="inline-flex items-center gap-1 font-bold text-[#1B4F8A] dark:text-sky-400 hover:underline"
+              >
+                <span>競売・公売ナレッジコラムを読む</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

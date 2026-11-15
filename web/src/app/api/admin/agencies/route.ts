@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
+import {
+  requireAdminSession,
+  parsePagination,
+  isPrismaNotFoundError,
+} from "@/lib/adminAuth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { errorResponse } = await requireAdminSession();
+  if (errorResponse) return errorResponse;
 
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get("search") || "";
+  const search = (searchParams.get("search") || "").trim();
   const status = searchParams.get("status") || "all";
+  const { page, limit, skip } = parsePagination(searchParams, 50, 100);
 
   try {
-    const whereClause: any = {};
+    const whereClause: Record<string, unknown> = {};
 
-    // Apply search filter if present
     if (search) {
       whereClause.OR = [
         { companyName: { contains: search, mode: "insensitive" } },
@@ -29,41 +31,46 @@ export async function GET(request: NextRequest) {
             OR: [
               { name: { contains: search, mode: "insensitive" } },
               { email: { contains: search, mode: "insensitive" } },
-            ]
-          }
-        }
+            ],
+          },
+        },
       ];
     }
 
-    // Apply status filter
     if (status === "verified") {
       whereClause.isVerified = true;
     } else if (status === "unverified") {
       whereClause.isVerified = false;
     }
 
-    const agencies = await prisma.agencyProfile.findMany({
-      where: whereClause,
-      orderBy: { created_at: "desc" },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          }
+    const [agencies, total] = await Promise.all([
+      prisma.agencyProfile.findMany({
+        where: whereClause,
+        orderBy: { created_at: "desc" },
+        skip,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              role: true,
+            },
+          },
+          _count: {
+            select: {
+              reviews: true,
+              reports: true,
+            },
+          },
         },
-        _count: {
-          select: {
-            reviews: true,
-            reports: true,
-          }
-        }
-      }
-    });
+      }),
+      prisma.agencyProfile.count({ where: whereClause }),
+    ]);
 
-    return NextResponse.json({ agencies });
+    return NextResponse.json({ agencies, total, page, limit });
   } catch (error) {
     console.error("Admin agencies GET error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -71,24 +78,25 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { errorResponse } = await requireAdminSession();
+  if (errorResponse) return errorResponse;
 
   try {
     const { agencyId, isVerified, rejectionReason } = await request.json();
 
     if (!agencyId || typeof isVerified !== "boolean") {
-      return NextResponse.json({ error: "Missing or invalid required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing or invalid required fields" },
+        { status: 400 }
+      );
     }
 
-    const dataToUpdate: any = { isVerified };
+    const dataToUpdate: Record<string, unknown> = { isVerified };
     if (isVerified) {
       dataToUpdate.rejectionReason = null;
     } else if (rejectionReason !== undefined) {
-      dataToUpdate.rejectionReason = rejectionReason;
+      dataToUpdate.rejectionReason =
+        typeof rejectionReason === "string" ? rejectionReason.trim() : null;
     }
 
     const updatedAgency = await prisma.agencyProfile.update({
@@ -98,28 +106,28 @@ export async function PUT(request: NextRequest) {
         user: {
           select: {
             email: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      agency: updatedAgency, 
-      message: `Agency ${updatedAgency.companyName} verification status updated to ${isVerified}` 
+    return NextResponse.json({
+      success: true,
+      agency: updatedAgency,
+      message: `Agency ${updatedAgency.companyName} verification status updated to ${isVerified}`,
     });
   } catch (error) {
+    if (isPrismaNotFoundError(error)) {
+      return NextResponse.json({ error: "Agency not found" }, { status: 404 });
+    }
     console.error("Admin agency PUT error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { errorResponse } = await requireAdminSession();
+  if (errorResponse) return errorResponse;
 
   try {
     const { agencyId } = await request.json();
@@ -128,32 +136,47 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Missing agencyId" }, { status: 400 });
     }
 
-    // Find agency to get the associated userId
-    const agency = await prisma.agencyProfile.findUnique({
-      where: { id: agencyId },
-      select: { userId: true, companyName: true }
+    const result = await prisma.$transaction(async (tx) => {
+      const agency = await tx.agencyProfile.findUnique({
+        where: { id: agencyId },
+        select: {
+          userId: true,
+          companyName: true,
+          user: { select: { role: true } },
+        },
+      });
+
+      if (!agency) {
+        return null;
+      }
+
+      // Only reset AGENCY users back to USER; never demote an ADMIN
+      if (agency.user.role === "AGENCY") {
+        await tx.user.update({
+          where: { id: agency.userId },
+          data: { role: "USER" },
+        });
+      }
+
+      await tx.agencyProfile.delete({
+        where: { id: agencyId },
+      });
+
+      return agency;
     });
 
-    if (!agency) {
+    if (!result) {
       return NextResponse.json({ error: "Agency not found" }, { status: 404 });
     }
 
-    // Revert user role to USER
-    await prisma.user.update({
-      where: { id: agency.userId },
-      data: { role: "USER" }
-    });
-
-    // Delete the agency profile
-    await prisma.agencyProfile.delete({
-      where: { id: agencyId }
-    });
-
-    return NextResponse.json({ 
-      success: true, 
-      message: `Agency profile for ${agency.companyName} deleted successfully. User role reset to USER.`
+    return NextResponse.json({
+      success: true,
+      message: `Agency profile for ${result.companyName} deleted successfully.`,
     });
   } catch (error) {
+    if (isPrismaNotFoundError(error)) {
+      return NextResponse.json({ error: "Agency not found" }, { status: 404 });
+    }
     console.error("Admin agency DELETE error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

@@ -107,7 +107,25 @@ def collect_candidate_urls(conn) -> List[Dict[str, str]]:
     today_tag = datetime.now().strftime("%Y-%m-%d")
 
     with conn.cursor() as cur:
-        # 1. TẦNG 1: BĐS ACTIVE mới cào / mới cập nhật trong 72h
+        # 1. TẦNG 1A: Bài viết phân tích thị trường & cẩm nang SEO mới (DailyDigest)
+        cur.execute(
+            """
+            SELECT slug, category, TO_CHAR(updated_at, 'YYYY-MM-DD')
+            FROM "DailyDigest"
+            ORDER BY updated_at DESC
+            LIMIT 30;
+            """
+        )
+        for slug, category, upd_date in cur.fetchall():
+            prefix = "/insights" if category == "MARKET_REPORT" else "/blogs"
+            add_candidate(
+                f"{WWW_BASE_URL}{prefix}/{slug}",
+                "ARTICLE",
+                slug,
+                f"ARTICLE_{upd_date}",
+            )
+
+        # 2. TẦNG 1B: BĐS ACTIVE mới cào / mới cập nhật trong 72h
         cur.execute(
             """
             SELECT sale_unit_id, prefecture, city
@@ -133,24 +151,6 @@ def collect_candidate_urls(conn) -> List[Dict[str, str]]:
                 hot_prefs.add(pref)
                 if city:
                     hot_cities.add((pref, city))
-
-        # 2. TẦNG 2A: Bài viết phân tích thị trường & cẩm nang SEO mới (DailyDigest)
-        cur.execute(
-            """
-            SELECT slug, category, TO_CHAR(updated_at, 'YYYY-MM-DD')
-            FROM "DailyDigest"
-            ORDER BY updated_at DESC
-            LIMIT 30;
-            """
-        )
-        for slug, category, upd_date in cur.fetchall():
-            prefix = "/insights" if category == "MARKET_REPORT" else "/blogs"
-            add_candidate(
-                f"{WWW_BASE_URL}{prefix}/{slug}",
-                "ARTICLE",
-                slug,
-                f"ARTICLE_{upd_date}",
-            )
 
         # 3. TẦNG 2B: Core Hubs & Dynamic Area Hubs (Hub & Spoke)
         core_hubs = [
@@ -560,11 +560,17 @@ def print_summary_stats(conn):
 
 def main():
     parser = argparse.ArgumentParser(description="Keibai Finder Multi-Channel Fast Indexing Engine")
+    parser.add_argument("--limit", type=int, default=None, help="Số URL tối đa giới hạn chung cho các kênh (IndexNow, Bing, Google)")
     parser.add_argument("--indexnow-limit", type=int, default=2000, help="Số URL tối đa bắn qua IndexNow mỗi lượt")
     parser.add_argument("--bing-limit", type=int, default=100, help="Số URL tối đa bắn qua Bing Webmaster API mỗi lượt")
     parser.add_argument("--google-limit", type=int, default=200, help="Số URL tối đa bắn qua Google Indexing API mỗi lượt")
     parser.add_argument("--stats-only", action="store_true", help="Chỉ xem thống kê lũy kế")
     args = parser.parse_args()
+
+    if args.limit is not None:
+        args.indexnow_limit = min(args.indexnow_limit, args.limit)
+        args.bing_limit = min(args.bing_limit, args.limit)
+        args.google_limit = min(args.google_limit, args.limit)
 
     if not DATABASE_URL:
         print("❌ DATABASE_URL chưa được cấu hình.")

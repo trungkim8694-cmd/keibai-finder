@@ -4,6 +4,13 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: '物件検索 | Keibai Finder',
   description: '全国の競売物件・公売物件を一括検索。',
+  robots: {
+    index: false,
+    follow: true,
+  },
+  alternates: {
+    canonical: 'https://www.keibai-koubai.com/map',
+  },
 };
 
 interface SearchPageProps {
@@ -38,9 +45,22 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     targetParams.set('provider', 'BIT');
   }
 
+  // Normalize price_max -> maxPrice and price_min -> minPrice
+  const rawMaxPrice = resolvedParams.maxPrice ?? resolvedParams.price_max;
+  const maxPriceVal = Array.isArray(rawMaxPrice) ? rawMaxPrice[0] : rawMaxPrice;
+  if (typeof maxPriceVal === 'string' && maxPriceVal.trim()) {
+    targetParams.set('maxPrice', maxPriceVal.trim());
+  }
+
+  const rawMinPrice = resolvedParams.minPrice ?? resolvedParams.price_min;
+  const minPriceVal = Array.isArray(rawMinPrice) ? rawMinPrice[0] : rawMinPrice;
+  if (typeof minPriceVal === 'string' && minPriceVal.trim()) {
+    targetParams.set('minPrice', minPriceVal.trim());
+  }
+
   // Preserve all other valid filters (prefecture, types, minPrice, maxPrice, provider, sort, etc.)
   for (const [key, value] of Object.entries(resolvedParams)) {
-    if (['keyword', 'q', 'search_term_string', 'property_type', 'type', 'managing_authority', 'authority'].includes(key)) continue;
+    if (['keyword', 'q', 'search_term_string', 'property_type', 'type', 'managing_authority', 'authority', 'price_max', 'price_min', 'maxPrice', 'minPrice'].includes(key)) continue;
     if (typeof value === 'string' && value.trim()) {
       targetParams.set(key, value.trim());
     } else if (Array.isArray(value)) {

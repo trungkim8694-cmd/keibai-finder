@@ -1,40 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
+import {
+  requireAdminSession,
+  parsePagination,
+  isPrismaNotFoundError,
+  getProtectedAdminEmails,
+} from "@/lib/adminAuth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { errorResponse } = await requireAdminSession();
+  if (errorResponse) return errorResponse;
 
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get("search") || "";
+  const search = (searchParams.get("search") || "").trim();
+  const { page, limit, skip } = parsePagination(searchParams, 50, 100);
 
   try {
-    const users = await prisma.user.findMany({
-      where: {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
-        ]
-      },
-      orderBy: { created_at: "desc" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        role: true,
-        isBanned: true,
-        adminNotes: true,
-        created_at: true
-      }
-    });
+    const whereClause = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {};
 
-    return NextResponse.json({ users });
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where: whereClause,
+        orderBy: { created_at: "desc" },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          isBanned: true,
+          adminNotes: true,
+          created_at: true,
+        },
+      }),
+      prisma.user.count({ where: whereClause }),
+    ]);
+
+    return NextResponse.json({ users, total, page, limit });
   } catch (error) {
     console.error("Admin users API error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -42,35 +55,72 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { session, errorResponse } = await requireAdminSession();
+  if (errorResponse || !session) return errorResponse!;
 
   try {
     const { userId, role, isBanned, adminNotes } = await request.json();
 
     if (!userId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    if (userId === session.user.id) {
-      return NextResponse.json({ error: "You cannot modify your own profile" }, { status: 400 });
+    const currentAdminId = (session.user as { id?: string }).id;
+    if (userId === currentAdminId) {
+      return NextResponse.json(
+        { error: "You cannot modify your own profile" },
+        { status: 400 }
+      );
     }
 
-    const dataToUpdate: any = {};
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const protectedEmails = getProtectedAdminEmails();
+    const isProtectedAdmin =
+      targetUser.email &&
+      protectedEmails.includes(targetUser.email.toLowerCase());
+
+    const dataToUpdate: Record<string, unknown> = {};
     if (role !== undefined) {
       if (role !== "USER" && role !== "ADMIN" && role !== "AGENCY") {
         return NextResponse.json({ error: "Invalid role" }, { status: 400 });
       }
+      if (isProtectedAdmin && role !== "ADMIN") {
+        return NextResponse.json(
+          {
+            error:
+              "システム保護された管理者アカウント(ADMIN_EMAILS)の権限は降格できません",
+          },
+          { status: 400 }
+        );
+      }
       dataToUpdate.role = role;
     }
     if (isBanned !== undefined) {
-      dataToUpdate.isBanned = isBanned;
+      if (isProtectedAdmin && isBanned === true) {
+        return NextResponse.json(
+          {
+            error:
+              "システム保護された管理者アカウント(ADMIN_EMAILS)は停止できません",
+          },
+          { status: 400 }
+        );
+      }
+      dataToUpdate.isBanned = Boolean(isBanned);
     }
     if (adminNotes !== undefined) {
-      dataToUpdate.adminNotes = adminNotes;
+      dataToUpdate.adminNotes =
+        typeof adminNotes === "string" ? adminNotes.trim() : null;
     }
 
     const updatedUser = await prisma.user.update({
@@ -82,23 +132,26 @@ export async function PUT(request: NextRequest) {
         email: true,
         role: true,
         isBanned: true,
-        adminNotes: true
-      }
+        adminNotes: true,
+      },
     });
 
-    return NextResponse.json({ user: updatedUser, message: "User updated successfully" });
+    return NextResponse.json({
+      user: updatedUser,
+      message: "User updated successfully",
+    });
   } catch (error) {
+    if (isPrismaNotFoundError(error)) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
     console.error("Admin user update error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { session, errorResponse } = await requireAdminSession();
+  if (errorResponse || !session) return errorResponse!;
 
   try {
     const { userId } = await request.json();
@@ -107,17 +160,49 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    if (userId === session.user.id) {
-      return NextResponse.json({ error: "You cannot delete your own account" }, { status: 400 });
+    const currentAdminId = (session.user as { id?: string }).id;
+    if (userId === currentAdminId) {
+      return NextResponse.json(
+        { error: "You cannot delete your own account" },
+        { status: 400 }
+      );
     }
 
-    // Cascade deletes handle comments/favorites/etc
-    await prisma.user.delete({
-      where: { id: userId }
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
     });
 
-    return NextResponse.json({ success: true, message: "User deleted successfully" });
+    if (!targetUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const protectedEmails = getProtectedAdminEmails();
+    if (
+      targetUser.email &&
+      protectedEmails.includes(targetUser.email.toLowerCase())
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "システム保護された管理者アカウント(ADMIN_EMAILS)は削除できません",
+        },
+        { status: 400 }
+      );
+    }
+
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "User deleted successfully",
+    });
   } catch (error) {
+    if (isPrismaNotFoundError(error)) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
     console.error("Admin user delete error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

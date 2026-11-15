@@ -339,10 +339,6 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col w-full h-full min-h-0 overflow-hidden bg-white dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 select-none sm:select-auto">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageJsonLd) }}
-      />
       
       {/* 2. Docked Horizontal B2B Toolbar (Search & Filter) */}
       <div className="w-full z-40 bg-white dark:bg-zinc-900 shrink-0 relative">

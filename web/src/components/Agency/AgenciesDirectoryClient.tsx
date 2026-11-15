@@ -15,7 +15,6 @@ import {
   Info,
   FileText,
   UserCheck,
-  Sparkles,
   Scale,
   Award,
   Globe,
@@ -259,16 +258,16 @@ export function AgenciesDirectoryClient({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => {
                 const sampleUnverified = initialCompanies.find(c => !c.isVerified) || initialCompanies[0];
                 setClaimTarget(sampleUnverified);
               }}
-              className="px-3.5 py-2 rounded-md bg-[#1B4F8A] hover:bg-blue-800 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+              className="px-3.5 py-2.5 min-h-[44px] rounded-lg bg-[#1B4F8A] hover:bg-blue-800 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs w-full sm:w-auto"
             >
-              <UserCheck className="w-3.5 h-3.5" />
+              <UserCheck className="w-4 h-4" />
               <span>無料オーナー確認申請</span>
             </button>
             <button
@@ -277,9 +276,9 @@ export function AgenciesDirectoryClient({
                 const sample = initialCompanies[0];
                 setDelistTarget(sample);
               }}
-              className="px-3 py-2 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 font-medium text-xs transition-colors"
+              className="px-3 py-2.5 min-h-[44px] rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 font-medium text-xs transition-colors flex items-center justify-center w-full sm:w-auto"
             >
-              掲載修正・削除申請
+              掲載情報の修正・削除申請
             </button>
           </div>
         </div>
@@ -313,7 +312,7 @@ export function AgenciesDirectoryClient({
             <span className="text-[11px] font-semibold text-slate-500 mr-1 shrink-0">表示区分:</span>
             <button
               onClick={() => setStatusFilter('ALL')}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-colors ${
                 statusFilter === 'ALL'
                   ? 'bg-[#1B4F8A] text-white shadow-xs'
                   : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
@@ -325,7 +324,7 @@ export function AgenciesDirectoryClient({
               <>
                 <button
                   onClick={() => setStatusFilter('VERIFIED')}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
                     statusFilter === 'VERIFIED'
                       ? 'bg-emerald-700 text-white shadow-xs'
                       : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
@@ -336,7 +335,7 @@ export function AgenciesDirectoryClient({
                 </button>
                 <button
                   onClick={() => setStatusFilter('UNVERIFIED')}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
                     statusFilter === 'UNVERIFIED'
                       ? 'bg-slate-700 text-white shadow-xs'
                       : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
@@ -366,7 +365,7 @@ export function AgenciesDirectoryClient({
               setSelectedRegion('ALL');
               setSelectedPrefecture('ALL');
             }}
-            className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+            className={`px-3 py-1.5 min-h-[36px] rounded-lg text-[11px] font-medium transition-colors ${
               selectedRegion === 'ALL' && selectedPrefecture === 'ALL'
                 ? 'bg-slate-800 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
@@ -383,7 +382,7 @@ export function AgenciesDirectoryClient({
                   setSelectedRegion(region);
                   setSelectedPrefecture('ALL');
                 }}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                className={`px-3 py-1.5 min-h-[36px] rounded-lg text-[11px] font-medium transition-colors ${
                   isRegActive && selectedPrefecture === 'ALL'
                     ? 'bg-slate-800 text-white'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
@@ -395,8 +394,32 @@ export function AgenciesDirectoryClient({
           })}
         </div>
 
-        {/* Prefecture pills if a region or all is active */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+        {/* Mobile Prefecture Dropdown (< sm) */}
+        <div className="sm:hidden flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-zinc-800">
+          <label htmlFor="mobile-agency-pref-select" className="text-xs font-semibold text-slate-700 dark:text-slate-300 shrink-0">
+            都道府県:
+          </label>
+          <select
+            id="mobile-agency-pref-select"
+            value={selectedPrefecture}
+            onChange={(e) => setSelectedPrefecture(e.target.value)}
+            className="w-full h-11 min-h-[44px] px-3 text-xs border border-slate-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#1B4F8A]"
+          >
+            <option value="ALL">すべての都道府県（全国）</option>
+            {availablePrefectures.map((pref) => {
+              const countObj = prefectureCounts.find(p => p.prefecture === pref);
+              const countLabel = countObj ? ` (${countObj.count}社)` : '';
+              return (
+                <option key={pref} value={pref}>
+                  {pref}{countLabel}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+
+        {/* Desktop Prefecture pills (hidden on mobile, visible on sm+) */}
+        <div className="hidden sm:flex flex-wrap items-center gap-1.5 pt-1">
           <span className="text-[11px] font-semibold text-slate-500 mr-1 shrink-0">都道府県:</span>
           {availablePrefectures.map((pref) => {
             const countObj = prefectureCounts.find(p => p.prefecture === pref);
@@ -408,7 +431,7 @@ export function AgenciesDirectoryClient({
                 onClick={() => {
                   setSelectedPrefecture(isActive ? 'ALL' : pref);
                 }}
-                className={`px-2 py-0.5 rounded text-[11px] font-medium border transition-colors ${
+                className={`px-3 py-1.5 min-h-[36px] rounded-lg text-[11px] font-medium border transition-colors ${
                   isActive
                     ? 'bg-[#1B4F8A] text-white border-[#1B4F8A]'
                     : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-zinc-800 hover:border-slate-300'
@@ -429,7 +452,7 @@ export function AgenciesDirectoryClient({
               <button
                 key={spec}
                 onClick={() => setSelectedSpecialty(spec)}
-                className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                className={`px-3 py-1.5 min-h-[36px] rounded-lg text-[11px] font-medium transition-colors ${
                   isSpecActive
                     ? 'bg-blue-100 dark:bg-blue-900/60 text-[#1B4F8A] dark:text-blue-200 font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
@@ -597,15 +620,15 @@ export function AgenciesDirectoryClient({
                       <button
                         type="button"
                         onClick={() => setLeadTarget({ id: company.id, name: company.companyName })}
-                        className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1B4F8A] hover:bg-blue-800 text-white font-semibold text-xs py-2 rounded-md transition-colors shadow-xs"
+                        className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1B4F8A] hover:bg-blue-800 text-white font-semibold text-xs py-2.5 min-h-[44px] rounded-lg transition-colors shadow-xs"
                       >
-                        <MessageSquare className="w-3.5 h-3.5" />
+                        <MessageSquare className="w-4 h-4" />
                         <span>入札・売買の無料相談</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setDelistTarget(company)}
-                        className="w-full text-center text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 block transition-colors"
+                        className="w-full text-center text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 py-1.5 min-h-[32px] inline-flex items-center justify-center transition-colors"
                       >
                         掲載情報の修正・削除申請
                       </button>
@@ -615,17 +638,17 @@ export function AgenciesDirectoryClient({
                       <button
                         type="button"
                         onClick={() => setClaimTarget(company)}
-                        className="w-full inline-flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-900 text-[#1B4F8A] dark:text-blue-300 font-semibold text-xs py-2 rounded-md transition-colors shadow-2xs"
+                        className="w-full inline-flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-900 text-[#1B4F8A] dark:text-blue-300 font-semibold text-xs py-2.5 min-h-[44px] rounded-lg transition-colors shadow-2xs"
                       >
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#1B4F8A] dark:text-blue-400" />
+                        <ShieldCheck className="w-4 h-4 text-[#1B4F8A] dark:text-blue-400" />
                         <span>オーナー確認（無料）</span>
                       </button>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                        <span>公的登記に基づく自動掲載</span>
+                      <div className="flex items-center justify-between text-xs text-slate-400 pt-0.5">
+                        <span className="text-[11px]">公的登記に基づく自動掲載</span>
                         <button
                           type="button"
                           onClick={() => setDelistTarget(company)}
-                          className="hover:underline text-slate-500 dark:text-slate-400"
+                          className="hover:underline text-slate-500 dark:text-slate-400 min-h-[32px] px-2 inline-flex items-center text-[11px]"
                         >
                           修正・削除申請
                         </button>

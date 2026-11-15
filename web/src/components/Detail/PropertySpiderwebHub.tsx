@@ -1,19 +1,27 @@
 import React from 'react';
 import Link from 'next/link';
-import { MapPin, Building2, Train, TrendingUp, ShieldCheck, ChevronRight } from 'lucide-react';
+import { MapPin, Building2, Train, TrendingUp, ShieldCheck, ChevronRight, Flame, Sparkles } from 'lucide-react';
 
 interface PropertySpiderwebHubProps {
   prefecture?: string | null;
   city?: string | null;
   propertyType?: string | null;
   nearestStations?: Array<{ name_ja: string; line_name?: string | null }>;
+  startingPrice?: number | bigint | null;
+  sourceProvider?: string | null;
+  roiPercent?: number | null;
+  status?: string | null;
 }
 
 export function PropertySpiderwebHub({
   prefecture,
   city,
   propertyType = '戸建て',
-  nearestStations = []
+  nearestStations = [],
+  startingPrice,
+  sourceProvider,
+  roiPercent,
+  status
 }: PropertySpiderwebHubProps) {
   if (!prefecture) return null;
 
@@ -142,7 +150,7 @@ export function PropertySpiderwebHub({
             {lines.slice(0, 2).map(line => (
               <li key={line}>
                 <Link
-                  href={`/map?line=${encodeURIComponent(line)}`}
+                  href={`/search/station/${encodeURIComponent(line)}`}
                   className="hover:text-blue-700 hover:underline flex items-center gap-1"
                 >
                   <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -150,17 +158,22 @@ export function PropertySpiderwebHub({
                 </Link>
               </li>
             ))}
-            {stations.slice(0, 2).map(st => (
-              <li key={st}>
-                <Link
-                  href={`/map?keyword=${encodeURIComponent(st)}`}
-                  className="hover:text-blue-700 hover:underline flex items-center gap-1"
-                >
-                  <ChevronRight className="w-3 h-3 text-slate-400" />
-                  <span>{st}駅 周辺の競売物件</span>
-                </Link>
-              </li>
-            ))}
+            {nearestStations.slice(0, 2).map((st, idx) => {
+              const stationHref = st.line_name
+                ? `/search/station/${encodeURIComponent(st.line_name)}/${encodeURIComponent(st.name_ja)}`
+                : `/map?keyword=${encodeURIComponent(st.name_ja)}`;
+              return (
+                <li key={`${st.name_ja}-${idx}`}>
+                  <Link
+                    href={stationHref}
+                    className="hover:text-blue-700 hover:underline flex items-center gap-1"
+                  >
+                    <ChevronRight className="w-3 h-3 text-slate-400" />
+                    <span>{st.name_ja}駅 周辺の競売物件</span>
+                  </Link>
+                </li>
+              );
+            })}
             <li>
               <Link
                 href="/search/station"
@@ -191,20 +204,29 @@ export function PropertySpiderwebHub({
             </li>
             <li>
               <Link
-                href={`/trade-find?prefecture=${prefEncoded}`}
+                href={`/trade-find?pref=${prefEncoded}${cityEncoded ? `&city=${cityEncoded}` : ''}`}
                 className="hover:text-blue-700 hover:underline flex items-center gap-1"
               >
                 <ChevronRight className="w-3 h-3 text-slate-400" />
-                <span>{prefecture}の不動産実取引相場 (MLIT)</span>
+                <span>{prefecture}{city ? city : ''}の不動産実勢取引相場 (MLIT)</span>
               </Link>
             </li>
             <li>
               <Link
-                href="/area-map"
+                href={`/area-map/${prefEncoded}${cityEncoded ? `/${cityEncoded}` : ''}`}
                 className="hover:text-blue-700 hover:underline flex items-center gap-1"
               >
                 <ChevronRight className="w-3 h-3 text-slate-400" />
-                <span>エリア分析マップ (災害・用途地域)</span>
+                <span>{prefecture}{city ? city : ''}のエリア分析マップ (災害・用途地域)</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/auction/schedule"
+                className="hover:text-blue-700 hover:underline flex items-center gap-1"
+              >
+                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <span>裁判所 開札スケジュールカレンダー</span>
               </Link>
             </li>
             <li>
@@ -217,6 +239,97 @@ export function PropertySpiderwebHub({
               </Link>
             </li>
           </ul>
+        </div>
+      </div>
+
+      {/* --- HIGH-DEMAND INDUSTRY SEARCH INTENT MATRIX (TOP 10 KEYWORDS) --- */}
+      <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-2 mb-3">
+          <Flame className="w-4 h-4 text-orange-500" />
+          <h3 className="font-bold text-xs text-slate-800 dark:text-slate-200">
+            注目の検索キーワード・投資テーマから探す
+          </h3>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {/* #1 3点セット 読み方 */}
+          <Link
+            href="/blogs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 text-[11px] font-medium transition-colors"
+          >
+            <span>📄 3点セット 読み方 初心者ガイド</span>
+          </Link>
+
+          {/* #2 占有者 立ち退き 費用 期間 */}
+          <Link
+            href="/blogs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 text-[11px] font-medium transition-colors"
+          >
+            <span>⚖️ 占有者 立ち退き 費用 期間の目安</span>
+          </Link>
+
+          {/* #3 東京 競売 物件 格安 */}
+          <Link
+            href="/map?prefecture=%E6%9D%B1%E4%BA%AC%E9%83%BD&maxPrice=1000"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-[#1B4F8A] dark:text-blue-300 text-[11px] font-medium transition-colors"
+          >
+            <span>🏙️ 東京 競売 物件 格安 (1,000万円以下)</span>
+          </Link>
+
+          {/* #4 期間入札 流れ 裁判所 */}
+          <Link
+            href="/auction/schedule"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 text-[11px] font-medium transition-colors"
+          >
+            <span>📅 期間入札 流れ 裁判所スケジュール</span>
+          </Link>
+
+          {/* #5 ボロ戸建て 競売 利回り20% */}
+          <Link
+            href="/map?types[]=%E6%88%B8%E5%BB%BA%E3%81%A6&minGap=30"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-medium transition-colors"
+          >
+            <span>💰 ボロ戸建て 競売 利回り20%狙い物件</span>
+          </Link>
+
+          {/* #6 国税庁 公売 物件 検索 */}
+          <Link
+            href="/map?provider=NTA"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-800 dark:text-rose-300 text-[11px] font-medium transition-colors"
+          >
+            <span>🏛️ 国税庁 公売 物件 検索 (全国)</span>
+          </Link>
+
+          {/* #7 再建築不可 競売 リノベーション */}
+          <Link
+            href="/map?minGap=40"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-[11px] font-medium transition-colors"
+          >
+            <span>🔨 再建築不可 競売 リノベーション再生</span>
+          </Link>
+
+          {/* #8 埼玉 戸建て 競売 500万以下 */}
+          <Link
+            href="/map?prefecture=%E5%9F%BC%E7%8E%89%E7%9C%8C&types[]=%E6%88%B8%E5%BB%BA%E3%81%A6&maxPrice=500"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[11px] font-medium transition-colors"
+          >
+            <span>🏡 埼玉 戸建て 競売 500万以下</span>
+          </Link>
+
+          {/* #9 特別売却 競売 先着順 コツ */}
+          <Link
+            href="/auction/schedule"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-sky-800 dark:text-sky-300 text-[11px] font-medium transition-colors"
+          >
+            <span>⚡ 特別売却 競売 先着順 コツと日程</span>
+          </Link>
+
+          {/* #10 千葉 空き家 競売 再生 */}
+          <Link
+            href="/map?prefecture=%E5%8D%83%E8%91%89%E7%9C%8C&types[]=%E6%88%B8%E5%BB%BA%E3%81%A6"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-300 text-[11px] font-medium transition-colors"
+          >
+            <span>🏠 千葉 空き家 競売 再生・戸建て</span>
+          </Link>
         </div>
       </div>
     </section>

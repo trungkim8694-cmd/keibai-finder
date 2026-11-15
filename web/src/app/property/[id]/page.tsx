@@ -24,7 +24,7 @@ import { ViewTracker } from '@/components/Detail/ViewTracker';
 import { StickyActionBar } from '@/components/Detail/StickyActionBar';
 import { PropertySpiderwebHub } from '@/components/Detail/PropertySpiderwebHub';
 import { NearbyActiveGrid } from '@/components/Detail/NearbyActiveGrid';
-import { Inbox } from 'lucide-react';
+import { Inbox, HelpCircle, ChevronDown, BookOpen, Scale, Sparkles } from 'lucide-react';
 import { ImageGallery } from '@/components/Detail/ImageGallery';
 import { Metadata } from 'next';
 import { PropertyComments } from '@/components/Detail/PropertyComments';
@@ -84,16 +84,26 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const isExpired = (bidEndDate !== null && !isNaN(bidEndDate.getTime()) && bidEndDate < now) || property.status !== 'ACTIVE';
   const isRichEntity = Boolean(property.address && property.address !== 'Unknown' && property.address.trim().length > 2);
 
-  const statusPrefix = property.status === 'SOLD'
-    ? '【落札結果・過去実績】'
-    : isExpired
-      ? '【入札終了・過去実績】'
-      : '';
+  const isNta = property.source_provider === 'NTA';
+  const isBudgetHouse = property.property_type === '戸建て' && priceNum > 0 && priceNum <= 5000000;
+  const isSpecialSale = property.status === 'SPECIAL_SALE';
+
+  const statusPrefix = isSpecialSale
+    ? '【特別売却・先着順】'
+    : isNta
+      ? '【国税庁 公売】'
+      : isBudgetHouse
+        ? '【格安戸建て・利回り投資】'
+        : property.status === 'SOLD'
+          ? '【落札結果・過去実績】'
+          : isExpired
+            ? '【入札終了・過去実績】'
+            : '';
 
   const title = `${statusPrefix}【${priceFormatted}】${address}の${typeStr}｜${property.court_name ? property.court_name + ' ' : ''}${tagStr}情報`;
   const description = isExpired
-    ? `【過去の${tagStr}アーカイブ】${property.address}の${typeStr}（基準価格: ${priceFormatted}）。入札期間終了後の価格推移・AI査定・周辺の現在入札可能な類似物件データを公開中。`
-    : `${property.address}の${typeStr}（${tagStr}）。基準価格は${priceFormatted}です。市場価格より安い不動産をお探しならKeibai Finder. 過去の落札相場やAIによる価格査定データを公開中。`;
+    ? `【過去の${tagStr}アーカイブ】${property.address}の${typeStr}（基準価格: ${priceFormatted}）。3点セット（物件明細書・評価書）の分析、占有者立ち退き目安、期間入札後の価格推移・AI査定・類似物件データを公開中。`
+    : `${property.address}の${typeStr}（${tagStr}）。基準価格は${priceFormatted}です。3点セットの読み方・占有者の明渡し状況・裁判所の期間入札手続き・想定利回りシミュレーションを公開中。`;
   
   // Resolve thumbnail and images priority: Source image first, extracted images fallback
   const { thumbnailUrl: resolvedOgThumb } = resolvePropertyImages({
@@ -429,9 +439,9 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   const validThroughStr = isBidEndDateValid ? bidEndDate.toISOString() : undefined;
   const priceValidUntilStr = isBidEndDateValid ? bidEndDate.toISOString().split('T')[0] : undefined;
 
-  let accommodationType = "Accommodation";
+  let accommodationType = "Place";
   if (property.property_type === "戸建て") {
-    accommodationType = "House";
+    accommodationType = "SingleFamilyResidence";
   } else if (property.property_type === "マンション") {
     accommodationType = "Apartment";
   }
@@ -526,6 +536,54 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": breadcrumbItems
+  };
+
+  // Dynamic FAQ Schema targeting Top 10 High-Traffic Keywords (#1, #2, #4, #5, #7, #9)
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "この競売物件の3点セット（物件明細書・現況調査報告書・評価書）の読み方と確認方法は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Keibai Finderの物件詳細画面から裁判所公式の3点セットPDFを直接閲覧・ダウンロード可能です。初心者の方はまず「物件明細書」で買受人が引き受ける権利や賃借権の有無、「現況調査報告書」で占有者や建物の現況、「評価書」で周辺相場と公法上の制限（用途地域・建蔽率・再建築の可否）を確認することが鉄則です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "この物件に占有者（債務者や賃借人）がいる場合、立ち退きまでの費用と期間の目安は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "落札代金納付後に管轄地方裁判所へ「引渡命令」を申し立てることで、通常1〜2ヶ月程度で退去手続きを進めることができます。自主的な立ち退き交渉（引越し代・立退料）の相場は10万〜30万円、退去に応じず強制執行を行う場合の費用は30万〜80万円程度が目安です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "地方裁判所での期間入札の流れと入札保証金の振込期限は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "期間入札では、入札期間内に売却基準価額の20%以上の「入札保証金」を裁判所の指定口座へ振り込み、入札書および振込証明書を添えて管轄裁判所の執行官室へ提出（郵送または持参）します。開札日に最高価買受申出人が決定されます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "この物件の想定利回りやリノベーションによる高利回り再生のポイントは？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "周辺の成約相場および賃料相場から想定表面利回りをシミュレーション可能です。築年数の経過した戸建て（ボロ戸建て）や再建築不可物件でも、水回りや内装の集中リノベーションにより利回り15%〜20%超を狙える賃貸物件として再生する投資手法が注目されています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "特別売却（先着順）とは何ですか？どのような購入のコツがありますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "期間入札で入札者が現れなかった物件は「特別売却」に移行します。入札競争を行わず、売却基準価額で先着順にて即時購入申出ができる制度です。優良物件は受付初日の朝一番に申し立てが入るため、日程カレンダーを事前に確認して初日に裁判所窓口へ向かうことが最大のコツです。"
+        }
+      }
+    ]
   };
 
   // 5. PROCESS FINAL OBJECTS (SAFE SERIALIZATION FOR RSC)
@@ -908,11 +966,15 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
       />
       <div className="min-h-screen bg-slate-50/50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 font-sans pb-20 overflow-x-hidden w-full overflow-y-auto">
         {property && (
@@ -1022,6 +1084,43 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
 
         </div>
 
+        {/* --- FREQUENTLY ASKED QUESTIONS (FAQ RICH RESULTS & TOP KEYWORDS ENRICHMENT) --- */}
+        <section id="property-faq-section" className="w-full mt-10 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-6 shadow-2xs">
+          <div className="border-b border-slate-200 dark:border-zinc-800 pb-3 mb-5">
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span className="w-1 h-4 bg-[#1B4F8A] rounded-xs"></span>
+              よくある質問・競売入札ガイド（3点セット・立ち退き・期間入札）
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              この物件の調査や入札にあたって、初心者が疑問を持ちやすいポイントを専門的に解説しています。
+            </p>
+          </div>
+
+          <div className="space-y-3 text-xs">
+            {faqJsonLd.mainEntity.map((item, idx) => (
+              <details key={idx} className="group border border-slate-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-slate-50/50 dark:bg-zinc-950/40" open={idx === 0}>
+                <summary className="flex items-center justify-between p-3.5 font-bold text-slate-800 dark:text-slate-200 cursor-pointer hover:bg-slate-100/70 dark:hover:bg-zinc-800/60 transition-colors select-none">
+                  <span className="flex items-center gap-2 pr-2">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1B4F8A]/10 text-[#1B4F8A] dark:text-sky-400 font-extrabold text-[11px] shrink-0">
+                      Q
+                    </span>
+                    <span>{item.name}</span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform shrink-0" />
+                </summary>
+                <div className="px-4 pb-3.5 pt-1 text-slate-600 dark:text-slate-400 border-t border-slate-200/60 dark:border-zinc-800/60 bg-white dark:bg-zinc-900 leading-relaxed">
+                  <div className="flex items-start gap-2 pt-2">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold text-[11px] shrink-0 mt-0.5">
+                      A
+                    </span>
+                    <p>{item.acceptedAnswer.text}</p>
+                  </div>
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+
         {/* --- INTERNAL LINKING SPIDERWEB HUB & ACTIVE NEARBY CARDS (SEO SILO MATRIX) --- */}
         <div id="nearby-active-section" className="w-full mt-10 space-y-10 scroll-mt-24">
           {safeNearbyActive && safeNearbyActive.length > 0 && (
@@ -1036,6 +1135,10 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
             city={property.city || ''} 
             propertyType={property.property_type || ''} 
             nearestStations={safeNearestStations} 
+            startingPrice={property.starting_price}
+            sourceProvider={property.source_provider}
+            roiPercent={roiPercent}
+            status={property.status}
           />
         </div>
 

@@ -19,13 +19,33 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   if (!agency || !agency.isVerified) {
     return {
-      title: '会社情報が見つかりません | Keibai Finder',
+      title: '会社情報が見つかりません',
+      robots: { index: false, follow: false },
     };
   }
 
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://www.keibai-koubai.com';
+  const canonicalUrl = `${baseUrl}/agencies/${id}`;
+
   return {
-    title: `${agency.companyName} - 競売サポート会社 | Keibai Finder`,
+    title: `${agency.companyName} - 競売サポート会社`,
     description: `${agency.companyName}の連絡先、宅建業免許、対応エリア、お客様によるクチコミや評価を表示しています。`,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${agency.companyName} - 競売サポート会社｜Keibai Finder`,
+      description: `${agency.companyName}の連絡先、宅建業免許、対応エリア、お客様によるクチコミや評価を表示しています。`,
+      url: canonicalUrl,
+      siteName: 'Keibai Finder',
+      locale: 'ja_JP',
+      type: 'website',
+      images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: agency.companyName }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: ['/keibaikoubai.webp'],
+    },
   };
 }
 
@@ -78,8 +98,44 @@ export default async function AgencyPage({ params }: { params: Promise<{ id: str
     hasReviewed = !!review;
   }
 
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://www.keibai-koubai.com';
+  const agencyJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'RealEstateAgent',
+        '@id': `${baseUrl}/agencies/${id}#agent`,
+        name: agencyProfile.companyName,
+        url: `${baseUrl}/agencies/${id}`,
+        ...(agencyProfile.phone ? { telephone: agencyProfile.phone } : {}),
+        ...(agencyProfile.email ? { email: agencyProfile.email } : {}),
+        ...(agencyProfile.website ? { sameAs: agencyProfile.website } : {}),
+        ...(agencyProfile.prefectures && agencyProfile.prefectures.length > 0
+          ? {
+              areaServed: agencyProfile.prefectures.map((p) => ({
+                '@type': 'AdministrativeArea',
+                name: p,
+              })),
+            }
+          : {}),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'ホーム', item: `${baseUrl}/` },
+          { '@type': 'ListItem', position: 2, name: '全国不動産会社データベース', item: `${baseUrl}/agencies` },
+          { '@type': 'ListItem', position: 3, name: agencyProfile.companyName, item: `${baseUrl}/agencies/${id}` },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-12 px-4 sm:px-6 lg:px-8 font-sans">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(agencyJsonLd).replace(/</g, '\\u003c') }}
+      />
       <div className="max-w-5xl mx-auto">
         <Link
           href="/"

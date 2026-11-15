@@ -10,7 +10,6 @@ import {
   Loader2, 
   FileCheck,
   Award,
-  Sparkles,
   HelpCircle,
   ExternalLink,
   Tag,
@@ -222,14 +221,14 @@ export function CompanyClaimModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
       <div 
-        className="relative bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-slate-200 dark:border-zinc-800 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden text-slate-800 dark:text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
+        className="relative bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-slate-200 dark:border-zinc-800 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden text-slate-800 dark:text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
         role="dialog"
         aria-modal="true"
       >
         {/* MODAL HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-800/50">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
+            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -309,7 +308,7 @@ export function CompanyClaimModal({
                   {successInfo?.verificationLink && (
                     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg text-left">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                        <Sparkles className="w-4 h-4 text-blue-600" />
+                        <ShieldCheck className="w-4 h-4 text-blue-600" />
                         <span>即時確認（自動認証リンク）</span>
                       </div>
                       <p className="text-[11px] text-blue-800 dark:text-blue-300 mb-3">
@@ -330,7 +329,7 @@ export function CompanyClaimModal({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="px-6 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium rounded-md shadow-sm transition-colors"
+                  className="w-full sm:w-auto px-6 py-2.5 min-h-[44px] bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium rounded-lg shadow-sm transition-colors inline-flex items-center justify-center"
                 >
                   閉じる
                 </button>
@@ -680,18 +679,18 @@ export function CompanyClaimModal({
               </div>
 
               {/* ACTION BUTTONS */}
-              <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-3">
+              <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                  className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center justify-center text-center"
                 >
                   キャンセル
                 </button>
                 <button
                   type="submit"
                   disabled={loading || uploading}
-                  className="px-5 py-2.5 bg-[#1B4F8A] hover:bg-[#153e6d] text-white text-xs font-semibold rounded-md shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  className="w-full sm:w-auto px-5 py-2.5 min-h-[44px] bg-[#1B4F8A] hover:bg-[#153e6d] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 text-center"
                 >
                   {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{verificationMethod === 'DOCUMENT' ? '確認書類を添えて申請する（無料）' : '無料オーナー確認を申請する'}</span>

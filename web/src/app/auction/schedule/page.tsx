@@ -27,15 +27,20 @@ export async function generateMetadata(): Promise<Metadata> {
       '競売 日程'
     ],
     openGraph: {
-      title,
+      title: `${title}｜Keibai Finder`,
       description,
-      url: 'https://keibai-koubai.com/auction/schedule',
-      siteName: 'Keibai-Koubai.com',
+      url: 'https://www.keibai-koubai.com/auction/schedule',
+      siteName: 'Keibai Finder',
       locale: 'ja_JP',
       type: 'website',
+      images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: '不動産競売・公売 売却スケジュールカレンダー' }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: ['/keibaikoubai.webp'],
     },
     alternates: {
-      canonical: 'https://keibai-koubai.com/auction/schedule',
+      canonical: 'https://www.keibai-koubai.com/auction/schedule',
     },
   };
 }
@@ -57,13 +62,19 @@ export default async function AuctionSchedulePage() {
         '@type': 'ListItem',
         position: 1,
         name: 'ホーム',
-        item: 'https://keibai-koubai.com',
+        item: 'https://www.keibai-koubai.com',
       },
       {
         '@type': 'ListItem',
         position: 2,
+        name: '競売スケジュール',
+        item: 'https://www.keibai-koubai.com/auction/schedule',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
         name: '売却スケジュールカレンダー',
-        item: 'https://keibai-koubai.com/auction/schedule',
+        item: 'https://www.keibai-koubai.com/auction/schedule',
       },
     ],
   };
@@ -72,14 +83,18 @@ export default async function AuctionSchedulePage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
-      <main className="min-h-screen bg-[#F8FAFC] dark:bg-[#0D1117] text-slate-900 dark:text-slate-100 pb-16">
+      <main className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-slate-100 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
           {/* Breadcrumb Navigation */}
           <nav aria-label="パンくずリスト" className="text-xs text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-1.5 flex-wrap">
             <Link href="/" className="hover:text-[#1B4F8A] transition-colors">
               ホーム
+            </Link>
+            <span>/</span>
+            <Link href="/auction/schedule" className="hover:text-[#1B4F8A] transition-colors">
+              競売スケジュール
             </Link>
             <span>/</span>
             <span className="text-slate-800 dark:text-slate-200 font-medium">

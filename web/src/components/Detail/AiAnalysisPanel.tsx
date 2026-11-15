@@ -12,7 +12,11 @@ import {
   CheckCircle2, 
   Scale,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Users,
+  Clock,
+  Wrench,
+  Coins
 } from 'lucide-react';
 import { StructuredAiAnalysis } from '@/types';
 
@@ -296,6 +300,61 @@ export function AiAnalysisPanel({
             </ul>
           </div>
         )}
+
+        {/* --- DEEP RISK INTELLIGENCE: 占有者 立ち退き 費用 期間 (Keyword #2) --- */}
+        <div className="mt-4 p-4 rounded-lg bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 text-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+                <Users className="w-3.5 h-3.5" />
+              </div>
+              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                占有者・立ち退き（明渡し）費用と期間のシミュレーション
+              </h4>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/80 text-amber-800 dark:text-amber-300 font-semibold">
+              民事執行法第83条準拠
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
+            <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-amber-200/60 dark:border-amber-900/50">
+              <span className="text-slate-500 dark:text-slate-400 block mb-0.5">引渡命令の申立目安期間</span>
+              <span className="font-bold text-slate-900 dark:text-slate-100 block">通常 1〜2ヶ月（代金納付後）</span>
+              <span className="text-[10px] text-slate-500">裁判所の決定により強制執行が可能</span>
+            </div>
+            <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-amber-200/60 dark:border-amber-900/50">
+              <span className="text-slate-500 dark:text-slate-400 block mb-0.5">自主退去交渉・立退料相場</span>
+              <span className="font-bold text-slate-900 dark:text-slate-100 block">約 10万円 〜 30万円</span>
+              <span className="text-[10px] text-slate-500">引越し代・協力金としての合意目安</span>
+            </div>
+            <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-amber-200/60 dark:border-amber-900/50">
+              <span className="text-slate-500 dark:text-slate-400 block mb-0.5">強制執行（断行）費用目安</span>
+              <span className="font-bold text-slate-900 dark:text-slate-100 block">約 30万円 〜 80万円</span>
+              <span className="text-[10px] text-slate-500">執行官予納金・運送・残置物処分費用</span>
+            </div>
+          </div>
+
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            ※ 占有状況が「空き家」の場合は立ち退き費用は発生せず、残置物の処分対応のみとなります。占有者が債務者や第三者の場合、合意による円満退去を第一とし、不調時は裁判所の引渡命令を活用します。
+          </p>
+        </div>
+
+        {/* --- DEEP VALUE INTELLIGENCE: 再建築不可・ボロ戸建てリノベーション高利回り再生 (Keywords #5, #7, #10) --- */}
+        <div className="mt-4 p-4 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 text-xs space-y-2.5">
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
+              <Wrench className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+              再建築不可・ボロ戸建て・空き家のリノベーション再生投資ポイント
+            </h4>
+          </div>
+
+          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+            基準価格が格安な中古戸建て（ボロ戸建て）や、接道要件により建て替えが難しい「再建築不可」物件でも、建築確認申請を要しない<strong>「4号特例リフォーム・大規模スケルトン修繕」</strong>により現代的な住居へ再生が可能です。取得コストを抑えることで、想定利回り15%〜20%超の高利回り賃貸運用モデルとして全国の投資家に注目されています。
+          </p>
+        </div>
 
         {/* 6. Agency Lead CTA for Complex cases */}
         <div className="mt-4 p-3.5 rounded-lg bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

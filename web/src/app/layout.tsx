@@ -22,9 +22,6 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.keibai-koubai.com'),
-  alternates: {
-    canonical: '/',
-  },
   title: {
     default: "競売物件・公売物件の一括検索サイト｜Keibai Finder",
     template: "%s｜Keibai Finder"
@@ -145,8 +142,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
-          <GlobalHeader />
-          <AppLayoutWrapper>
+          <AppLayoutWrapper header={<GlobalHeader />}>
             {children}
           </AppLayoutWrapper>
         </Providers>

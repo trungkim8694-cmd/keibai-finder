@@ -36,3 +36,16 @@ node_modules/
 .agents/*
 !.agents/skills/
 .antigravity
+
+# Temporary test & duplicate files
+crawler (1)/
+*.geojson
+japan_geom*.json
+japan_mask.json
+test_*.js
+web/test_*.js
+web/tsconfig.audit.json
+crawler/data/competitor_crawl_progress.json
+crawler/check_live_results.py
+tests/
+

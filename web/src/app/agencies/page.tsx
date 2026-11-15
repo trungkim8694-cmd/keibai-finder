@@ -8,16 +8,23 @@ import { Building2, ChevronRight, Home, ShieldCheck } from 'lucide-react';
 export const revalidate = 60; // Dynamic revalidation every 60s
 
 export const metadata: Metadata = {
-  title: '全国不動産会社データベース（宅建免許保有企業）｜keibai-koubai.com',
+  title: '全国不動産会社データベース（宅建免許保有企業）',
   description: '国土交通省・自治体公開の宅地建物取引業者名簿および法人番号データに基づく全国の不動産会社データベース。競売入札代行、明渡し交渉、任意売却、物件調査に対応した免許保有企業を検索できます。',
   alternates: {
     canonical: 'https://www.keibai-koubai.com/agencies',
   },
   openGraph: {
-    title: '全国不動産会社データベース（宅建免許保有企業）｜keibai-koubai.com',
+    title: '全国不動産会社データベース（宅建免許保有企業）｜Keibai Finder',
     description: '国土交通省・自治体公開の宅地建物取引業者名簿および法人番号データに基づく全国の不動産会社データベース。競売入札代行、明渡し交渉、任意売却に対応した免許保有企業を検索できます。',
     url: 'https://www.keibai-koubai.com/agencies',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
     type: 'website',
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: '全国不動産会社データベース' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
   },
 };
 
@@ -79,11 +86,11 @@ export default async function AgenciesPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(directoryJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(directoryJsonLd).replace(/</g, '\\u003c') }}
       />
 
       <div className="min-h-screen bg-slate-50/50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 font-sans pb-20">

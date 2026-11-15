@@ -7,7 +7,18 @@ export const metadata = {
   description: 'Keibai Lens Chrome拡張機能における個人情報の保護方針、パーミッション（権限）の利用目的、およびデータ取扱基準に関する公式ポリシー。',
   alternates: {
     canonical: 'https://www.keibai-koubai.com/extension/privacy',
-  }
+  },
+  openGraph: {
+    title: 'プライバシーポリシー (Privacy Policy) - Keibai Lens 拡張機能',
+    description: 'Keibai Lens Chrome拡張機能における個人情報保護方針・権限利用目的。',
+    url: 'https://www.keibai-koubai.com/extension/privacy',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+  },
 };
 
 export default function ExtensionPrivacyPolicy() {

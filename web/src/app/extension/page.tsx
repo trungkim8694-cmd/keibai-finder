@@ -19,9 +19,7 @@ import {
   FileCheck2,
   Building2,
   Database,
-  Cpu,
-  Sparkles,
-  Zap
+  Cpu
 } from 'lucide-react';
 import ExtensionSimulator from './ExtensionSimulator';
 
@@ -30,16 +28,64 @@ export const metadata = {
   description: 'SUUMOやHOME\'Sなどの不動産ポータルサイト閲覧中に、国土交通省の公的取引相場・地価公示、および国土地理院のハザードマップ（浸水・土砂・津波）をワンクリックで自動照会する無料拡張機能。',
   alternates: {
     canonical: 'https://www.keibai-koubai.com/extension',
-  }
+  },
+  openGraph: {
+    title: 'Keibai Lens - 不動産価格・ハザードリスク即時照会 Chrome拡張機能｜Keibai Finder',
+    description: 'SUUMOやHOME\'S閲覧中にワンクリックで取引相場とハザードリスクを自動照会。',
+    url: 'https://www.keibai-koubai.com/extension',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
+    type: 'website',
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: 'Keibai Lens Chrome拡張機能' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
+  },
 };
 
 export default function ExtensionLandingPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'SoftwareApplication',
+        name: 'Keibai Lens',
+        applicationCategory: 'BrowserApplication',
+        operatingSystem: 'Chrome',
+        url: 'https://www.keibai-koubai.com/extension',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'JPY' },
+        publisher: { '@id': 'https://www.keibai-koubai.com/#organization' },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://www.keibai-koubai.com' },
+          { '@type': 'ListItem', position: 2, name: 'Keibai Lens 拡張機能', item: 'https://www.keibai-koubai.com/extension' },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0D1117] text-slate-800 dark:text-slate-200 transition-colors">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       
       {/* 1. Hero Section */}
-      <section className="pt-14 pb-16 px-4 sm:px-6 lg:px-8 border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-[#151B22]/70 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto">
+      <section className="pt-8 pb-16 px-4 sm:px-6 lg:px-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151B22]">
+        <div className="max-w-7xl mx-auto">
+          {/* Breadcrumbs */}
+          <nav aria-label="パンくずリスト" className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+            <Link href="/" className="hover:text-[#1B4F8A] dark:hover:text-sky-400 transition-colors">
+              ホーム
+            </Link>
+            <span className="mx-1.5 text-slate-400">/</span>
+            <span className="text-slate-800 dark:text-slate-200 font-medium">Keibai Lens 拡張機能</span>
+          </nav>
+
           {/* Trust Badges Header */}
           <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#1B4F8A]/10 text-[#1B4F8A] dark:bg-[#1B4F8A]/30 dark:text-sky-300 border border-[#1B4F8A]/20">
@@ -56,11 +102,11 @@ export default function ExtensionLandingPage() {
 
           {/* Main Title & Value Proposition */}
           <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-tight">
               ポータルサイトの物件閲覧中に、<br />
               <span className="text-[#1B4F8A] dark:text-sky-400">公的相場</span> と <span className="text-rose-700 dark:text-rose-400">災害リスク</span> を瞬時に可視化。
             </h1>
-            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
               SUUMO・HOME&apos;S・楽待・健美家などの掲載住所を選択するだけ。国土交通省の不動産取引データと国土地理院のハザード情報を1秒で自動照会し、客観的な投資判断を支援します。
             </p>
           </div>
@@ -89,7 +135,7 @@ export default function ExtensionLandingPage() {
             </a>
           </div>
 
-          {/* Social Proof & Quantitative Metrics */}
+          {/* Quantitative Metrics Bar */}
           <div className="mt-12 pt-8 border-t border-slate-200/80 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
             <div>
               <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100">100%</div>
@@ -112,15 +158,15 @@ export default function ExtensionLandingPage() {
       </section>
 
       {/* 2. Interactive Extension Simulator (Demo) */}
-      <section id="interactive-demo" className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+      <section id="interactive-demo" className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center mb-10 space-y-2">
-          <div className="inline-flex items-center gap-1 text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400 uppercase">
-            <Zap className="w-3.5 h-3.5" /> Interactive Live Simulator
+          <div className="inline-flex items-center gap-1 text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400">
+            動作シミュレーション
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">
             実際の画面で体験するKeibai Lensの動作
           </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
             物件所在地を選択するだけで、公的実勢相場、災害リスク、周辺競売案件を瞬時に診断します。下のタブをクリックして診断内容をお試しください。
           </p>
         </div>
@@ -131,11 +177,11 @@ export default function ExtensionLandingPage() {
 
       {/* 3. 3-Step Setup Guide */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-[#151B22]/50">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 space-y-2">
-            <h2 className="text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400 uppercase">Simple Setup</h2>
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">わずか3ステップで導入完了</p>
-            <p className="text-sm text-slate-600 dark:text-slate-400">会員登録や複雑な初期設定は不要。1分で準備が整います。</p>
+            <h2 className="text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400">かんたん3ステップ導入</h2>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">わずか3ステップで導入完了</p>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">会員登録や複雑な初期設定は不要。1分で準備が整います。</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -173,11 +219,11 @@ export default function ExtensionLandingPage() {
       </section>
 
       {/* 4. Supported Portals & Comparison Table */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center mb-10 space-y-2">
-          <h2 className="text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400 uppercase">Coverage & Efficiency</h2>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">国内主要ポータルサイトに対応</p>
-          <p className="text-sm text-slate-600 dark:text-slate-400">日常的に利用する大手不動産ポータル上で、シームレスに機能します。</p>
+          <h2 className="text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400">対応ポータル &amp; 業務効率化</h2>
+          <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">国内主要ポータルサイトに対応</p>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">日常的に利用する大手不動産ポータル上で、シームレスに機能します。</p>
         </div>
 
         {/* Portal Chips */}
@@ -198,16 +244,18 @@ export default function ExtensionLandingPage() {
           ))}
         </div>
 
-        {/* Comparison Table */}
+        {/* Comparison Table & Mobile Stacked Cards */}
         <div className="b2b-card overflow-hidden bg-white dark:bg-[#151B22] border border-slate-200 dark:border-slate-800 rounded-lg">
           <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Layers className="w-4 h-4 text-[#1B4F8A] dark:text-sky-400" />
               従来の調査フローとの比較
             </h3>
-            <span className="text-[11px] text-slate-500 font-medium">作業効率 約90% 削減</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">作業効率 約90% 削減</span>
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Desktop Table: hidden on < md */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/50 dark:bg-slate-900/30 text-slate-500 border-b border-slate-200 dark:border-slate-800">
                 <tr>
@@ -220,7 +268,7 @@ export default function ExtensionLandingPage() {
                 <tr>
                   <td className="p-3.5 font-medium">所要時間</td>
                   <td className="p-3.5 text-slate-500">1件あたり約15〜20分（各省庁・自治体サイトを往復）</td>
-                  <td className="p-3.5 font-bold text-[#1B4F8A] dark:text-sky-400 bg-blue-50/40 dark:bg-blue-950/20">約1.2秒（1クリックで画面上に即時集約）</td>
+                  <td className="p-3.5 font-bold text-[#1B4F8A] dark:text-sky-400 bg-blue-50/40 dark:bg-blue-950/20 tabular-nums">約1.2秒（1クリックで画面上に即時集約）</td>
                 </tr>
                 <tr>
                   <td className="p-3.5 font-medium">ハザードリスク判定</td>
@@ -245,16 +293,64 @@ export default function ExtensionLandingPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Stacked Cards: md:hidden */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {[
+              {
+                item: '所要時間',
+                manual: '1件あたり約15〜20分（各省庁・自治体サイトを往復）',
+                lens: '約1.2秒（1クリックで画面上に即時集約）',
+                lensColor: 'text-[#1B4F8A] dark:text-sky-400 font-bold',
+              },
+              {
+                item: 'ハザードリスク判定',
+                manual: '自治体PDFや国土地理院サイトを個別に開き住所検索',
+                lens: '洪水・土砂・津波を重層一括判定',
+                lensColor: 'text-[#1B4F8A] dark:text-sky-400 font-bold',
+              },
+              {
+                item: '公的実勢相場',
+                manual: '土地総合情報システムで地区・条件を再指定して照会',
+                lens: '国土交通省APIから成約坪単価・推移を自動算出',
+                lensColor: 'text-[#1B4F8A] dark:text-sky-400 font-bold',
+              },
+              {
+                item: '周辺競売・公売案件',
+                manual: '裁判所BITサイトで事件番号や所在地を再検索',
+                lens: '半径圏内の割安物件（相場比-20〜40%）を即時通知',
+                lensColor: 'text-[#1B4F8A] dark:text-sky-400 font-bold',
+              },
+              {
+                item: '利用コスト',
+                manual: '有料調査ツール（月額1万〜3万円程度）',
+                lens: '完全無料（オープンデータ活用による無償提供）',
+                lensColor: 'text-emerald-600 dark:text-emerald-400 font-bold',
+              },
+            ].map((row, idx) => (
+              <div key={idx} className="p-4 space-y-2 text-xs">
+                <div className="font-bold text-slate-900 dark:text-slate-100">{row.item}</div>
+                <div className="p-2.5 rounded bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] text-slate-400 block font-medium">一般的な手動調査</span>
+                  <span className="text-slate-600 dark:text-slate-400">{row.manual}</span>
+                </div>
+                <div className="p-2.5 rounded bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 space-y-1">
+                  <span className="text-[10px] text-[#1B4F8A] dark:text-sky-400 block font-semibold">Keibai Lens 拡張機能</span>
+                  <span className={row.lensColor}>{row.lens}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* 5. Permission Transparency & Security (APPI & Chrome Store) */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-[#151B22]/50">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10 space-y-2">
-            <h2 className="text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400 uppercase">Privacy & Transparency</h2>
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">個人情報保護と権限の透明性</p>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <h2 className="text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400">セキュリティと透明性</h2>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">個人情報保護と権限の透明性</p>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
               当拡張機能は、ユーザーのプライバシーを最優先に設計されています。個人情報保護法（APPI）およびChrome Web Storeポリシーを厳格に遵守します。
             </p>
           </div>
@@ -295,11 +391,11 @@ export default function ExtensionLandingPage() {
         </div>
       </section>
 
-      {/* 6. FAQ Section (6 Essential B2B Questions) */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+      {/* 6. FAQ Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center mb-10 space-y-2">
-          <h2 className="text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400 uppercase">FAQ</h2>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">よくあるご質問</p>
+          <h2 className="text-xs font-semibold tracking-wider text-[#1B4F8A] dark:text-sky-400">よくあるご質問</h2>
+          <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">よくあるご質問（FAQ）</p>
         </div>
 
         <div className="space-y-3.5">
@@ -367,11 +463,11 @@ export default function ExtensionLandingPage() {
 
       {/* 7. Bottom CTA Banner */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-slate-800 bg-[#1B4F8A]/5 dark:bg-[#151B22]">
-        <div className="max-w-3xl mx-auto text-center space-y-6">
+        <div className="max-w-7xl mx-auto text-center space-y-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">
             不動産ポータルの閲覧を、より確実で安全に。
           </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
             1クリックで公的相場とハザードリスクを照合。今すぐ無料でお使いのGoogle Chromeに追加できます。
           </p>
           <div className="pt-2">
@@ -392,17 +488,17 @@ export default function ExtensionLandingPage() {
 
       {/* 8. Footer */}
       <footer className="py-8 px-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
-        <div className="max-w-4xl mx-auto space-y-2">
+        <div className="max-w-7xl mx-auto space-y-2">
           <p>© 2026 Keibai Finder / Keibai-Koubai. All rights reserved.</p>
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <Link href="/extension/privacy" className="hover:underline text-[#1B4F8A] dark:text-sky-400">
               プライバシーポリシー（拡張機能）
             </Link>
-            <span>•</span>
+            <span className="hidden sm:inline text-slate-400">•</span>
             <Link href="/terms" className="hover:underline text-[#1B4F8A] dark:text-sky-400">
               利用規約
             </Link>
-            <span>•</span>
+            <span className="hidden sm:inline text-slate-400">•</span>
             <Link href="/" className="hover:underline text-[#1B4F8A] dark:text-sky-400">
               Keibai Finder トップへ
             </Link>

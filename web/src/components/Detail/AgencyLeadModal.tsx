@@ -10,7 +10,7 @@ import {
   MessageSquare, 
   Building2, 
   Send,
-  Sparkles,
+  Clock,
   Users
 } from 'lucide-react';
 import { submitAgencyLead } from '@/actions/agencyActions';
@@ -108,7 +108,7 @@ export function AgencyLeadModal({
 
   return (
     <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-lg overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-800/50">
           <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export function AgencyLeadModal({
               <button
                 type="button"
                 onClick={handleResetAndClose}
-                className="mt-2 px-6 py-2.5 text-xs font-medium bg-[#1B4F8A] hover:bg-[#143D6C] text-white rounded-lg transition-colors shadow-xs"
+                className="mt-2 w-full sm:w-auto px-6 py-2.5 min-h-[44px] text-xs font-semibold bg-[#1B4F8A] hover:bg-[#143D6C] text-white rounded-lg transition-colors shadow-xs inline-flex items-center justify-center text-center"
               >
                 閉じる
               </button>
@@ -346,7 +346,7 @@ export function AgencyLeadModal({
                   />
                   <div className="text-[11px] text-slate-700 dark:text-slate-200 leading-snug">
                     <span className="font-bold text-[#1B4F8A] dark:text-blue-300 flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <Clock className="w-3.5 h-3.5 text-[#1B4F8A] dark:text-blue-400" />
                       迅速回答サポート（推奨・完全無料）
                     </span>
                     <p className="text-[10.5px] text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
@@ -360,18 +360,18 @@ export function AgencyLeadModal({
                 <p className="text-red-600 text-xs font-medium">{errorMessage}</p>
               )}
 
-              <div className="pt-2 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-2.5">
+              <div className="pt-2 border-t border-slate-100 dark:border-zinc-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={handleResetAndClose}
-                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 rounded-lg transition-colors"
+                  className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] text-slate-600 dark:text-slate-400 hover:text-slate-800 rounded-lg transition-colors flex items-center justify-center text-center"
                 >
                   キャンセル
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2.5 font-bold bg-[#1B4F8A] hover:bg-[#143D6C] text-white rounded-lg transition-colors disabled:opacity-50 shadow-xs flex items-center gap-1.5"
+                  className="w-full sm:w-auto px-5 py-2.5 min-h-[44px] font-bold bg-[#1B4F8A] hover:bg-[#143D6C] text-white rounded-lg transition-colors disabled:opacity-50 shadow-xs flex items-center justify-center gap-1.5 text-center"
                 >
                   {isSubmitting ? (
                     <span>送信中...</span>

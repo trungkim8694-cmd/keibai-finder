@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { MlitTransaction } from '@/lib/mlitApi';
 import { ScatterChart, Scatter, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -13,6 +13,10 @@ interface TradeChartsProps {
 }
 
 export default function TradeCharts({ transactions, trendData = [], city, pref, propertyType }: TradeChartsProps) {
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   // Transform Data for Scatter Chart (Area vs Price)
   const scatterData = useMemo(() => {
@@ -103,38 +107,44 @@ export default function TradeCharts({ transactions, trendData = [], city, pref, 
                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1 font-semibold">
                      最新取引平均価格 / 平均面積 (単価) ({latestTrend.year}年)
                    </p>
-                   <div className="flex items-baseline gap-1 font-bold text-slate-900 dark:text-slate-100">
+                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-bold text-slate-900 dark:text-slate-100">
                       <span className="text-2xl font-bold tabular-nums text-[#1B4F8A] dark:text-blue-400">
                         {latestTrendPriceMan.toLocaleString('ja-JP')}
                       </span>
-                      <span className="text-xs text-slate-500 mr-2">万円</span>
+                      <span className="text-xs text-slate-500 mr-1">万円</span>
                       <span className="text-lg tabular-nums">/ {latestTrendArea}㎡</span>
-                      <span className="text-xs text-slate-500 ml-1 tabular-nums">({latestTrendSqmPrice}万円/㎡)</span>
+                      <span className="text-xs text-slate-500 tabular-nums">({latestTrendSqmPrice}万円/㎡)</span>
                    </div>
                 </div>
              )}
              <div className="h-44 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                   <BarChart data={trendData} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
-                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
-                     <XAxis 
-                        dataKey="year" 
-                        tick={{ fill: '#64748B', fontSize: 11 }} 
-                        axisLine={false} 
-                        tickLine={false} 
-                     />
-                     <YAxis 
-                        tick={{ fill: '#64748B', fontSize: 11 }} 
-                        tickFormatter={(val) => `${Math.round(val / 10000).toLocaleString()}`}
-                        axisLine={false} 
-                        tickLine={false} 
-                        width={55}
-                     />
-                     <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(27, 79, 138, 0.05)' }} />
-                     {/* Kachi-iro Primary Bar */}
-                     <Bar dataKey="price" fill="#1B4F8A" radius={[3, 3, 0, 0]} maxBarSize={36} />
-                   </BarChart>
-                </ResponsiveContainer>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                     <BarChart data={trendData} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
+                       <XAxis 
+                          dataKey="year" 
+                          tick={{ fill: '#64748B', fontSize: 11 }} 
+                          axisLine={false} 
+                          tickLine={false} 
+                       />
+                       <YAxis 
+                          tick={{ fill: '#64748B', fontSize: 11 }} 
+                          tickFormatter={(val) => `${Math.round(val / 10000).toLocaleString()}`}
+                          axisLine={false} 
+                          tickLine={false} 
+                          width={55}
+                       />
+                       <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(27, 79, 138, 0.05)' }} />
+                       {/* Kachi-iro Primary Bar */}
+                       <Bar dataKey="price" fill="#1B4F8A" radius={[3, 3, 0, 0]} maxBarSize={36} />
+                     </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-xs text-slate-400">
+                    グラフ読み込み中...
+                  </div>
+                )}
              </div>
           </div>
         </div>
@@ -154,45 +164,51 @@ export default function TradeCharts({ transactions, trendData = [], city, pref, 
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1 font-semibold">
                 取引平均価格 / 平均面積 (単価) (2023年基準)
               </p>
-              <div className="flex items-baseline gap-1 font-bold text-slate-900 dark:text-slate-100">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-bold text-slate-900 dark:text-slate-100">
                  <span className="text-2xl font-bold tabular-nums text-[#1B4F8A] dark:text-blue-400">
                    {avgPrice.toLocaleString('ja-JP')}
                  </span>
-                 <span className="text-xs text-slate-500 mr-2">万円</span>
+                 <span className="text-xs text-slate-500 mr-1">万円</span>
                  <span className="text-lg tabular-nums">/ {avgArea}㎡</span>
-                 <span className="text-xs text-slate-500 ml-1 tabular-nums">({avgSqmPrice}万円/㎡)</span>
+                 <span className="text-xs text-slate-500 tabular-nums">({avgSqmPrice}万円/㎡)</span>
               </div>
            </div>
 
            <div className="h-60 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                 <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
-                   <XAxis 
-                      type="number" 
-                      dataKey="area" 
-                      name="面積" 
-                      unit="㎡" 
-                      tick={{ fill: '#64748B', fontSize: 11 }} 
-                      axisLine={false} 
-                      tickLine={false} 
-                      domain={['auto', 'auto']}
-                   />
-                   <YAxis 
-                      type="number" 
-                      dataKey="priceMan" 
-                      name="価格" 
-                      tick={{ fill: '#64748B', fontSize: 11 }} 
-                      tickFormatter={(val) => `${val.toLocaleString()}万`}
-                      axisLine={false} 
-                      tickLine={false} 
-                      width={55}
-                   />
-                   <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                   {/* Slate Indigo Dot Scatter, Anti-AI Gimmick */}
-                   <Scatter name="取引実績" data={scatterData} fill="#1B4F8A" fillOpacity={0.65} />
-                 </ScatterChart>
-              </ResponsiveContainer>
+              {isMounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                   <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
+                     <XAxis 
+                        type="number" 
+                        dataKey="area" 
+                        name="面積" 
+                        unit="㎡" 
+                        tick={{ fill: '#64748B', fontSize: 11 }} 
+                        axisLine={false} 
+                        tickLine={false} 
+                        domain={['auto', 'auto']}
+                     />
+                     <YAxis 
+                        type="number" 
+                        dataKey="priceMan" 
+                        name="価格" 
+                        tick={{ fill: '#64748B', fontSize: 11 }} 
+                        tickFormatter={(val) => `${val.toLocaleString()}万`}
+                        axisLine={false} 
+                        tickLine={false} 
+                        width={55}
+                     />
+                     <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                     {/* Slate Indigo Dot Scatter, Anti-AI Gimmick */}
+                     <Scatter name="取引実績" data={scatterData} fill="#1B4F8A" fillOpacity={0.65} />
+                   </ScatterChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-xs text-slate-400">
+                  グラフ読み込み中...
+                </div>
+              )}
            </div>
         </div>
       </div>

@@ -20,7 +20,20 @@ export const metadata: Metadata = {
   title: 'お問い合わせ (Contact Us) | 株式会社ＴＱＣ',
   description: '競売物件・公売物件ポータル「Keibai-Koubai Finder」の公式お問い合わせ窓口です。サービスのご利用方法、物件掲載・データ照会、不動産会社様とのパートナー提携のご相談はこちらから承ります。運営：株式会社ＴＱＣ（東京都知事 (01) 第107650号）。',
   alternates: {
-    canonical: 'https://keibai-koubai.com/contact',
+    canonical: 'https://www.keibai-koubai.com/contact',
+  },
+  openGraph: {
+    title: 'お問い合わせ (Contact Us) | 株式会社ＴＱＣ',
+    description: 'Keibai-Koubai Finder 公式お問い合わせフォーム及び連絡先案内。',
+    url: 'https://www.keibai-koubai.com/contact',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
+    type: 'website',
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: 'Keibai Finder お問い合わせ' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
   },
 };
 
@@ -29,7 +42,7 @@ export default function ContactPage() {
     '@context': 'https://schema.org',
     '@type': 'ContactPage',
     name: 'お問い合わせ | 株式会社ＴＱＣ',
-    url: 'https://keibai-koubai.com/contact',
+    url: 'https://www.keibai-koubai.com/contact',
     description: 'Keibai-Koubai Finder 公式お問い合わせフォーム及び連絡先案内',
     mainEntity: {
       '@type': 'RealEstateAgent',
@@ -38,7 +51,7 @@ export default function ContactPage() {
       telephone: '+81-3-6907-1219',
       faxNumber: '+81-3-6701-2399',
       email: 'info@keibai-koubai.com',
-      url: 'https://keibai-koubai.com',
+      url: 'https://www.keibai-koubai.com',
       address: {
         '@type': 'PostalAddress',
         postalCode: '171-0022',
@@ -63,7 +76,7 @@ export default function ContactPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-[#0D1117] py-8 px-4 sm:px-6 lg:px-8 font-sans">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
 
       {/* 1280px Standard B2B Container */}

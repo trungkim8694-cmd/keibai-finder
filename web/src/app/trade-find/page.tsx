@@ -13,31 +13,47 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const searchParams = await props.searchParams;
-  const pref = typeof searchParams?.pref === 'string' ? searchParams.pref : '';
+  const rawPref = searchParams?.pref || searchParams?.prefecture;
+  const pref = typeof rawPref === 'string' ? rawPref : '';
   const city = typeof searchParams?.city === 'string' ? searchParams.city : '';
   const type = typeof searchParams?.type === 'string' ? searchParams.type : '戸建て';
 
-  let title = "不動産取引価格検索 (実勢相場) | Keibai Finder";
+  let title = "不動産取引価格検索 (実勢相場)";
   let description = "国土交通省 不動産取引情報ライブラリ（実勢価格）に基づく不動産取引価格相場の検索ツールです。過去5年の地価推移や実際の取引履歴を確認できます。";
 
   if (pref && city) {
-    title = `${pref}${city} ${type}の不動産取引価格相場・地価推移 | Keibai Finder`;
+    title = `${pref}${city} ${type}の不動産取引価格相場・地価推移`;
     description = `${pref}${city}エリアにおける${type}の過去の取引価格、過去5年間の地価推移、平均面積・単価などの最新実績データを完全無料で検索・照合できます。`;
   }
 
   return {
     title,
     description,
+    alternates: {
+      canonical: 'https://www.keibai-koubai.com/trade-find',
+    },
     openGraph: {
-      title,
+      title: `${title}｜Keibai Finder`,
       description,
+      url: 'https://www.keibai-koubai.com/trade-find',
+      siteName: 'Keibai Finder',
+      locale: 'ja_JP',
       type: 'website',
+      images: [
+        {
+          url: '/trade-price-search.webp',
+          width: 1200,
+          height: 630,
+          alt: '国土交通省データ 不動産取引価格検索',
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
-      title,
+      title: `${title}｜Keibai Finder`,
       description,
-    }
+      images: ['/trade-price-search.webp'],
+    },
   };
 }
 
@@ -50,7 +66,8 @@ export default async function TradeFindPage(
   
   const city = typeof searchParams?.city === 'string' ? searchParams.city : '';
   const type = typeof searchParams?.type === 'string' ? searchParams.type : '戸建て';
-  const pref = typeof searchParams?.pref === 'string' ? searchParams.pref : '';
+  const rawPref = searchParams?.pref || searchParams?.prefecture;
+  const pref = typeof rawPref === 'string' ? rawPref : '';
   const minPrice = typeof searchParams?.minPrice === 'string' ? searchParams.minPrice : '';
   const maxPrice = typeof searchParams?.maxPrice === 'string' ? searchParams.maxPrice : '';
   const maxWalk = typeof searchParams?.maxWalk === 'string' ? searchParams.maxWalk : '';
@@ -167,12 +184,39 @@ export default async function TradeFindPage(
      })).filter(d => d.price > 0);
   }
 
+  const tradeJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebApplication',
+        '@id': 'https://www.keibai-koubai.com/trade-find#webapp',
+        name: '国土交通省 不動産取引価格検索 (実勢相場)',
+        url: 'https://www.keibai-koubai.com/trade-find',
+        applicationCategory: 'FinanceApplication',
+        operatingSystem: 'All',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'JPY' },
+        provider: { '@id': 'https://www.keibai-koubai.com/#organization' },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://www.keibai-koubai.com' },
+          { '@type': 'ListItem', position: 2, name: '不動産取引価格検索', item: 'https://www.keibai-koubai.com/trade-find' },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0D1117] text-slate-900 dark:text-slate-100 pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(tradeJsonLd).replace(/</g, '\\u003c') }}
+      />
       {/* Header Container chuẩn B2B */}
       <div className="bg-white dark:bg-[#151B22] border-b border-slate-200/90 dark:border-slate-800/90 sticky top-0 z-40 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <Link
                 href="/"
@@ -182,7 +226,7 @@ export default async function TradeFindPage(
                 <span>ホームへ戻る</span>
               </Link>
               <h1 className="text-lg lg:text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-[#1B4F8A] dark:text-blue-400" />
+                <FileSpreadsheet className="w-5 h-5 text-[#1B4F8A] dark:text-blue-400 shrink-0" />
                 <span>
                   {city ? `${pref}${displayCity} ${type}の` : ''}不動産取引価格検索 (実勢相場)
                 </span>
@@ -240,7 +284,18 @@ export default async function TradeFindPage(
               </div>
             </div>
 
-            {/* Bảng dữ liệu giao dịch mật độ cao (High Density Table) */}
+            {/* Mobile TradeCharts (< xl) */}
+            <div className="block xl:hidden">
+              <TradeCharts
+                transactions={filteredTransactions}
+                trendData={trendData}
+                propertyType={type}
+                city={displayCity}
+                pref={pref}
+              />
+            </div>
+
+            {/* Bảng dữ liệu giao dịch mật度 cao (High Density Table) */}
             {city && !cityCode ? (
               <div className="bg-white dark:bg-[#151B22] rounded-lg border border-slate-200/90 dark:border-slate-800/90 p-12 text-center text-xs text-slate-500">
                 市区町村コードを特定できませんでした。都道府県と市区町村名が正しいかご確認ください。（例: 東京都新宿区、富山県富山市）
@@ -262,13 +317,15 @@ export default async function TradeFindPage(
           {/* Cột phải: Biểu đồ phân tích & Chỉ số vĩ mô */}
           <div className="xl:col-span-4">
              <div className="xl:sticky top-20 space-y-5">
-                <TradeCharts
-                  transactions={filteredTransactions}
-                  trendData={trendData}
-                  propertyType={type}
-                  city={displayCity}
-                  pref={pref}
-                />
+                <div className="hidden xl:block">
+                  <TradeCharts
+                    transactions={filteredTransactions}
+                    trendData={trendData}
+                    propertyType={type}
+                    city={displayCity}
+                    pref={pref}
+                  />
+                </div>
                 
                 {/* Thẻ Chiến Lược Định Giá BĐS Đấu Giá */}
                 <div className="bg-white dark:bg-[#151B22] rounded-lg p-4 border border-slate-200/90 dark:border-slate-800/90 space-y-2.5 text-xs shadow-xs">

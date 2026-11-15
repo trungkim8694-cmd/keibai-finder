@@ -1,32 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/adminAuth";
 
-export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const dynamic = "force-dynamic";
+
+export async function GET(_request: NextRequest) {
+  const { errorResponse } = await requireAdminSession();
+  if (errorResponse) return errorResponse;
 
   try {
-    const totalUsers = await prisma.user.count();
-    const totalComments = await prisma.comment.count();
-    const totalProperties = await prisma.property.count({ where: { status: 'ACTIVE' } });
-    
-    const latestProperty = await prisma.property.findFirst({
-      orderBy: { created_at: 'desc' },
-      select: { created_at: true }
-    });
+    const [totalUsers, totalComments, totalProperties, latestProperty] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.comment.count(),
+        prisma.property.count({ where: { status: "ACTIVE" } }),
+        prisma.property.findFirst({
+          orderBy: { created_at: "desc" },
+          select: { created_at: true },
+        }),
+      ]);
 
     return NextResponse.json({
       stats: {
         totalUsers,
         totalComments,
         totalProperties,
-        lastCrawledAt: latestProperty?.created_at || null
-      }
+        lastCrawledAt: latestProperty?.created_at || null,
+      },
     });
   } catch (error) {
     console.error("Admin stats API error:", error);

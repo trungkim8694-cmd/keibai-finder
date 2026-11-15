@@ -1,119 +1,228 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Search, TrendingUp, Sparkles, Building2, ShieldCheck, JapaneseYen, ArrowRight, MousePointer2 } from 'lucide-react';
+import { Search, TrendingUp, Building2, ShieldCheck, JapaneseYen, ArrowRight } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: '国土交通省データ 不動産取引価格検索 | 過去の売買データから相場を査定',
+  title: '国土交通省データ 不動産取引価格検索｜過去の売買データから相場を査定',
   description: 'AIが過去5年間の国土交通省（MLIT）取引履歴を分析。競売物件や中古不動産の適正な市場価格（相場）を誰でも無料で調査・査定できるツールです。',
+  alternates: {
+    canonical: 'https://www.keibai-koubai.com/features/trade-price-search',
+  },
+  openGraph: {
+    title: '国土交通省データ 不動産取引価格検索｜Keibai Finder',
+    description: 'AIが過去5年間の国土交通省（MLIT）取引履歴を分析し、適正な市場価格を査定。',
+    url: 'https://www.keibai-koubai.com/features/trade-price-search',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
+    type: 'website',
+    images: [{ url: '/trade-price-search.webp', width: 1200, height: 630, alt: '国土交通省データ 不動産取引価格検索' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/trade-price-search.webp'],
+  },
 };
 
 export default function TradePriceFeatureLandingPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': 'https://www.keibai-koubai.com/features/trade-price-search#webpage',
+        url: 'https://www.keibai-koubai.com/features/trade-price-search',
+        name: '国土交通省データ 不動産取引価格検索',
+        inLanguage: 'ja',
+        isPartOf: { '@id': 'https://www.keibai-koubai.com/#website' },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://www.keibai-koubai.com' },
+          { '@type': 'ListItem', position: 2, name: '機能一覧', item: 'https://www.keibai-koubai.com/features' },
+          { '@type': 'ListItem', position: 3, name: '価格査定の仕組み', item: 'https://www.keibai-koubai.com/features/trade-price-search' },
+        ],
+      },
+    ],
+  };
+
   return (
-    <div className="min-h-[100dvh] bg-white dark:bg-zinc-950 font-sans pb-20 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-slate-100 font-sans pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-24 pb-16 sm:pt-32 sm:pb-24 lg:pb-32 px-4 sm:px-6 lg:px-8 text-center max-w-7xl mx-auto">
-        <div className="absolute top-0 inset-x-0 h-64 bg-gradient-to-b from-indigo-50/70 dark:from-indigo-950/20 to-transparent pointer-events-none" />
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 text-sm font-semibold mb-6 shadow-sm border border-indigo-100 dark:border-indigo-800/50">
-          <Sparkles className="w-4 h-4" /> 誰でもプロ級の相場分析を
-        </div>
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-zinc-900 dark:text-white tracking-tight leading-[1.1] mb-6">
-          国土交通省の実取引データで、<br className="hidden sm:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300">不動産の「真の価値」を探る。</span>
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg sm:text-xl text-zinc-600 dark:text-zinc-400 mx-auto font-medium">
-          不動産会社の言い値ではなく、政府機関（MLIT）が収集した過去5年間の実際の売買履歴をAIが解析。競売物件や中古物件の適正相場を1秒で査定します。
-        </p>
-        <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href="/trade-find"
-            className="inline-flex justify-center items-center gap-2 rounded-xl bg-blue-600 px-8 py-3.5 text-base font-bold text-white shadow-sm hover:bg-blue-500 hover:shadow-md hover:-translate-y-0.5 transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            <Search className="w-5 h-5" /> 今すぐ無料で検索する
-          </Link>
-        </div>
-      </section>
+      {/* 3-Tier Layout TIER 1: Header Banner with Breadcrumbs */}
+      <header className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <nav className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+            <Link href="/" className="hover:text-[#1B4F8A] transition-colors">
+              ホーム
+            </Link>
+            <span className="mx-1.5">/</span>
+            <Link href="/features" className="hover:text-[#1B4F8A] transition-colors">
+              機能一覧
+            </Link>
+            <span className="mx-1.5">/</span>
+            <span className="text-slate-800 dark:text-slate-200">不動産取引価格検索</span>
+          </nav>
 
-      {/* Feature 1: Problem vs Solution */}
-      <section className="py-16 sm:py-24 bg-zinc-50 dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center mb-6">
-                <Building2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
-                「その価格、本当に適正ですか？」
-              </h2>
-              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6 leading-relaxed">
-                チラシやポータルサイトの販売価格は「売り主の希望価格」であり、実際に売れた価格ではありません。競売の落札価格を決める際も、周囲の相場を知らないと「高値づかみ」をする危険があります。
-              </p>
-              <ul className="space-y-4 text-zinc-700 dark:text-zinc-300">
-                <li className="flex gap-3 items-start">
-                  <div className="mt-1 bg-green-100 dark:bg-green-900/40 p-1 rounded-full"><ShieldCheck className="w-3 h-3 text-green-600 dark:text-green-400" /></div>
-                  <p><strong>安心の公的データ：</strong> 国土交通省（MLIT）の「不動産取引価格情報」をダイレクトに取得・分析しています。</p>
-                </li>
-                <li className="flex gap-3 items-start">
-                  <div className="mt-1 bg-green-100 dark:bg-green-900/40 p-1 rounded-full"><TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400" /></div>
-                  <p><strong>過去5年分のトレンド：</strong> エリアごとの価格推移（平米単価）をグラフで可視化。</p>
-                </li>
-              </ul>
-            </div>
-            
-            {/* Mockup Placeholder */}
-            <Link href="/trade-find" className="relative rounded-2xl bg-white dark:bg-zinc-800 shadow-xl border border-zinc-200 dark:border-zinc-700 p-2 overflow-hidden aspect-video group block cursor-pointer">
-              <div className="absolute inset-0 bg-blue-100/30 dark:bg-indigo-900/20 backdrop-blur-[1px] flex items-center justify-center group-hover:opacity-0 transition-opacity z-10 duration-500">
-                <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-4 py-2 rounded-full font-bold shadow-lg">
-                  <MousePointer2 className="w-4 h-4 animate-bounce" /> ここをクリックして検索画面へ
-                </div>
-              </div>
-              <img src="/trade-price-search.webp" alt="Trade Price Search UI" className="w-full h-full object-cover rounded-xl shadow-inner group-hover:scale-105 transition-transform duration-500" />
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-[#1B4F8A] dark:text-blue-300 border border-blue-200 dark:border-blue-900/60 mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1B4F8A] dark:bg-blue-400"></span>
+            国土交通省実取引データ連携
+          </div>
+
+          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-3">
+            国土交通省の実取引データで、不動産の「真の価値」を探る
+          </h1>
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+            不動産会社の売出希望価格ではなく、国土交通省（MLIT）が収集した過去5年間の実成約履歴をAIが解析。競売物件や中古物件の適正相場を迅速に調査・査定できます。
+          </p>
+
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/trade-find"
+              className="inline-flex justify-center items-center gap-2 rounded-lg bg-[#1B4F8A] px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#143D6C] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1B4F8A] min-h-[44px]"
+            >
+              <Search className="w-4 h-4" /> 今すぐ無料で取引価格を検索する
             </Link>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* How to use */}
-      <section className="py-16 sm:py-24 bg-white dark:bg-zinc-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-12">使い方はたったの3ステップ</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 relative z-10 transition-transform hover:-translate-y-1">
-               <div className="w-10 h-10 bg-blue-600 text-white font-black rounded-full flex items-center justify-center text-lg mx-auto mb-4 border-4 border-blue-100 dark:border-blue-900/50">1</div>
-               <h3 className="font-bold text-lg mb-2 dark:text-white">エリアを入力</h3>
-               <p className="text-sm text-zinc-600 dark:text-zinc-400">「東京都新宿区」など、調べたい市区町村を入力します。</p>
+      {/* 3-Tier Layout TIER 2 & 3: Content Sections */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-12">
+        {/* Feature 1: Problem vs Solution */}
+        <section className="bg-white dark:bg-[#151B22] rounded-lg border border-slate-200 dark:border-zinc-800 p-6 sm:p-8 shadow-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div>
+              <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-4 border border-rose-200/80 dark:border-rose-900/50">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-3">
+                その入札価格、本当に適正ですか？
+              </h2>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                チラシやポータルサイトの販売価格は「売り主の希望価格」であり、実際に成立した成約価格ではありません。競売の落札価格を決定する際も、周囲の実勢相場を正確に把握していないと「高値づかみ」をするリスクが高まります。
+              </p>
+              <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
+                <li className="flex gap-2.5 items-start">
+                  <div className="mt-0.5 text-emerald-600 dark:text-emerald-400">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <strong className="font-semibold text-slate-900 dark:text-slate-100">公的機関の取引データ：</strong>
+                    国土交通省（MLIT）の「不動産取引価格情報」をダイレクトに取得・分析しています。
+                  </div>
+                </li>
+                <li className="flex gap-2.5 items-start">
+                  <div className="mt-0.5 text-emerald-600 dark:text-emerald-400">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <strong className="font-semibold text-slate-900 dark:text-slate-100">過去5年分の価格推移：</strong>
+                    市区町村・町丁目ごとの平米単価推移をグラフで直感的に可視化します。
+                  </div>
+                </li>
+              </ul>
             </div>
-            <div className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 relative z-10 transition-transform hover:-translate-y-1">
-               <div className="w-10 h-10 bg-blue-600 text-white font-black rounded-full flex items-center justify-center text-lg mx-auto mb-4 border-4 border-blue-100 dark:border-blue-900/50">2</div>
-               <h3 className="font-bold text-lg mb-2 dark:text-white">物件種別を選択</h3>
-               <p className="text-sm text-zinc-600 dark:text-zinc-400">戸建て、マンション、土地など、種別を絞り込みます。</p>
-            </div>
-            <div className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 relative z-10 transition-transform hover:-translate-y-1">
-               <div className="w-10 h-10 bg-blue-600 text-white font-black rounded-full flex items-center justify-center text-lg mx-auto mb-4 border-4 border-blue-100 dark:border-blue-900/50">3</div>
-               <h3 className="font-bold text-lg mb-2 dark:text-white">過去の取引実績を確認</h3>
-               <p className="text-sm text-zinc-600 dark:text-zinc-400">築年数や面積ごとの詳細な売買価格が一覧で表示されます。</p>
+
+            {/* Illustration & Accessible CTA */}
+            <div>
+              <div className="rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-2 overflow-hidden aspect-video">
+                <img
+                  src="/trade-price-search.webp"
+                  alt="国土交通省データ 不動産取引価格検索画面イメージ"
+                  className="w-full h-full object-cover rounded"
+                />
+              </div>
+              <div className="mt-3">
+                <Link
+                  href="/trade-find"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-white dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-700/60 transition-colors shadow-sm min-h-[44px]"
+                >
+                  <Search className="w-4 h-4 text-[#1B4F8A] dark:text-blue-400" />
+                  取引価格検索画面を開く
+                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl p-10 border border-indigo-100 dark:border-indigo-800/30">
-          <JapaneseYen className="w-12 h-12 text-indigo-500 mx-auto mb-6" />
-          <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white mb-4">競売物件のポテンシャルを測る最強の相棒</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-8 max-w-2xl mx-auto">
-            市場の「実勢価格」を知ることで、競売での入札額の目安が明確になります。利回りを最大化するための第一歩を踏み出しましょう。
-          </p>
-          <Link
-            href="/trade-find"
-            className="inline-flex justify-center items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-8 py-3.5 text-base font-bold shadow-md hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all hover:scale-105"
-          >
-            取引価格を検索する <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </section>
+        {/* Feature 2: How to use (3 Steps) */}
+        <section className="bg-white dark:bg-[#151B22] rounded-lg border border-slate-200 dark:border-zinc-800 p-6 sm:p-8 shadow-sm">
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
+              実勢相場査定の3ステップ
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+              直感的な操作で、知りたいエリアの過去成約データをすぐに確認できます。
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-5 rounded-lg bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 font-bold font-mono text-sm flex items-center justify-center mb-3 border border-blue-200 dark:border-blue-900/50">
+                1
+              </div>
+              <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 mb-1">
+                エリアを指定
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                都道府県および市区町村を選択し、調査対象エリアを絞り込みます。
+              </p>
+            </div>
+
+            <div className="p-5 rounded-lg bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 font-bold font-mono text-sm flex items-center justify-center mb-3 border border-blue-200 dark:border-blue-900/50">
+                2
+              </div>
+              <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 mb-1">
+                物件種別を選択
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                土地・戸建て・マンションなど、比較したい物件種別を指定します。
+              </p>
+            </div>
+
+            <div className="p-5 rounded-lg bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 font-bold font-mono text-sm flex items-center justify-center mb-3 border border-blue-200 dark:border-blue-900/50">
+                3
+              </div>
+              <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 mb-1">
+                成約実績・平米単価を確認
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                築年数・面積・取引時期ごとの成約価格データと推移グラフを確認します。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="bg-white dark:bg-[#151B22] rounded-lg border border-slate-200 dark:border-zinc-800 p-6 sm:p-10 shadow-sm text-center">
+          <div className="max-w-2xl mx-auto">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-[#1B4F8A] dark:text-blue-400 flex items-center justify-center mx-auto mb-4 border border-blue-200/80 dark:border-blue-900/50">
+              <JapaneseYen className="w-5 h-5" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-3">
+              競売物件の適正入札価格と実勢相場を精緻に分析
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+              市場の「実勢取引価格」を事前に把握することで、競売入札時の判断基準が明確になります。高値づかみを回避し、投資採算性の高い入札戦略を支援します。
+            </p>
+            <Link
+              href="/trade-find"
+              className="inline-flex justify-center items-center gap-2 rounded-lg bg-[#1B4F8A] text-white px-8 py-3 text-sm font-bold shadow-sm hover:bg-[#143D6C] transition-colors min-h-[44px]"
+            >
+              取引価格データを検索する <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

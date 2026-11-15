@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: { params: Promise<{ prefectur
   // Thin Content Guard (theo quy chuẩn coreyhaines31/marketingskills)
   if (count === 0) {
     return {
-      title: `${decodedPref}${decodedCity}の競売物件・公売物件一覧｜Keibai Finder`,
+      title: `${decodedPref}${decodedCity}の競売物件・公売物件一覧`,
       description: `${decodedPref}${decodedCity}の不動産競売・公売情報。現在募集中の物件状況を随時更新中。`,
       robots: {
         index: false,
@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: { params: Promise<{ prefectur
 
   // Dynamic CTR-Magnet Title (theo quy chuẩn AgriciDaniel/claude-seo)
   const priceSnippet = minPriceMan > 0 ? `・最安${minPriceMan.toLocaleString('ja-JP')}万円〜` : '';
-  const title = `【${currentYear}年最新｜${count}件${priceSnippet}】${decodedPref}${decodedCity}の競売物件・公売物件一覧｜Keibai Finder`;
+  const title = `【${currentYear}年最新｜${count}件${priceSnippet}】${decodedPref}${decodedCity}の競売物件・公売物件一覧`;
   const description = `${decodedPref}${decodedCity}の不動産競売・公売情報を${count}件掲載中。相場より割安な戸建て・マンション・土地の入札価格、AI査定、過去の落札相場をリアルタイム公開。`;
 
   return {
@@ -81,10 +81,17 @@ export async function generateMetadata({ params }: { params: Promise<{ prefectur
       canonical: canonicalUrl,
     },
     openGraph: {
-      title,
+      title: `${title}｜Keibai Finder`,
       description,
       url: canonicalUrl,
+      siteName: 'Keibai Finder',
+      locale: 'ja_JP',
       type: 'website',
+      images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: `${decodedPref}${decodedCity}の競売物件` }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: ['/keibaikoubai.webp'],
     },
   };
 }
@@ -147,12 +154,12 @@ export default async function AreaSearchPage({ params }: { params: Promise<{ pre
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb).replace(/</g, '\\u003c') }}
       />
       {jsonLdItemList && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdItemList) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdItemList).replace(/</g, '\\u003c') }}
         />
       )}
       <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">

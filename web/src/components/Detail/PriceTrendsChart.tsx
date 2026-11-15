@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, ExternalLink, Layers } from 'lucide-react';
 
@@ -18,6 +18,11 @@ interface PriceTrendsChartProps {
 }
 
 export function PriceTrendsChart({ data, city, prefecture, propertyType }: PriceTrendsChartProps) {
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [viewMode, setViewMode] = useState<'sqm' | 'total'>('sqm');
 
   if (!data || data.length === 0) {
@@ -149,30 +154,36 @@ export function PriceTrendsChart({ data, city, prefecture, propertyType }: Price
             </div>
          )}
          <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-               <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
-                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
-                 <XAxis 
-                    dataKey="year" 
-                    tick={{ fill: '#64748b', fontSize: 11 }} 
-                    axisLine={false} 
-                    tickLine={false} 
-                 />
-                 <YAxis 
-                    tick={{ fill: '#64748b', fontSize: 11 }} 
-                    tickFormatter={(val) => {
-                      if (viewMode === 'sqm') return `${val}万`;
-                      if (val >= 10000) return `${(val / 10000).toFixed(1)}億`;
-                      return `${val.toLocaleString('ja-JP')}万`;
-                    }}
-                    axisLine={false} 
-                    tickLine={false} 
-                    width={58}
-                 />
-                 <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(241, 245, 249, 0.6)' }} />
-                 <Bar dataKey="displayVal" fill="#1B4F8A" radius={[3, 3, 0, 0]} maxBarSize={36} />
-               </BarChart>
-            </ResponsiveContainer>
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
+                   <XAxis 
+                      dataKey="year" 
+                      tick={{ fill: '#64748b', fontSize: 11 }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                   />
+                   <YAxis 
+                      tick={{ fill: '#64748b', fontSize: 11 }} 
+                      tickFormatter={(val) => {
+                        if (viewMode === 'sqm') return `${val}万`;
+                        if (val >= 10000) return `${(val / 10000).toFixed(1)}億`;
+                        return `${val.toLocaleString('ja-JP')}万`;
+                      }}
+                      axisLine={false} 
+                      tickLine={false} 
+                      width={58}
+                   />
+                   <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(241, 245, 249, 0.6)' }} />
+                   <Bar dataKey="displayVal" fill="#1B4F8A" radius={[3, 3, 0, 0]} maxBarSize={36} />
+                 </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-xs text-slate-400">
+                グラフ読み込み中...
+              </div>
+            )}
          </div>
       </div>
       <div className="p-2.5 bg-slate-50/60 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 text-right">

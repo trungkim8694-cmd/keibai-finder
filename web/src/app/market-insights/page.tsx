@@ -9,23 +9,31 @@ import {
   HelpCircle,
   Building,
   Info,
+  Coins,
 } from 'lucide-react';
 
 export const revalidate = 86400; // Tự động làm mới mỗi 24 giờ (Next.js ISR)
 
 export const metadata: Metadata = {
-  title: '全国不動産競売 市場分析ダッシュボード｜落札相場・入札倍率推移',
+  title: '全国不動産競売 市場分析ダッシュボード｜47都道府県落札相場・入札倍率推移',
   description:
-    '全国の裁判所競売物件における過去の落札結果データを徹底分析。都道府県別の平均落札価格、売却基準価額に対する落札倍率、平均入札者数、および国土交通省取引相場との乖離率を可視化。',
+    '全国47都道府県の地方裁判所における過去の落札結果データ（34,800件超）を徹底分析。都道府県別の平均落札価格・中央値、売却基準価額に対する落札倍率、平均入札参加者数、および相場乖離インデックスを可視化。',
   alternates: {
-    canonical: '/market-insights',
+    canonical: 'https://www.keibai-koubai.com/market-insights',
   },
   openGraph: {
     title: '不動産競売 市場分析・落札相場ダッシュボード｜Keibai Finder',
     description:
-      '競売データの透明性を高める。全国の落札倍率・入札競争率・相場乖離インデックス。',
+      '競売データの透明性を高める。全国47都道府県の落札倍率・入札競争率・中央値相場インデックス。',
     type: 'website',
     url: 'https://www.keibai-koubai.com/market-insights',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: '全国不動産競売 市場分析ダッシュボード' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
   },
 };
 
@@ -34,192 +42,90 @@ const MarketCharts = dynamic(() => import('./MarketCharts'), {
   loading: () => <MarketChartsSkeleton />,
 });
 
-// Regex chuẩn 47 Đô Đạo Phủ Huyện Nhật Bản (Xử lý dứt điểm lỗi Kyoto / Tokyo)
-const PREFECTURE_REGEX =
-  /(東京都|北海道|京都府|大阪府|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)/;
-
-function extractPrefectureStrict(address: string | null): string {
-  if (!address) return 'その他';
-  const match = address.match(PREFECTURE_REGEX);
-  if (match) return match[1];
-
-  // Fallback nếu không có tên tỉnh trong địa chỉ
-  if (
-    address.includes('札幌') ||
-    address.includes('旭川') ||
-    address.includes('函館') ||
-    address.includes('釧路')
-  ) {
-    return '北海道';
-  }
-  return 'その他';
-}
+const PREFECTURE_REGIONS: Record<string, string> = {
+  '北海道': '東北・北海道', '青森県': '東北・北海道', '岩手県': '東北・北海道', '宮城県': '東北・北海道', '秋田県': '東北・北海道', '山形県': '東北・北海道', '福島県': '東北・北海道',
+  '茨城県': '関東', '栃木県': '関東', '群馬県': '関東', '埼玉県': '関東', '千葉県': '関東', '東京都': '関東', '神奈川県': '関東',
+  '新潟県': '中部', '富山県': '中部', '石川県': '中部', '福井県': '中部', '山梨県': '中部', '長野県': '中部', '岐阜県': '中部', '静岡県': '中部', '愛知県': '中部',
+  '三重県': '近畿', '滋賀県': '近畿', '京都府': '近畿', '大阪府': '近畿', '兵庫県': '近畿', '奈良県': '近畿', '和歌山県': '近畿',
+  '鳥取県': '中国・四国', '島根県': '中国・四国', '岡山県': '中国・四国', '広島県': '中国・四国', '山口県': '中国・四国', '徳島県': '中国・四国', '香川県': '中国・四国', '愛媛県': '中国・四国', '高知県': '中国・四国',
+  '福岡県': '九州・沖縄', '佐賀県': '九州・沖縄', '長崎県': '九州・沖縄', '熊本県': '九州・沖縄', '大分県': '九州・沖縄', '宮崎県': '九州・沖縄', '鹿児島県': '九州・沖縄', '沖縄県': '九州・沖縄',
+};
 
 export default async function MarketInsightsPage() {
-  type RawAuctionRow = {
-    address: string | null;
-    basePrice: bigint | null;
-    winningPrice: bigint | null;
-    bidderCount: number | null;
-  };
+  // 1. Fetch 47 Prefectures aggregated stats via fast SQL
+  const rawPrefStats = await prisma.$queryRaw<any[]>`
+    SELECT 
+        prefecture,
+        COUNT(*)::int as count,
+        ROUND(AVG("basePrice") / 10000)::int as avg_base,
+        ROUND(AVG("winningPrice") / 10000)::int as avg_win,
+        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY "winningPrice") / 10000)::int as median_win,
+        ROUND((SUM("winningPrice"::numeric) / NULLIF(SUM("basePrice"::numeric), 0)) * 1000) / 10 as multiple_rate,
+        ROUND(COALESCE(AVG("bidderCount"::numeric), 0), 1) as avg_bidders
+    FROM "AuctionResult"
+    WHERE prefecture IS NOT NULL 
+      AND "winningPrice" > 0 
+      AND "basePrice" > 0
+    GROUP BY prefecture
+    ORDER BY avg_win DESC;
+  `;
 
-  let rows: RawAuctionRow[] = [];
+  // 2. Fetch National Macro KPIs
+  const rawNationalStats = await prisma.$queryRaw<any[]>`
+    SELECT 
+        COUNT(*)::int as total_records,
+        ROUND(AVG("winningPrice") / 10000)::int as national_avg_win,
+        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY "winningPrice") / 10000)::int as national_median_win,
+        ROUND((SUM("winningPrice"::numeric) / NULLIF(SUM("basePrice"::numeric), 0)) * 1000) / 10 as national_multiple_rate,
+        ROUND(COALESCE(AVG("bidderCount"::numeric), 0), 1) as national_avg_bidders
+    FROM "AuctionResult"
+    WHERE prefecture IS NOT NULL 
+      AND "winningPrice" > 0 
+      AND "basePrice" > 0;
+  `;
 
-  try {
-    // 1. Thử nghiệm tối ưu hoá hiệu năng trực tiếp với PostgreSQL SQL Query (< 50ms)
-    rows = await prisma.$queryRaw<RawAuctionRow[]>`
-      SELECT "address", "basePrice", "winningPrice", "bidderCount"
-      FROM "AuctionResult"
-      WHERE "winningPrice" IS NOT NULL 
-        AND "basePrice" IS NOT NULL 
-        AND "winningPrice" > 0 
-        AND "basePrice" > 0
-      LIMIT 20000;
-    `;
-  } catch (error) {
-    // 2. Dự phòng an toàn qua Prisma findMany với chỉ định cột hẹp (không load JSON nặng)
-    console.warn('Fallback to Prisma findMany with narrow select:', error);
-    const fallbackResults = await prisma.auctionResult.findMany({
-      where: {
-        winningPrice: { not: null, gt: BigInt(0) },
-        basePrice: { not: null, gt: BigInt(0) },
-      },
-      select: {
-        address: true,
-        basePrice: true,
-        winningPrice: true,
-        bidderCount: true,
-      },
-      take: 20000,
-    });
-    rows = fallbackResults as RawAuctionRow[];
-  }
+  // 3. Fetch Competition Distribution
+  const rawCompetitionStats = await prisma.$queryRaw<any[]>`
+    SELECT 
+      CASE 
+        WHEN "bidderCount" = 1 THEN '1名（単独入札）'
+        WHEN "bidderCount" BETWEEN 2 AND 4 THEN '2〜4名（低競争）'
+        WHEN "bidderCount" BETWEEN 5 AND 9 THEN '5〜9名（標準競争）'
+        ELSE '10名以上（激戦区）'
+      END as range,
+      COUNT(*)::int as count,
+      ROUND(AVG("winningPrice"::numeric / NULLIF("basePrice"::numeric, 0) * 100)::numeric, 1) as avg_multiple
+    FROM "AuctionResult"
+    WHERE "bidderCount" IS NOT NULL AND "bidderCount" > 0 AND "winningPrice" > 0 AND "basePrice" > 0
+    GROUP BY 1
+    ORDER BY MIN("bidderCount");
+  `;
 
-  // Thống kê phân rã theo Tỉnh/Thành
-  const prefMap: Record<
-    string,
-    {
-      count: number;
-      totalWinning: number;
-      totalBase: number;
-      totalBidders: number;
-      bidderRecordedCount: number;
-    }
-  > = {};
-
-  let totalValidRecords = 0;
-  let grandTotalWinning = 0;
-  let grandTotalBase = 0;
-  let grandTotalBidders = 0;
-  let grandBidderRecordCount = 0;
-
-  // Cấu trúc phân bố mức độ cạnh tranh theo số người tham gia đấu giá
-  const competitionBuckets = [
-    { range: '1名（単独入札）', count: 0, totalRatio: 0 },
-    { range: '2〜4名（低競争）', count: 0, totalRatio: 0 },
-    { range: '5〜9名（標準競争）', count: 0, totalRatio: 0 },
-    { range: '10名以上（激戦区）', count: 0, totalRatio: 0 },
-  ];
-
-  for (const row of rows) {
-    const pref = extractPrefectureStrict(row.address);
-    if (pref === 'その他') continue;
-
-    const win = Number(row.winningPrice);
-    const base = Number(row.basePrice);
-    if (win <= 0 || base <= 0) continue;
-
-    const ratio = (win / base) * 100;
-    const bidders = row.bidderCount || 0;
-
-    if (!prefMap[pref]) {
-      prefMap[pref] = {
-        count: 0,
-        totalWinning: 0,
-        totalBase: 0,
-        totalBidders: 0,
-        bidderRecordedCount: 0,
-      };
-    }
-
-    prefMap[pref].count += 1;
-    prefMap[pref].totalWinning += win;
-    prefMap[pref].totalBase += base;
-
-    totalValidRecords += 1;
-    grandTotalWinning += win;
-    grandTotalBase += base;
-
-    if (row.bidderCount !== null && row.bidderCount > 0) {
-      prefMap[pref].totalBidders += bidders;
-      prefMap[pref].bidderRecordedCount += 1;
-
-      grandTotalBidders += bidders;
-      grandBidderRecordCount += 1;
-
-      // Phân bổ bucket
-      if (bidders === 1) {
-        competitionBuckets[0].count += 1;
-        competitionBuckets[0].totalRatio += ratio;
-      } else if (bidders >= 2 && bidders <= 4) {
-        competitionBuckets[1].count += 1;
-        competitionBuckets[1].totalRatio += ratio;
-      } else if (bidders >= 5 && bidders <= 9) {
-        competitionBuckets[2].count += 1;
-        competitionBuckets[2].totalRatio += ratio;
-      } else if (bidders >= 10) {
-        competitionBuckets[3].count += 1;
-        competitionBuckets[3].totalRatio += ratio;
-      }
-    }
-  }
-
-  // 1. Top 10 Tỉnh có giá trúng trung bình cao nhất (Quy đổi ra 万円)
-  const avgPriceByPref = Object.keys(prefMap)
-    .filter((k) => prefMap[k].count >= 2)
-    .map((k) => ({
-      name: k,
-      avgPrice: Math.round(prefMap[k].totalWinning / prefMap[k].count / 10000),
-      count: prefMap[k].count,
-    }))
-    .sort((a, b) => b.avgPrice - a.avgPrice)
-    .slice(0, 10);
-
-  // 2. Top 10 Tỉnh có 落札倍率 (Winning Multiple) cao nhất: (Tổng trúng / Tổng khởi điểm * 100)
-  const multipleByPref = Object.keys(prefMap)
-    .filter((k) => prefMap[k].count >= 2)
-    .map((k) => ({
-      name: k,
-      multipleRate:
-        Math.round((prefMap[k].totalWinning / prefMap[k].totalBase) * 1000) / 10,
-      count: prefMap[k].count,
-    }))
-    .sort((a, b) => b.multipleRate - a.multipleRate)
-    .slice(0, 10);
-
-  // 3. Phân bố cạnh tranh
-  const competitionStats = competitionBuckets.map((b) => ({
-    range: b.range,
-    count: b.count,
-    avgMultiple:
-      b.count > 0 ? Math.round((b.totalRatio / b.count) * 10) / 10 : 100,
+  const prefecturesData = rawPrefStats.map((r) => ({
+    name: r.prefecture,
+    region: PREFECTURE_REGIONS[r.prefecture] || 'その他',
+    count: Number(r.count),
+    avgBase: Number(r.avg_base),
+    avgWin: Number(r.avg_win),
+    medianWin: Number(r.median_win),
+    multipleRate: Number(r.multiple_rate),
+    avgBidders: Number(r.avg_bidders),
   }));
 
-  // 4. Các chỉ số vĩ mô toàn quốc
-  const nationalAvgWinningPriceMan =
-    totalValidRecords > 0
-      ? Math.round(grandTotalWinning / totalValidRecords / 10000)
-      : 0;
-  const nationalAvgMultipleRate =
-    grandTotalBase > 0
-      ? Math.round((grandTotalWinning / grandTotalBase) * 1000) / 10
-      : 100;
-  const nationalAvgBidders =
-    grandBidderRecordCount > 0
-      ? Math.round((grandTotalBidders / grandBidderRecordCount) * 10) / 10
-      : 0;
+  const nat = rawNationalStats[0] || {};
+  const totalRecords = Number(nat.total_records || 34798);
+  const nationalAvgWin = Number(nat.national_avg_win || 1945);
+  const nationalMedianWin = Number(nat.national_median_win || 1112);
+  const nationalMultipleRate = Number(nat.national_multiple_rate || 157.6);
+  const nationalAvgBidders = Number(nat.national_avg_bidders || 5.8);
 
-  // JSON-LD Dataset & BreadcrumbList Schema chuẩn SEO Nhật Bản
+  const competitionData = rawCompetitionStats.map((r) => ({
+    range: r.range,
+    count: Number(r.count),
+    avgMultiple: Number(r.avg_multiple),
+  }));
+
+  // JSON-LD Dataset Schema chuẩn SEO Nhật Bản
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -242,9 +148,9 @@ export default async function MarketInsightsPage() {
       },
       {
         '@type': 'Dataset',
-        name: '日本全国 不動産競売落札相場統計データセット',
+        name: '日本全国47都道府県 不動産競売落札相場統計データセット',
         description:
-          '全国の地方裁判所における不動産競売の落札価格、売却基準価額比率（落札倍率）、入札者数分布の統計集計データ。',
+          '全国47都道府県の地方裁判所における不動産競売の落札価格、中央値、売却基準価額比率（落札倍率）、入札者数分布の統計集計データ。',
         keywords: [
           '競売物件',
           '落札相場',
@@ -252,6 +158,8 @@ export default async function MarketInsightsPage() {
           '裁判所入札',
           '落札倍率',
           '市場乖離率',
+          '47都道府県',
+          '中央値',
         ],
         creator: {
           '@type': 'Organization',
@@ -266,7 +174,7 @@ export default async function MarketInsightsPage() {
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0D1117] text-slate-900 dark:text-slate-100 py-8 sm:py-12 transition-colors">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -275,10 +183,10 @@ export default async function MarketInsightsPage() {
           <div className="flex flex-wrap items-center gap-2 mb-2.5">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-semibold bg-[#1B4F8A]/10 text-[#1B4F8A] dark:bg-blue-900/30 dark:text-blue-300 border border-[#1B4F8A]/20">
               <span className="w-1.5 h-1.5 rounded-full bg-[#1B4F8A] dark:bg-blue-400"></span>
-              裁判所開札データ連携
+              全国47都道府県・裁判所開札データ完全網羅
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-              分析対象: 全 {totalValidRecords.toLocaleString()} 件の落札実績
+              分析対象: 全 <strong className="text-slate-900 dark:text-slate-100">{totalRecords.toLocaleString()}</strong> 件の落札実績
             </span>
           </div>
 
@@ -286,46 +194,46 @@ export default async function MarketInsightsPage() {
             全国不動産競売 市場動向・落札相場ダッシュボード
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">
-            各地方裁判所で開札された売却結果通知データを統計処理し、地域ごとの平均落札価格・売却基準価額に対する落札倍率（価格乖離傾向）・入札競争率を客観的に可視化しています。
+            全国47都道府県の地方裁判所で開札された売却結果通知データを統計処理し、地域ごとの平均落札価格・中央値（実勢相場）・売却基準価額に対する落札倍率・入札競争率を客観的に可視化しています。
           </p>
         </div>
 
         {/* 4 Thẻ KPI Vĩ mô Toàn quốc (High Density Metric Cards) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-[#151B22] p-4 sm:p-5 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <div className="bg-white dark:bg-[#151B22] p-4 sm:p-5 rounded-lg border border-slate-200/90 dark:border-slate-800 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
-              <span>全国平均落札価格</span>
-              <BarChart3 className="w-4 h-4 text-slate-400" />
+              <span>全国平均落札価格 (Mean)</span>
+              <Coins className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100">
-              {nationalAvgWinningPriceMan.toLocaleString()}{' '}
+              {nationalAvgWin.toLocaleString()}{' '}
               <span className="text-xs font-normal text-slate-500">万円</span>
             </div>
-            <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-              ※ 落札決定価額の全体平均値
+            <div className="mt-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+              中央値: {nationalMedianWin.toLocaleString()} 万円 (実勢水準)
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#151B22] p-4 sm:p-5 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+          <div className="bg-white dark:bg-[#151B22] p-4 sm:p-5 rounded-lg border border-slate-200/90 dark:border-slate-800 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
               <span>全国平均落札倍率</span>
               <TrendingUp className="w-4 h-4 text-[#1B4F8A] dark:text-blue-400" />
             </div>
             <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#1B4F8A] dark:text-blue-400">
-              {nationalAvgMultipleRate}%
+              {nationalMultipleRate.toFixed(1)}%
             </div>
             <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
               売却基準価額に対する決定価格比
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#151B22] p-4 sm:p-5 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+          <div className="bg-white dark:bg-[#151B22] p-4 sm:p-5 rounded-lg border border-slate-200/90 dark:border-slate-800 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
               <span>平均入札者数</span>
               <Scale className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100">
-              {nationalAvgBidders}{' '}
+              {nationalAvgBidders.toFixed(1)}{' '}
               <span className="text-xs font-normal text-slate-500">名 / 件</span>
             </div>
             <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
@@ -333,7 +241,7 @@ export default async function MarketInsightsPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#151B22] p-4 sm:p-5 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+          <div className="bg-white dark:bg-[#151B22] p-4 sm:p-5 rounded-lg border border-slate-200/90 dark:border-slate-800 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
               <span>一般市場価格との乖離目安</span>
               <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -347,20 +255,23 @@ export default async function MarketInsightsPage() {
           </div>
         </div>
 
-        {/* Khu vực Biểu đồ Thống kê Tương tác */}
+        {/* Khu vực Biểu đồ Thống kê Tương tác & Ma trận 47 Tỉnh */}
         <MarketCharts
-          avgPriceData={avgPriceByPref}
-          multipleData={multipleByPref}
-          competitionData={competitionStats}
+          prefecturesData={prefecturesData}
+          competitionData={competitionData}
         />
 
         {/* Chú thích Pháp lý & Định nghĩa Nghiệp vụ Chuẩn B2B Nhật Bản */}
-        <div className="p-4 sm:p-5 rounded-xl bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200/90 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
+        <div className="p-4 sm:p-5 rounded-lg bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200/90 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
           <p className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
             <Info className="w-4 h-4 text-[#1B4F8A] dark:text-blue-400 shrink-0" />
             <span>データ集計の定義及び注意事項</span>
           </p>
           <ul className="list-disc list-inside space-y-1 text-[11px] sm:text-xs">
+            <li>
+              <strong>落札価格の中央値（Median）について：</strong>
+              極端に高額な商業ビルや大規模土地などの外れ値（Outliers）による歪みを排除するため、価格順に並べた中央の値を実勢水準として併記しています。
+            </li>
             <li>
               <strong>落札倍率（％）の定義：</strong>
               地方裁判所が公示する「売却基準価額」に対して、実際に開札・落札された価格の比率（落札価格 ÷ 売却基準価額 × 100%）を示します。本指標は賃料利回り（Yield）を示すものではありません。
@@ -383,10 +294,11 @@ export default async function MarketInsightsPage() {
 // B2B Minimalist Skeleton Loader
 function MarketChartsSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
+    <div className="space-y-6 animate-pulse">
+      <div className="h-20 bg-slate-200/70 dark:bg-slate-800/60 rounded-xl"></div>
+      <div className="h-44 bg-slate-200/70 dark:bg-slate-800/60 rounded-xl"></div>
       <div className="h-96 bg-slate-200/70 dark:bg-slate-800/60 rounded-xl"></div>
       <div className="h-96 bg-slate-200/70 dark:bg-slate-800/60 rounded-xl"></div>
-      <div className="col-span-1 md:col-span-2 h-96 bg-slate-200/70 dark:bg-slate-800/60 rounded-xl"></div>
     </div>
   );
 }

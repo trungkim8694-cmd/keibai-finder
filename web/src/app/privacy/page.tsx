@@ -6,9 +6,46 @@ import { Shield, Lock } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'プライバシーポリシー (Privacy Policy) | 株式会社ＴＱＣ',
   description: '株式会社ＴＱＣ（東京都知事免許 (01) 第107650号）が運営する「Keibai-Koubai Finder」のプライバシーポリシーです。個人情報の保護に関する法律（APPI）及び関連諸法令に基づき、個人情報の適切な取扱いと安全管理措置を定めています。',
+  alternates: {
+    canonical: 'https://www.keibai-koubai.com/privacy',
+  },
+  openGraph: {
+    title: 'プライバシーポリシー (Privacy Policy) | 株式会社ＴＱＣ',
+    description: 'Keibai-Koubai Finderの個人情報保護方針・プライバシーポリシー。',
+    url: 'https://www.keibai-koubai.com/privacy',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
+    type: 'website',
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: 'Keibai Finder プライバシーポリシー' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
+  },
 };
 
 export default function PrivacyPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': 'https://www.keibai-koubai.com/privacy#webpage',
+        url: 'https://www.keibai-koubai.com/privacy',
+        name: 'プライバシーポリシー (Privacy Policy)',
+        inLanguage: 'ja',
+        isPartOf: { '@id': 'https://www.keibai-koubai.com/#website' },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://www.keibai-koubai.com' },
+          { '@type': 'ListItem', position: 2, name: 'プライバシーポリシー', item: 'https://www.keibai-koubai.com/privacy' },
+        ],
+      },
+    ],
+  };
+
   const sections = [
     { id: 'privacy-1', title: '第1条（基本方針）' },
     { id: 'privacy-2', title: '第2条（取得する個人情報および収集方法）' },
@@ -22,6 +59,10 @@ export default function PrivacyPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0D1117] py-8 px-4 sm:px-6 lg:px-8 font-sans">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       {/* 1280px Standard PC Frame (max-w-7xl) */}
       <div className="max-w-7xl mx-auto">
         {/* Breadcrumb & Sub Navigation Tabs */}

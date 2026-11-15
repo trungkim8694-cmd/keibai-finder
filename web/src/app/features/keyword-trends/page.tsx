@@ -8,16 +8,24 @@ import KeywordTrendsClient from './KeywordTrendsClient';
 export const revalidate = 3600; // Cập nhật định kỳ mỗi 1 giờ
 
 export const metadata: Metadata = {
-  title: '【2026年最新】不動産競売・公売 検索需要トレンド・急上昇キーワード分析ツール｜Keibai Finder',
+  title: '【2026年最新】不動産競売・公売 検索需要トレンド・急上昇キーワード分析ツール',
   description: '裁判所競売および国税庁公売における検索キーワード需要のリアルタイム分析。格安エリア、利回り20%超の再建築不可物件、3点セットの読み方から占有者立ち退きまで、AI Agentと連動した最新トレンドを網羅。',
   alternates: {
-    canonical: '/features/keyword-trends',
+    canonical: 'https://www.keibai-koubai.com/features/keyword-trends',
   },
   openGraph: {
     title: '不動産競売 検索需要・急上昇キーワード分析ツール｜Keibai Finder',
     description: '市場の検索ボリュームと急上昇率を可視化。AI Agentと連動した競売投資インサイト。',
+    url: 'https://www.keibai-koubai.com/features/keyword-trends',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
     type: 'website',
-  }
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: '不動産競売 検索需要トレンド分析' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
+  },
 };
 
 export default async function KeywordTrendsPage() {
@@ -42,7 +50,7 @@ export default async function KeywordTrendsPage() {
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0D1117] text-slate-800 dark:text-slate-200 py-8 sm:py-12 transition-colors">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">

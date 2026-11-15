@@ -6,11 +6,53 @@ import { Map, ArrowRight, Layers, Sparkles, AlertTriangle, Building2, MousePoint
 export const metadata: Metadata = {
   title: 'エリア分析マップ（災害・都市計画）｜Keibai Finder機能紹介',
   description: '国土地理院と国土交通省の公式データを統合した、究極のエリア分析マップ。不動産投資やマイホーム購入前に、洪水・土砂などの自然災害リスクと用途地域の建ぺい率・容積率を一画面で徹底調査できます。',
+  alternates: {
+    canonical: 'https://www.keibai-koubai.com/features/area-map',
+  },
+  openGraph: {
+    title: 'エリア分析マップ（災害・都市計画）｜Keibai Finder機能紹介',
+    description: '国土地理院と国交省の公式データを統合。洪水・土砂災害リスクと用途地域の建蔽率・容積率をワンクリック調査。',
+    url: 'https://www.keibai-koubai.com/features/area-map',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
+    type: 'website',
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: 'エリア分析マップ（災害・都市計画）' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
+  },
 };
 
 export default function AreaMapFeatureLandingPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': 'https://www.keibai-koubai.com/features/area-map#webpage',
+        url: 'https://www.keibai-koubai.com/features/area-map',
+        name: 'エリア分析マップ（災害・都市計画）',
+        inLanguage: 'ja',
+        isPartOf: { '@id': 'https://www.keibai-koubai.com/#website' },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'ホーム', item: 'https://www.keibai-koubai.com' },
+          { '@type': 'ListItem', position: 2, name: '機能一覧', item: 'https://www.keibai-koubai.com/features' },
+          { '@type': 'ListItem', position: 3, name: 'エリア分析マップ', item: 'https://www.keibai-koubai.com/features/area-map' },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="min-h-[100dvh] bg-white dark:bg-zinc-950 font-sans pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       {/* 1. Hero Section */}
       <section className="relative overflow-hidden pt-24 pb-16 sm:pt-32 sm:pb-24 lg:pb-32 px-4 sm:px-6 lg:px-8 text-center max-w-7xl mx-auto">
         <div className="absolute top-0 inset-x-0 h-64 bg-gradient-to-b from-rose-50/50 dark:from-rose-950/20 to-transparent pointer-events-none" />

@@ -7,19 +7,46 @@ import { notFound } from 'next/navigation';
 
 export const revalidate = 86400; // Cache for 24 hours
 
-export async function generateMetadata({ params }: { params: { line: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ line: string }> }): Promise<Metadata> {
   const { line } = await params;
   const decodedLine = decodeURIComponent(line);
-  
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const canonicalUrl = `${baseUrl}/search/station/${encodeURIComponent(decodedLine)}`;
+
+  const allLines = await getRailLinesAndStations();
+  const lineData = allLines.find(l => l.line === decodedLine);
+  const count = lineData?.count || 0;
+
   return {
-    title: `${decodedLine}の駅から競売物件を探す | Keibai-Koubai Finder`,
+    title: `${decodedLine}の駅から競売・公売物件を探す`,
     description: `${decodedLine}沿線の不動産競売・公売物件を駅ごとに検索。通勤・通学に便利な駅近物件を相場より安く見つけることができます。`,
+    robots: {
+      index: count > 0,
+      follow: true,
+    },
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${decodedLine}の駅から競売・公売物件を探す｜Keibai Finder`,
+      description: `${decodedLine}沿線の不動産競売・公売物件を駅ごとに検索。通勤・通学に便利な駅近物件を相場より安く見つけることができます。`,
+      url: canonicalUrl,
+      siteName: 'Keibai Finder',
+      locale: 'ja_JP',
+      type: 'website',
+      images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: `${decodedLine}の駅から競売物件を探す` }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: ['/keibaikoubai.webp'],
+    },
   };
 }
 
-export default async function LineStationsPage({ params }: { params: { line: string } }) {
+export default async function LineStationsPage({ params }: { params: Promise<{ line: string }> }) {
   const { line } = await params;
   const decodedLine = decodeURIComponent(line);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
   
   const allLines = await getRailLinesAndStations();
   const lineData = allLines.find(l => l.line === decodedLine);
@@ -28,8 +55,34 @@ export default async function LineStationsPage({ params }: { params: { line: str
     notFound();
   }
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': `${baseUrl}/search/station/${encodeURIComponent(decodedLine)}#webpage`,
+        url: `${baseUrl}/search/station/${encodeURIComponent(decodedLine)}`,
+        name: `${decodedLine}の駅から競売・公売物件を探す`,
+        inLanguage: 'ja',
+        isPartOf: { '@id': `${baseUrl}/#website` },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'ホーム', item: `${baseUrl}/` },
+          { '@type': 'ListItem', position: 2, name: '路線・駅から探す', item: `${baseUrl}/search/station` },
+          { '@type': 'ListItem', position: 3, name: decodedLine, item: `${baseUrl}/search/station/${encodeURIComponent(decodedLine)}` },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Link href="/search/station" className="inline-flex items-center text-sm text-zinc-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors mb-2">

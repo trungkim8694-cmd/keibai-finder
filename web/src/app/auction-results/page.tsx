@@ -7,7 +7,7 @@ import { Building2, Search, TrendingUp, Users, Calendar, ArrowUpRight, ArrowRigh
 export const revalidate = 3600; // Cache 1 hour
 
 export const metadata: Metadata = {
-  title: '全国不動産 競売・公売 落札結果一覧・落札相場データベース｜Keibai Finder',
+  title: '全国不動産 競売・公売 落札結果一覧・落札相場データベース',
   description: '全国の地方裁判所および国税局公売で開札された不動産の落札結果一覧。売却基準価額と落札価格の倍率、入札者数、法人・個人の落札割合を掲載。入札前の相場分析・市場調査にご活用ください。',
   alternates: {
     canonical: 'https://www.keibai-koubai.com/auction-results',
@@ -16,7 +16,14 @@ export const metadata: Metadata = {
     title: '全国不動産 競売・公売 落札結果一覧・相場分析｜Keibai Finder',
     description: '過去の競売落札価格・落札倍率・入札者数データを公開。適正入札価格の査定に。',
     url: 'https://www.keibai-koubai.com/auction-results',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
     type: 'website',
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: '全国不動産 競売・公売 落札結果一覧' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
   },
 };
 
@@ -33,6 +40,7 @@ interface SearchParamsProps {
 export default async function AuctionResultsPage({ searchParams }: SearchParamsProps) {
   const resolvedParams = searchParams ? await searchParams : {};
   const query = resolvedParams.q || '';
+  const prefFilter = resolvedParams.prefecture || '';
   const levelFilter = resolvedParams.level || '';
   const sourceFilter = resolvedParams.source || '';
   const page = Math.max(1, parseInt(resolvedParams.page || '1', 10));
@@ -44,7 +52,11 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
     where.OR = [
       { caseNumber: { contains: query, mode: 'insensitive' } },
       { address: { contains: query, mode: 'insensitive' } },
+      { prefecture: { contains: query, mode: 'insensitive' } },
     ];
+  }
+  if (prefFilter) {
+    where.prefecture = prefFilter;
   }
   if (levelFilter) {
     where.competitionLevel = levelFilter;
@@ -130,7 +142,7 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
                 item: 'https://www.keibai-koubai.com/auction-results',
               },
             ],
-          }),
+          }).replace(/</g, '\\u003c'),
         }}
       />
 
@@ -196,8 +208,8 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         {/* Search & Filter Toolbar */}
-        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-slate-200 dark:border-zinc-800 p-4 mb-6">
-          <form method="GET" action="/auction-results" className="flex flex-col sm:flex-row gap-3">
+        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-slate-200 dark:border-zinc-800 p-3 sm:p-4 mb-6">
+          <form method="GET" action="/auction-results" className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -205,15 +217,15 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
                 name="q"
                 defaultValue={query}
                 placeholder="事件番号（例：令和5年(ケ)第10号）または市区町村・住所で検索"
-                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#1B4F8A]"
+                className="w-full pl-9 pr-3 h-10 text-xs sm:text-sm border border-slate-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#1B4F8A]"
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
               <select
                 name="source"
                 defaultValue={sourceFilter}
-                className="px-3 py-2 text-xs border border-slate-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 focus:outline-none"
+                className="h-10 px-3 py-2 text-xs border border-slate-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 focus:outline-none"
               >
                 <option value="">全機関（競売・公売）</option>
                 <option value="BIT">裁判所（競売）</option>
@@ -223,7 +235,7 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
               <select
                 name="level"
                 defaultValue={levelFilter}
-                className="px-3 py-2 text-xs border border-slate-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 focus:outline-none"
+                className="h-10 px-3 py-2 text-xs border border-slate-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 focus:outline-none"
               >
                 <option value="">すべての競争度</option>
                 <option value="単独入札">単独入札 (1社)</option>
@@ -233,7 +245,7 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
 
               <button
                 type="submit"
-                className="px-5 py-2 text-xs font-medium bg-[#1B4F8A] hover:bg-[#143D6C] text-white rounded transition-colors whitespace-nowrap"
+                className="col-span-2 sm:w-auto min-h-[40px] px-5 py-2 text-xs font-semibold bg-[#1B4F8A] hover:bg-[#143D6C] text-white rounded-lg transition-colors flex items-center justify-center text-center"
               >
                 検索する
               </button>
@@ -258,7 +270,7 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
           </div>
           <Link
             href={`/trade-find${query ? `?city=${encodeURIComponent(query)}` : ''}`}
-            className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 dark:border-zinc-700 hover:border-[#1B4F8A] dark:hover:border-blue-400 text-slate-700 dark:text-slate-200 hover:text-[#1B4F8A] dark:hover:text-blue-400 font-semibold transition-colors text-xs whitespace-nowrap bg-slate-50/50 dark:bg-zinc-800/50 hover:bg-white dark:hover:bg-zinc-800"
+            className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[40px] rounded-lg border border-slate-300 dark:border-zinc-700 hover:border-[#1B4F8A] dark:hover:border-blue-400 text-slate-700 dark:text-slate-200 hover:text-[#1B4F8A] dark:hover:text-blue-400 font-semibold transition-colors text-xs text-center bg-slate-50/50 dark:bg-zinc-800/50 hover:bg-white dark:hover:bg-zinc-800"
           >
             <span>{query ? `「${query}」の` : ''}取引相場を検索 (MLIT)</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -266,14 +278,19 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
         </div>
 
         {/* Results Count Summary */}
-        <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-3 px-1">
+        <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-3 px-1 flex-wrap gap-2">
           <span>
-            検索結果: <strong className="text-slate-900 dark:text-slate-100 tabular-nums">{totalCount.toLocaleString()}</strong> 件
+            検索結果: <strong className="text-slate-900 dark:text-slate-100 tabular-nums font-mono">{totalCount.toLocaleString()}</strong> 件
             {query && ` (キーワード: "${query}")`}
           </span>
-          <span className="tabular-nums">
-            ページ {page} / {Math.max(1, totalPages)}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="sm:hidden text-[11px] text-slate-500 dark:text-slate-400">
+              ※ 横スクロールで全項目表示
+            </span>
+            <span className="tabular-nums font-mono">
+              ページ {page} / {Math.max(1, totalPages)}
+            </span>
+          </div>
         </div>
 
         {/* Results Table */}
@@ -395,19 +412,19 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
                             {item.sale_unit_id ? (
                               <Link
                                 href={`/property/${item.sale_unit_id}`}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[#1B4F8A] dark:text-blue-400 hover:text-white hover:bg-[#1B4F8A] dark:hover:bg-blue-600 border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/30 text-[11px] font-medium transition-colors"
+                                className="inline-flex items-center justify-center gap-1 px-3 py-2 min-h-[36px] rounded-md text-[#1B4F8A] dark:text-blue-400 hover:text-white hover:bg-[#1B4F8A] dark:hover:bg-blue-600 border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/30 text-[11px] font-semibold transition-colors"
                                 title="物件詳細ページを確認"
                               >
                                 <span>確認</span>
                                 <ArrowUpRight className="w-3 h-3" />
                               </Link>
                             ) : (
-                              <span className="text-slate-400 text-[10px] px-1 py-1">完了</span>
+                              <span className="text-slate-400 text-[10px] px-2 py-2 min-h-[36px] inline-flex items-center">完了</span>
                             )}
                             {item.address && (
                               <Link
                                 href={`/trade-find?city=${encodeURIComponent(item.address.replace(/[0-9０-９\-丁目番地号].*$/, '').trim())}`}
-                                className="inline-flex items-center gap-0.5 px-2 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-slate-200 dark:border-zinc-700 text-[11px] transition-colors"
+                                className="inline-flex items-center justify-center gap-1 px-3 py-2 min-h-[36px] rounded-md text-slate-600 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-slate-200 dark:border-zinc-700 text-[11px] font-medium transition-colors"
                                 title="この地域の国土交通省実勢取引相場を調べる"
                               >
                                 <span>相場</span>
@@ -427,22 +444,22 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-6 text-xs">
+          <div className="flex justify-center items-center gap-2 mt-6 text-xs sm:text-sm">
             {page > 1 && (
               <Link
                 href={`/auction-results?page=${page - 1}${query ? `&q=${encodeURIComponent(query)}` : ''}${levelFilter ? `&level=${levelFilter}` : ''}`}
-                className="px-3 py-1.5 border border-slate-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50"
+                className="px-4 py-2 min-h-[40px] inline-flex items-center justify-center border border-slate-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors font-medium shadow-2xs"
               >
                 前へ
               </Link>
             )}
-            <span className="px-3 py-1.5 text-slate-500 tabular-nums">
+            <span className="px-3 py-2 text-slate-500 tabular-nums font-mono min-h-[40px] inline-flex items-center">
               {page} / {totalPages}
             </span>
             {page < totalPages && (
               <Link
                 href={`/auction-results?page=${page + 1}${query ? `&q=${encodeURIComponent(query)}` : ''}${levelFilter ? `&level=${levelFilter}` : ''}`}
-                className="px-3 py-1.5 border border-slate-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50"
+                className="px-4 py-2 min-h-[40px] inline-flex items-center justify-center border border-slate-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors font-medium shadow-2xs"
               >
                 次へ
               </Link>

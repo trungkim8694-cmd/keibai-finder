@@ -24,22 +24,24 @@ import { getProperties } from '@/actions/propertyActions';
 import type { SharedProperty } from '@/types';
 import HomeSmartSearch from '@/components/HomeSmartSearch';
 import HomeMapPreview from '@/components/HomeMapPreview';
+import HomeFaqAccordion from '@/components/HomeFaqAccordion';
+import { HOMEPAGE_FAQS } from '@/data/homepageFaqs';
 
 export const revalidate = 1800; // Cache 30 minutes for fast SSR
 
 export const metadata: Metadata = {
   title: {
-    absolute: '全国の競売物件・公売物件一括検索＆相場分析ポータル｜Keibai Finder',
+    absolute: '【公式】けいばい 競売物件情報・公売検索ポータル｜Keibai Finder',
   },
   description:
-    '全国の地方裁判所（BIT）および税務署（国税庁公売）で公示された競売・公売物件を一括横断検索。47都道府県・主要沿線・予算別のデータハブや、地図検索、国土交通省の取引相場データに基づく割安物件リサーチを提供します。',
+    '全国のけいばい（裁判所競売物件情報・BIT）および税務署の公売物件を一括横断検索。3点セットの読み方解説、占有者対策、過去の落札相場とAI価格査定で割安な不動産投資をサポート。',
   alternates: {
     canonical: 'https://www.keibai-koubai.com',
   },
   openGraph: {
-    title: '全国の競売物件・公売物件一括検索＆相場分析ポータル｜Keibai Finder',
+    title: '【公式】けいばい 競売物件情報・公売検索ポータル｜Keibai Finder',
     description:
-      '市場価格より割安な不動産を見つける。全国の競売・公売物件を都道府県・沿線・価格帯・地図から横断検索。',
+      '全国のけいばい（裁判所競売物件情報・BIT）および税務署の公売物件を一括横断検索。3点セットの読み方解説、占有者対策、過去の落札相場とAI価格査定で割安な不動産投資をサポート。',
     url: 'https://www.keibai-koubai.com',
     siteName: 'Keibai Finder',
     locale: 'ja_JP',
@@ -49,15 +51,15 @@ export const metadata: Metadata = {
         url: '/keibaikoubai.webp',
         width: 1200,
         height: 630,
-        alt: 'Keibai Finder - 全国の競売物件・公売物件一括検索＆相場分析ポータル',
+        alt: 'Keibai Finder - けいばい 競売物件情報・公売検索ポータル',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: '全国の競売物件・公売物件一括検索＆相場分析ポータル｜Keibai Finder',
+    title: '【公式】けいばい 競売物件情報・公売検索ポータル｜Keibai Finder',
     description:
-      '全国の地方裁判所（BIT）・国税局の競売・公売物件を一括検索。国土交通省の成約相場データ連携で割安物件を発掘。',
+      '全国のけいばい（裁判所競売物件情報・BIT）および税務署の公売物件を一括横断検索。3点セットの読み方解説、占有者対策、過去の落札相場とAI価格査定で割安な不動産投資をサポート。',
     images: ['/keibaikoubai.webp'],
   },
 };
@@ -115,6 +117,7 @@ export default async function HomePage() {
     latestProperties,
     recentAuctionResults,
     mapPropertiesRaw,
+    totalAuctionResultsCount,
   ] = await Promise.all([
     prisma.property.count({ where: { status: 'ACTIVE' } }),
     prisma.property.groupBy({
@@ -154,6 +157,7 @@ export default async function HomePage() {
         mlit_investment_gap: true,
       },
     }),
+    prisma.auctionResult.count(),
   ]);
 
   // Map prefecture counts
@@ -194,9 +198,9 @@ export default async function HomePage() {
         '@type': 'CollectionPage',
         '@id': 'https://www.keibai-koubai.com/#webpage',
         url: 'https://www.keibai-koubai.com',
-        name: '全国の競売物件・公売物件一括検索＆相場分析ポータル｜Keibai Finder',
+        name: '【公式】けいばい 競売物件情報・公売検索ポータル｜Keibai Finder',
         description:
-          '全国の地方裁判所（BIT）および税務署（国税庁公売）で公示された競売・公売物件を一括横断検索。国土交通省の取引相場データに基づく割安物件リサーチを提供。',
+          '全国のけいばい（裁判所競売物件情報・BIT）および税務署の公売物件を一括横断検索。3点セットの読み方解説、占有者対策、過去の落札相場とAI価格査定で割安な不動産投資をサポート。',
         inLanguage: 'ja',
         isPartOf: {
           '@id': 'https://www.keibai-koubai.com/#website',
@@ -207,6 +211,25 @@ export default async function HomePage() {
         mainEntity: {
           '@id': 'https://www.keibai-koubai.com/#latest-properties',
         },
+      },
+      {
+        '@type': 'FAQPage',
+        '@id': 'https://www.keibai-koubai.com/#faq',
+        isPartOf: {
+          '@id': 'https://www.keibai-koubai.com/#webpage',
+        },
+        name: '競売物件（けいばい）・公売に関するよくある質問（FAQ）',
+        description: '全国のけいばい（裁判所競売物件情報）および税務署の公売物件の3点セット、占有者対策、期間入札に関する実務Q&A',
+        inLanguage: 'ja',
+        mainEntity: HOMEPAGE_FAQS.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: {
+            // @type: "Answer"
+            '@type': 'Answer',
+            text: faq.answer,
+          },
+        })),
       },
       {
         '@type': 'Dataset',
@@ -279,7 +302,7 @@ export default async function HomePage() {
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            全国の競売物件・公売物件を一括検索
+            全国のけいばい（競売物件情報）・公売物件を一括検索
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
             裁判所の競売（BIT）と税務署の公売（国税局）を網羅。市場相場データ・利回り試算・AI価格査定で割安な不動産投資をサポートします。
@@ -317,7 +340,9 @@ export default async function HomePage() {
                   <div className="p-2 rounded bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300">
                     <Database className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-[#1B4F8A] dark:text-blue-300">4,100件+</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-[#1B4F8A] dark:text-blue-300">
+                    {totalAuctionResultsCount > 0 ? `${totalAuctionResultsCount.toLocaleString()}件+` : '34,000件+'}
+                  </span>
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#1B4F8A] transition-colors">
                   落札結果データベース
@@ -600,6 +625,9 @@ export default async function HomePage() {
             ))}
           </div>
         </section>
+
+        {/* FAQ ACCORDION (Workstream A: High-Intent SEO Content & Japanese B2B UI) */}
+        <HomeFaqAccordion />
 
         {/* 5. REALTIME NEW PROPERTIES (SSR HTML Links for Bot Indexing) */}
         <section>

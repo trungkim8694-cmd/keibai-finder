@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { 
-  MagnifyingGlassIcon, 
-  CheckIcon, 
-  XMarkIcon, 
-  TrashIcon, 
+import { useState, useEffect, useCallback } from "react";
+import {
+  MagnifyingGlassIcon,
+  CheckIcon,
+  XMarkIcon,
+  TrashIcon,
   PhotoIcon,
   PhoneIcon,
   EnvelopeIcon,
   GlobeAltIcon,
-  PrinterIcon
+  BriefcaseIcon,
 } from "@heroicons/react/24/outline";
 
 interface Agency {
@@ -43,178 +43,197 @@ interface Agency {
 
 export default function AdminAgenciesPage() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
-  // Modal for license image viewing
+
+  // License image preview modal
   const [selectedLicenseImage, setSelectedLicenseImage] = useState<string | null>(null);
   const [selectedCompanyName, setSelectedCompanyName] = useState<string | null>(null);
 
-  const fetchAgencies = async (searchTerm = "", status = "all") => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/agencies?search=${encodeURIComponent(searchTerm)}&status=${status}`);
-      if (!res.ok) throw new Error("サポート会社一覧を取得できませんでした。");
-      const data = await res.json();
-      setAgencies(data.agencies || []);
-    } catch (err: any) {
-      setError(err.message || "エラーが発生しました。");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Reject reason modal
+  const [rejectAgency, setRejectAgency] = useState<Agency | null>(null);
+  const [rejectReason, setRejectReason] = useState(
+    "ご提出いただいた宅建業免許等の情報に一部確認できない箇所がございました。入力内容および添付画像をご確認の上、再申請をお願いいたします。"
+  );
+
+  // Confirm modal
+  const [confirmState, setConfirmState] = useState<{
+    type: "verify" | "delete";
+    agency: Agency;
+    nextVerified?: boolean;
+    title: string;
+    message: string;
+  } | null>(null);
+
+  const fetchAgencies = useCallback(
+    async (searchTerm = search, status = statusFilter, targetPage = page) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams();
+        if (searchTerm) params.set("search", searchTerm);
+        params.set("status", status);
+        params.set("page", String(targetPage));
+        params.set("limit", "50");
+        const res = await fetch(`/api/admin/agencies?${params.toString()}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "サポート会社一覧を取得できませんでした。");
+        setAgencies(data.agencies || []);
+        setTotal(data.total || 0);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "エラーが発生しました。");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, search, statusFilter]
+  );
 
   useEffect(() => {
-    fetchAgencies(search, statusFilter);
-  }, [statusFilter]);
+    fetchAgencies(search, statusFilter, page);
+  }, [statusFilter, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchAgencies(search, statusFilter);
+    setPage(1);
+    fetchAgencies(search, statusFilter, 1);
   };
 
-  const handleToggleVerify = async (agencyId: string, currentVerified: boolean) => {
-    const nextVerified = !currentVerified;
-    const actionText = nextVerified ? "承認" : "承認解除";
-    
-    if (!confirm(`このサポート会社を${actionText}しますか？`)) {
-      return;
-    }
-
-    setUpdatingId(agencyId);
+  const executeConfirmedAction = async () => {
+    if (!confirmState) return;
+    const { type, agency, nextVerified } = confirmState;
+    setUpdatingId(agency.id);
     setError(null);
     setSuccess(null);
 
     try {
-      const res = await fetch("/api/admin/agencies", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agencyId, isVerified: nextVerified })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "更新に失敗しました。");
+      if (type === "verify" && nextVerified !== undefined) {
+        const res = await fetch("/api/admin/agencies", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agencyId: agency.id, isVerified: nextVerified }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "更新に失敗しました。");
+        setAgencies((prev) =>
+          prev.map((a) =>
+            a.id === agency.id
+              ? {
+                  ...a,
+                  isVerified: nextVerified,
+                  rejectionReason: nextVerified ? null : a.rejectionReason,
+                }
+              : a
+          )
+        );
+        setSuccess(
+          `「${data.agency.companyName}」を${nextVerified ? "承認" : "承認解除"}しました。`
+        );
+      } else if (type === "delete") {
+        const res = await fetch("/api/admin/agencies", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agencyId: agency.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "プロファイルの削除に失敗しました。");
+        setAgencies((prev) => prev.filter((a) => a.id !== agency.id));
+        setSuccess(`「${agency.companyName}」のプロファイルを削除しました。`);
       }
-
-      setAgencies(agencies.map(a => a.id === agencyId ? { ...a, isVerified: nextVerified, rejectionReason: nextVerified ? null : a.rejectionReason } : a));
-      setSuccess(`「${data.agency.companyName}」を正常に${actionText}しました。`);
-    } catch (err: any) {
-      setError(err.message || "エラーが発生しました。");
+      setConfirmState(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "エラーが発生しました。");
+      setConfirmState(null);
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const handleRejectAgency = async (agencyId: string, companyName: string) => {
-    const defaultReason = "ご提出いただいた宅建業免許等の情報に一部確認できない箇所がございました。恐れ入りますが、入力内容および添付の免許証画像が明瞭であるかご確認の上、再度ご申請をお願いいたします。";
-    const reason = window.prompt(`「${companyName}」の申請を却下する理由を入力してください（仲介会社に表示されます）:`, defaultReason);
-    
-    if (reason === null) return;
-    const trimmedReason = reason.trim() || defaultReason;
-
-    setUpdatingId(agencyId);
+  const handleRejectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectAgency) return;
+    setUpdatingId(rejectAgency.id);
     setError(null);
     setSuccess(null);
 
     try {
+      const trimmed = rejectReason.trim();
       const res = await fetch("/api/admin/agencies", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agencyId, isVerified: false, rejectionReason: trimmedReason })
+        body: JSON.stringify({
+          agencyId: rejectAgency.id,
+          isVerified: false,
+          rejectionReason: trimmed,
+        }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "却下処理に失敗しました。");
-      }
-
-      setAgencies(agencies.map(a => a.id === agencyId ? { ...a, isVerified: false, rejectionReason: trimmedReason } : a));
-      setSuccess(`「${companyName}」の申請を却下しました。`);
-    } catch (err: any) {
-      setError(err.message || "エラーが発生しました。");
+      if (!res.ok) throw new Error(data.error || "却下処理に失敗しました。");
+      setAgencies((prev) =>
+        prev.map((a) =>
+          a.id === rejectAgency.id
+            ? { ...a, isVerified: false, rejectionReason: trimmed }
+            : a
+        )
+      );
+      setSuccess(`「${rejectAgency.companyName}」の申請を却下しました。`);
+      setRejectAgency(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "エラーが発生しました。");
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const handleDeleteAgency = async (agencyId: string, companyName: string) => {
-    if (!confirm(`「${companyName}」のサポート会社プロファイルを削除しますか？\n（ユーザーのアカウント自体は削除されず、一般ユーザー権限に戻ります。この操作は取り消せません）`)) {
-      return;
-    }
-
-    setDeletingId(agencyId);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const res = await fetch("/api/admin/agencies", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agencyId })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "プロファイルの削除に失敗しました。");
-      }
-
-      setAgencies(agencies.filter(a => a.id !== agencyId));
-      setSuccess(`「${companyName}」のプロファイルを削除し、一般ユーザー権限へ変更しました。`);
-    } catch (err: any) {
-      setError(err.message || "エラーが発生しました。");
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  const totalPages = Math.max(1, Math.ceil(total / 50));
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-5 font-sans max-w-7xl mx-auto">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black">競売サポート会社管理</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            登録された不動産仲介（サポート）会社の免許確認、承認、および削除を行います。
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <BriefcaseIcon className="w-6 h-6 text-[#1B4F8A] dark:text-blue-400 shrink-0" />
+            <span>パートナー事務所（サポート会社）管理</span>
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            登録された不動産仲介（サポート）会社の免許確認、承認、却下、および削除を行います。
           </p>
         </div>
 
-        {/* Search & Filters */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:max-w-2xl justify-end">
-          {/* Status Filter */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:max-w-xl justify-end">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full sm:w-44 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-bold transition-all"
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="min-h-[44px] w-full sm:w-40 px-3 py-2 bg-white dark:bg-[#151B22] border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1B4F8A]"
           >
             <option value="all">すべて表示</option>
             <option value="verified">承認済みのみ</option>
             <option value="unverified">未承認のみ</option>
           </select>
 
-          {/* Search Form */}
-          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full sm:max-w-md">
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1">
             <div className="relative flex-1">
-              <MagnifyingGlassIcon className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="会社名、免許番号、電話番号..."
+                placeholder="会社名・免許番号・メール..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                className="w-full min-h-[44px] pl-9 pr-3 py-2 bg-white dark:bg-[#151B22] border border-slate-300 dark:border-slate-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#1B4F8A]"
               />
             </div>
             <button
               type="submit"
-              className="px-4 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-bold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shrink-0"
+              className="min-h-[44px] px-4 py-2 bg-[#1B4F8A] hover:bg-[#163F6F] text-white text-xs font-bold rounded-lg shrink-0 cursor-pointer"
             >
               検索
             </button>
@@ -222,269 +241,433 @@ export default function AdminAgenciesPage() {
         </div>
       </div>
 
-      {/* Notifications */}
       {error && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-xl text-sm font-medium">
-          ⚠️ {error}
+        <div className="p-3 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/50 rounded-lg text-xs font-medium">
+          {error}
         </div>
       )}
       {success && (
-        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 rounded-xl text-sm font-medium">
-          ✅ {success}
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/50 rounded-lg text-xs font-medium">
+          {success}
         </div>
       )}
 
-      {/* Table Container */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
-              <span className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></span>
-              <p className="text-sm">サポート会社データを読み込み中...</p>
-            </div>
-          ) : agencies.length === 0 ? (
-            <div className="text-center py-20 text-zinc-400">
-              <p className="text-4xl mb-4">🏢</p>
-              <p className="font-semibold">サポート会社が見つかりません</p>
-              <p className="text-xs opacity-75 mt-1">他の条件で検索をお試しください。</p>
-            </div>
-          ) : (
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="bg-zinc-50 dark:bg-zinc-800/40 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
-                  <th scope="col" className="px-6 py-4 font-bold">会社情報</th>
-                  <th scope="col" className="px-6 py-4 font-bold">免許・申請者</th>
-                  <th scope="col" className="px-6 py-4 font-bold">連絡先情報</th>
-                  <th scope="col" className="px-6 py-4 font-bold">対応エリア</th>
-                  <th scope="col" className="px-6 py-4 font-bold">ステータス</th>
-                  <th scope="col" className="px-6 py-4 font-bold text-right">アクション</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
-                {agencies.map((agency) => (
-                  <tr key={agency.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
-                    
-                    {/* Company info */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center shrink-0">
-                          {agency.logoUrl ? (
-                            <img src={agency.logoUrl} alt={agency.companyName} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-sm font-bold text-zinc-400 dark:text-zinc-500">🏢</span>
+      {loading ? (
+        <div className="bg-white dark:bg-[#151B22] border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center py-16 text-slate-400">
+          <span className="w-6 h-6 border-2 border-[#1B4F8A] border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-xs">サポート会社一覧を読み込み中...</p>
+        </div>
+      ) : agencies.length === 0 ? (
+        <div className="bg-white dark:bg-[#151B22] border border-slate-200 dark:border-slate-800 rounded-xl text-center py-16 text-slate-400">
+          <BriefcaseIcon className="w-8 h-8 mx-auto mb-2 opacity-40" />
+          <p className="font-semibold text-sm">登録されているサポート会社が見つかりません</p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Card View */}
+          <div className="space-y-3 md:hidden">
+            {agencies.map((agency) => (
+              <div
+                key={agency.id}
+                className="bg-white dark:bg-[#151B22] border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm text-slate-900 dark:text-white">
+                      {agency.companyName}
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-500 mt-0.5">
+                      免許: {agency.licenseNumber}
+                    </div>
+                  </div>
+                  <span
+                    className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${
+                      agency.isVerified
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                        : "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                    }`}
+                  >
+                    {agency.isVerified ? "承認済み" : "未承認"}
+                  </span>
+                </div>
+
+                <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                  <div className="flex items-center gap-1.5 font-mono">
+                    <PhoneIcon className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{agency.phone}</span>
+                  </div>
+                  {agency.email && (
+                    <div className="flex items-center gap-1.5 font-mono break-all">
+                      <EnvelopeIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{agency.email}</span>
+                    </div>
+                  )}
+                  {agency.website && (
+                    <a
+                      href={agency.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1.5 text-[#1B4F8A] dark:text-blue-400 hover:underline break-all"
+                    >
+                      <GlobeAltIcon className="w-3.5 h-3.5 shrink-0" />
+                      <span>{agency.website}</span>
+                    </a>
+                  )}
+                </div>
+
+                {agency.licenseImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedLicenseImage(agency.licenseImageUrl);
+                      setSelectedCompanyName(agency.companyName);
+                    }}
+                    className="w-full min-h-[40px] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-[#1B4F8A] dark:text-blue-400 inline-flex items-center justify-center gap-1.5"
+                  >
+                    <PhotoIcon className="w-4 h-4" />
+                    <span>免許証画像を確認</span>
+                  </button>
+                )}
+
+                {agency.rejectionReason && !agency.isVerified && (
+                  <div className="text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 p-2 rounded">
+                    却下理由: {agency.rejectionReason}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={updatingId === agency.id}
+                    onClick={() =>
+                      setConfirmState({
+                        type: "verify",
+                        agency,
+                        nextVerified: !agency.isVerified,
+                        title: agency.isVerified ? "承認解除" : "パートナー承認",
+                        message: `「${agency.companyName}」を${
+                          agency.isVerified ? "承認解除" : "承認"
+                        }しますか？`,
+                      })
+                    }
+                    className={`min-h-[44px] px-2 text-xs font-bold rounded-lg ${
+                      agency.isVerified
+                        ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        : "bg-emerald-600 text-white"
+                    }`}
+                  >
+                    {agency.isVerified ? "解除" : "承認"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingId === agency.id}
+                    onClick={() => setRejectAgency(agency)}
+                    className="min-h-[44px] px-2 text-xs font-semibold rounded-lg border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300"
+                  >
+                    却下
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingId === agency.id}
+                    onClick={() =>
+                      setConfirmState({
+                        type: "delete",
+                        agency,
+                        title: "プロファイル削除",
+                        message: `「${agency.companyName}」のサポート会社プロファイルを削除しますか？`,
+                      })
+                    }
+                    className="min-h-[44px] px-2 text-xs font-semibold rounded-lg border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300"
+                  >
+                    削除
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-white dark:bg-[#151B22] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-[11px] font-semibold">
+                    <th className="px-5 py-3.5">会社名・免許番号</th>
+                    <th className="px-5 py-3.5">連絡先</th>
+                    <th className="px-5 py-3.5">対応エリア</th>
+                    <th className="px-5 py-3.5">免許証</th>
+                    <th className="px-5 py-3.5">ステータス</th>
+                    <th className="px-5 py-3.5 text-right">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {agencies.map((agency) => (
+                    <tr
+                      key={agency.id}
+                      className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+                    >
+                      <td className="px-5 py-3.5">
+                        <div className="font-bold text-slate-900 dark:text-white">
+                          {agency.companyName}
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-500 mt-0.5">
+                          {agency.licenseNumber}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          担当: {agency.user?.name || agency.user?.email || "-"}
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-3.5 text-[11px] font-mono text-slate-600 dark:text-slate-300 space-y-0.5">
+                        <div>TEL: {agency.phone}</div>
+                        {agency.email && <div>Mail: {agency.email}</div>}
+                      </td>
+
+                      <td className="px-5 py-3.5 max-w-[180px]">
+                        <div className="flex flex-wrap gap-1">
+                          {(agency.prefectures || []).slice(0, 4).map((p) => (
+                            <span
+                              key={p}
+                              className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px]"
+                            >
+                              {p}
+                            </span>
+                          ))}
+                          {(agency.prefectures || []).length > 4 && (
+                            <span className="text-[10px] text-slate-400">
+                              +{agency.prefectures.length - 4}
+                            </span>
                           )}
                         </div>
-                        <div>
-                          <div className="font-bold text-zinc-900 dark:text-white leading-snug">
-                            {agency.companyName}
-                          </div>
-                          <div className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                            登録日: {new Date(agency.created_at).toLocaleDateString("ja-JP")}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* License & Submitter */}
-                    <td className="px-6 py-4 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                          {agency.licenseNumber}
-                        </span>
+                      <td className="px-5 py-3.5">
                         {agency.licenseImageUrl ? (
                           <button
+                            type="button"
                             onClick={() => {
                               setSelectedLicenseImage(agency.licenseImageUrl);
                               setSelectedCompanyName(agency.companyName);
                             }}
-                            className="text-blue-600 hover:text-blue-500 font-bold text-xs inline-flex items-center gap-0.5 transition-colors"
-                            title="宅建免許証の画像を表示"
+                            className="text-xs font-semibold text-[#1B4F8A] dark:text-blue-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
                           >
                             <PhotoIcon className="w-4 h-4" />
-                            画像確認
+                            <span>確認</span>
                           </button>
                         ) : (
-                          <span className="text-zinc-400 text-xs font-bold flex items-center gap-0.5">
-                            画像なし
-                          </span>
+                          <span className="text-[11px] text-slate-400">未添付</span>
                         )}
-                      </div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                        申請者: {agency.user.name || "名称未設定"} ({agency.user.email})
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Contacts */}
-                    <td className="px-6 py-4 space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-300 font-semibold">
-                        <PhoneIcon className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>{agency.phone}</span>
-                      </div>
-                      {agency.fax && (
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-750 dark:text-zinc-250 font-semibold">
-                          <PrinterIcon className="w-3.5 h-3.5 text-zinc-400" />
-                          <span>{agency.fax}</span>
-                        </div>
-                      )}
-                      {agency.email && (
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                          <EnvelopeIcon className="w-3.5 h-3.5 text-zinc-400" />
-                          <span className="truncate max-w-[150px]" title={agency.email}>{agency.email}</span>
-                        </div>
-                      )}
-                      {agency.website && (
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                          <GlobeAltIcon className="w-3.5 h-3.5 text-zinc-400" />
-                          <a href={agency.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate max-w-[200px]" title={agency.website}>
-                            {agency.website}
-                          </a>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Prefectures */}
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-bold text-xs text-zinc-800 dark:text-zinc-200">
-                          {agency.prefectures.length} 都道府県
-                        </span>
-                        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 max-w-[150px] truncate" title={agency.prefectures.join(", ")}>
-                          {agency.prefectures.join(", ")}
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Status Badge */}
-                    <td className="px-6 py-4">
-                      {agency.isVerified ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                          承認済み
-                        </span>
-                      ) : agency.rejectionReason ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-450" title={agency.rejectionReason}>
-                          却下済み
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
-                          未承認 (審査中)
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* Verify/Unverify Button */}
-                        <button
-                          onClick={() => handleToggleVerify(agency.id, agency.isVerified)}
-                          disabled={updatingId === agency.id}
-                          className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
                             agency.isVerified
-                              ? "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-950/20"
-                              : "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-950/20"
-                          } disabled:opacity-50`}
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              : "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                          }`}
                         >
-                          {updatingId === agency.id ? (
-                            "処理中..."
-                          ) : agency.isVerified ? (
-                            <>
-                              <XMarkIcon className="w-3.5 h-3.5" />
-                              承認解除
-                            </>
-                          ) : (
-                            <>
-                              <CheckIcon className="w-3.5 h-3.5" />
-                              承認する
-                            </>
-                          )}
-                        </button>
-
-                        {/* Reject Button */}
-                        {!agency.isVerified && (
-                          <button
-                            onClick={() => handleRejectAgency(agency.id, agency.companyName)}
-                            disabled={updatingId === agency.id}
-                            className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900/30 dark:text-rose-400 dark:hover:bg-rose-950/20 transition-all disabled:opacity-50"
+                          {agency.isVerified ? "承認済み" : "未承認"}
+                        </span>
+                        {agency.rejectionReason && !agency.isVerified && (
+                          <div
+                            className="text-[10px] text-red-600 dark:text-red-400 mt-1 max-w-[180px] truncate"
+                            title={agency.rejectionReason}
                           >
-                            <XMarkIcon className="w-3.5 h-3.5" />
-                            {agency.rejectionReason ? "理由を修正" : "却下する"}
-                          </button>
+                            {agency.rejectionReason}
+                          </div>
                         )}
+                      </td>
 
-                        {/* Delete Button */}
-                        <button
-                          onClick={() => handleDeleteAgency(agency.id, agency.companyName)}
-                          disabled={deletingId === agency.id}
-                          className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-950/20 transition-all disabled:opacity-50"
-                          title="サポート会社登録を削除"
-                        >
-                          <TrashIcon className="w-3.5 h-3.5" />
-                          削除
-                        </button>
-                      </div>
-                    </td>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={updatingId === agency.id}
+                            onClick={() =>
+                              setConfirmState({
+                                type: "verify",
+                                agency,
+                                nextVerified: !agency.isVerified,
+                                title: agency.isVerified ? "承認解除" : "パートナー承認",
+                                message: `「${agency.companyName}」を${
+                                  agency.isVerified ? "承認解除" : "承認"
+                                }しますか？`,
+                              })
+                            }
+                            title={agency.isVerified ? "承認解除" : "承認する"}
+                            className={`p-2 rounded-lg border cursor-pointer ${
+                              agency.isVerified
+                                ? "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                : "border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                            }`}
+                          >
+                            <CheckIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={updatingId === agency.id}
+                            onClick={() => setRejectAgency(agency)}
+                            title="却下する"
+                            className="p-2 rounded-lg border border-amber-200 dark:border-amber-900 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
+                          >
+                            <XMarkIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={updatingId === agency.id}
+                            onClick={() =>
+                              setConfirmState({
+                                type: "delete",
+                                agency,
+                                title: "プロファイル削除",
+                                message: `「${agency.companyName}」のサポート会社プロファイルを削除しますか？`,
+                              })
+                            }
+                            title="削除する"
+                            className="p-2 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2 text-xs text-slate-500">
+          <span className="tabular-nums">
+            ページ {page} / {totalPages} （全 {total.toLocaleString()} 件）
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="min-h-[40px] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40"
+            >
+              前へ
+            </button>
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="min-h-[40px] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40"
+            >
+              次へ
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* License View Modal */}
+      {/* License Image Modal */}
       {selectedLicenseImage && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
-          onClick={() => {
-            setSelectedLicenseImage(null);
-            setSelectedCompanyName(null);
-          }}
-        >
-          <div 
-            className="bg-white dark:bg-zinc-900 rounded-2xl max-w-4xl w-full border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-zinc-950 dark:text-zinc-50">
-                  宅地建物取引業者免許証の確認
-                </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                  {selectedCompanyName}
-                </p>
-              </div>
-              <button 
-                onClick={() => {
-                  setSelectedLicenseImage(null);
-                  setSelectedCompanyName(null);
-                }}
-                className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors text-zinc-500 dark:text-zinc-400"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-[1px]">
+          <div className="bg-white dark:bg-[#151B22] rounded-xl max-w-2xl w-full p-5 shadow-lg border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                {selectedCompanyName} - 宅建業免許証
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedLicenseImage(null)}
+                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg"
               >
-                <XMarkIcon className="w-5 h-5" />
+                ✕
               </button>
             </div>
-
-            {/* Modal Image Area */}
-            <div className="flex-1 p-6 bg-zinc-50 dark:bg-zinc-950 overflow-y-auto flex justify-center items-center">
-              <img 
-                src={selectedLicenseImage} 
-                alt="License Copy" 
-                className="max-w-full max-h-[60vh] object-contain rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm"
+            <div className="bg-slate-100 dark:bg-[#0D1117] rounded-lg p-3 flex items-center justify-center">
+              <img
+                src={selectedLicenseImage}
+                alt="宅建業免許証"
+                className="max-w-full max-h-[65vh] object-contain rounded"
               />
             </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-end">
-              <button 
-                onClick={() => {
-                  setSelectedLicenseImage(null);
-                  setSelectedCompanyName(null);
-                }}
-                className="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-bold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors"
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedLicenseImage(null)}
+                className="min-h-[40px] px-4 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg"
               >
                 閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Reason Modal */}
+      {rejectAgency && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-[1px]">
+          <form
+            onSubmit={handleRejectSubmit}
+            className="bg-white dark:bg-[#151B22] rounded-xl max-w-md w-full p-5 shadow-lg border border-slate-200 dark:border-slate-800 space-y-4"
+          >
+            <h3 className="font-bold text-sm text-red-600 dark:text-red-400">
+              申請却下: {rejectAgency.companyName}
+            </h3>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={4}
+              className="w-full text-xs p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0D1117] focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setRejectAgency(null)}
+                className="min-h-[40px] px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+              >
+                キャンセル
+              </button>
+              <button
+                type="submit"
+                disabled={updatingId === rejectAgency.id}
+                className="min-h-[40px] px-4 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg"
+              >
+                却下を確定する
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {confirmState && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-[1px]">
+          <div className="bg-white dark:bg-[#151B22] rounded-xl max-w-md w-full p-5 shadow-lg border border-slate-200 dark:border-slate-800 space-y-4">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+              {confirmState.title}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {confirmState.message}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmState(null)}
+                className="min-h-[40px] px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={executeConfirmedAction}
+                disabled={updatingId !== null}
+                className={`min-h-[40px] px-4 py-1.5 text-xs font-bold text-white rounded-lg ${
+                  confirmState.type === "delete"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-[#1B4F8A] hover:bg-[#163F6F]"
+                }`}
+              >
+                {updatingId ? "処理中..." : "確定する"}
               </button>
             </div>
           </div>

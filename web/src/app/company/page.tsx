@@ -19,6 +19,22 @@ import {
 export const metadata: Metadata = {
   title: '運営会社概要 (Company Profile) | 株式会社ＴＱＣ',
   description: '東京都知事免許 (01) 第107650号。競売物件・公売物件の一括検索およびAI投資分析プラットフォーム「Keibai-Koubai Finder」を運営する株式会社ＴＱＣの公式企業概要ページです。',
+  alternates: {
+    canonical: 'https://www.keibai-koubai.com/company',
+  },
+  openGraph: {
+    title: '運営会社概要 (Company Profile) | 株式会社ＴＱＣ',
+    description: '東京都知事免許 (01) 第107650号。競売物件・公売物件の一括検索ポータル「Keibai Finder」運営会社情報。',
+    url: 'https://www.keibai-koubai.com/company',
+    siteName: 'Keibai Finder',
+    locale: 'ja_JP',
+    type: 'website',
+    images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: '株式会社ＴＱＣ 会社概要' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/keibaikoubai.webp'],
+  },
 };
 
 export default function CompanyProfilePage() {
@@ -27,8 +43,8 @@ export default function CompanyProfilePage() {
     '@type': 'RealEstateAgent',
     name: '株式会社ＴＱＣ',
     alternateName: 'TQC Co., Ltd.',
-    url: 'https://keibai-koubai.com',
-    logo: 'https://keibai-koubai.com/icon.png',
+    url: 'https://www.keibai-koubai.com',
+    logo: 'https://www.keibai-koubai.com/icon.png',
     telephone: '+81-3-6907-1219',
     faxNumber: '+81-3-6701-2399',
     email: 'info@keibai-koubai.com',
@@ -73,7 +89,7 @@ export default function CompanyProfilePage() {
     <div className="min-h-screen bg-slate-50 dark:bg-[#0D1117] py-8 px-4 sm:px-6 lg:px-8 font-sans">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
 
       {/* 1280px Standard PC Frame (max-w-7xl) */}

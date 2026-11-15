@@ -89,6 +89,7 @@ model AuctionResult {
   sale_unit_id     String?   @unique
   caseNumber       String
   address          String?
+  prefecture       String?
   lat              Float?
   lng              Float?
   basePrice        BigInt?
@@ -101,6 +102,7 @@ model AuctionResult {
   raw_data         Json?
   created_at       DateTime  @default(now())
 
+  @@index([prefecture])
   @@index([lat, lng])
   @@index([completionDate(sort: Desc)], map: "idx_auction_result_completion_desc")
   @@index([competitionLevel], map: "idx_auction_result_comp_level")

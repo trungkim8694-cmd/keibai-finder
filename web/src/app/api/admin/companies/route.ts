@@ -1,24 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import {
+  requireAdminSession,
+  parsePagination,
+  isPrismaNotFoundError,
+} from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const { errorResponse } = await requireAdminSession();
+    if (errorResponse) return errorResponse;
 
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get('q') || '').trim();
-    const prefecture = searchParams.get('prefecture') || '';
+    const prefecture = (searchParams.get('prefecture') || '').trim();
     const verifiedOnly = searchParams.get('verified') === 'true';
+    const { page, limit, skip } = parsePagination(searchParams, 50, 100);
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (q) {
       where.OR = [
         { companyName: { contains: q, mode: 'insensitive' } },
@@ -37,25 +39,27 @@ export async function GET(request: Request) {
     const [companies, total] = await Promise.all([
       prisma.realEstateCompany.findMany({
         where,
-        take: 50,
+        skip,
+        take: limit,
         orderBy: [{ isVerified: 'desc' }, { updated_at: 'desc' }],
       }),
       prisma.realEstateCompany.count({ where }),
     ]);
 
-    return NextResponse.json({ companies, total });
-  } catch (error: any) {
+    return NextResponse.json({ companies, total, page, limit });
+  } catch (error: unknown) {
     console.error('Admin companies GET error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '内部エラー' },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const { errorResponse } = await requireAdminSession();
+    if (errorResponse) return errorResponse;
 
     const body = await request.json();
     const { action, companyId, isVerified, data } = body;
@@ -71,14 +75,39 @@ export async function POST(request: Request) {
     }
 
     if (action === 'update_company' && companyId && data) {
+      const rawWebsite =
+        typeof data.website === 'string' ? data.website.trim() : '';
+      if (rawWebsite && !/^https?:\/\//i.test(rawWebsite)) {
+        return NextResponse.json(
+          { error: 'WebサイトURLは http:// または https:// で始まる必要があります' },
+          { status: 400 }
+        );
+      }
+
+      const rawEmail = typeof data.email === 'string' ? data.email.trim() : '';
+      if (rawEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
+        return NextResponse.json(
+          { error: 'メールアドレスの形式が正しくありません' },
+          { status: 400 }
+        );
+      }
+
+      const specialties = Array.isArray(data.specialties)
+        ? data.specialties
+            .filter((s: unknown): s is string => typeof s === 'string')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+        : undefined;
+
       const updated = await prisma.realEstateCompany.update({
         where: { id: companyId },
         data: {
-          specialties: data.specialties,
-          description: data.description,
-          phone: data.phone,
-          email: data.email,
-          website: data.website,
+          ...(specialties !== undefined ? { specialties } : {}),
+          description:
+            typeof data.description === 'string' ? data.description.trim() : null,
+          phone: typeof data.phone === 'string' ? data.phone.trim() : null,
+          email: rawEmail || null,
+          website: rawWebsite || null,
         },
       });
       revalidatePath('/admin/companies');
@@ -87,8 +116,17 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: '不正なアクションです' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isPrismaNotFoundError(error)) {
+      return NextResponse.json(
+        { error: '指定された会社が見つかりません' },
+        { status: 404 }
+      );
+    }
     console.error('Admin companies POST error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '内部エラー' },
+      { status: 500 }
+    );
   }
 }

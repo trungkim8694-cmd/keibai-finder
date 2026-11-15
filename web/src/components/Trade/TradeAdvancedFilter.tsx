@@ -212,7 +212,7 @@ export default function TradeAdvancedFilter({
                   placeholder="下限なし"
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
-                  className="w-full h-8 px-2 text-xs tabular-nums bg-slate-50 dark:bg-[#0D1117] border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#1B4F8A]"
+                  className="w-full h-10 px-3 text-xs tabular-nums bg-slate-50 dark:bg-[#0D1117] border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#1B4F8A]"
                 />
                 <span className="text-slate-400 text-xs shrink-0">〜</span>
                 <input
@@ -222,7 +222,7 @@ export default function TradeAdvancedFilter({
                   placeholder="上限なし"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
-                  className="w-full h-8 px-2 text-xs tabular-nums bg-slate-50 dark:bg-[#0D1117] border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#1B4F8A]"
+                  className="w-full h-10 px-3 text-xs tabular-nums bg-slate-50 dark:bg-[#0D1117] border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#1B4F8A]"
                 />
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function TradeAdvancedFilter({
               <select
                 value={maxWalk}
                 onChange={(e) => setMaxWalk(e.target.value)}
-                className="w-full h-8 px-2 text-xs bg-slate-50 dark:bg-[#0D1117] border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#1B4F8A] cursor-pointer"
+                className="w-full h-10 px-3 text-xs bg-slate-50 dark:bg-[#0D1117] border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#1B4F8A] cursor-pointer"
               >
                 <option value="">指定なし</option>
                 <option value="5">徒歩5分以内 (駅近)</option>
@@ -253,7 +253,7 @@ export default function TradeAdvancedFilter({
               <select
                 value={buildingAge}
                 onChange={(e) => setBuildingAge(e.target.value)}
-                className="w-full h-8 px-2 text-xs bg-slate-50 dark:bg-[#0D1117] border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#1B4F8A] cursor-pointer"
+                className="w-full h-10 px-3 text-xs bg-slate-50 dark:bg-[#0D1117] border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#1B4F8A] cursor-pointer"
               >
                 <option value="">指定なし</option>
                 <option value="5">新築・築5年以内</option>
