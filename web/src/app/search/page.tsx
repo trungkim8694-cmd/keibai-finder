@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -73,5 +73,5 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   }
 
   const queryString = targetParams.toString();
-  redirect(queryString ? `/map?${queryString}` : '/map');
+  permanentRedirect(queryString ? `/map?${queryString}` : '/map');
 }

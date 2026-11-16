@@ -118,8 +118,9 @@ def collect_candidate_urls(conn) -> List[Dict[str, str]]:
         )
         for slug, category, upd_date in cur.fetchall():
             prefix = "/insights" if category == "MARKET_REPORT" else "/blogs"
+            enc_slug = urllib.parse.quote(slug)
             add_candidate(
-                f"{WWW_BASE_URL}{prefix}/{slug}",
+                f"{WWW_BASE_URL}{prefix}/{enc_slug}",
                 "ARTICLE",
                 slug,
                 f"ARTICLE_{upd_date}",

@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { Calendar, ArrowLeft, BookOpen, AlertTriangle, ChevronRight, TrendingUp, Search, ShieldCheck, Map, ArrowRight } from 'lucide-react';
 import ArticleContent from '../../insights/[slug]/ArticleContent';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -11,25 +11,39 @@ type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
+function safeDecodeSlug(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+async function findBlogArticle(rawSlug: string) {
+  const decodedSlug = safeDecodeSlug(rawSlug);
+  const candidates = Array.from(new Set([decodedSlug, rawSlug]));
+
+  for (const s of candidates) {
+    const found = await prisma.dailyDigest.findUnique({ where: { slug: s } });
+    if (found) return found;
+  }
+
+  return prisma.dailyDigest.findFirst({
+    where: {
+      previousSlugs: { hasSome: candidates }
+    }
+  });
+}
+
 export async function generateMetadata(
   { params, searchParams }: Props,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const resolvedParams = await params;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resolvedSearchParams = await searchParams;
-  const slug = resolvedParams.slug;
-  let article = await prisma.dailyDigest.findUnique({
-    where: { slug }
-  });
-
-  if (!article) {
-    article = await prisma.dailyDigest.findFirst({
-      where: {
-        previousSlugs: { has: slug }
-      }
-    });
-  }
+  const article = await findBlogArticle(resolvedParams.slug);
 
   if (!article) {
     return { title: 'Not Found' }
@@ -39,7 +53,7 @@ export async function generateMetadata(
   const rawContent = article.content_ja || '';
   const description = rawContent.replace(/[#*]/g, '').substring(0, 160);
   const baseUrl = 'https://www.keibai-koubai.com';
-  const canonicalUrl = `${baseUrl}/blogs/${slug}`;
+  const canonicalUrl = `${baseUrl}/blogs/${encodeURIComponent(article.slug)}`;
   const ogImage = article.featuredImage || '/keibaikoubai.webp';
 
   return {
@@ -65,6 +79,7 @@ export async function generateMetadata(
 }
 
 export const revalidate = 3600;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
@@ -94,28 +109,17 @@ export async function generateStaticParams() {
 
 export default async function LogDetailPage({ params }: Props) {
   const resolvedParams = await params;
-  const slug = resolvedParams.slug;
-
-  let article = await prisma.dailyDigest.findUnique({
-    where: { slug }
-  });
-
-  if (!article) {
-    article = await prisma.dailyDigest.findFirst({
-      where: {
-        previousSlugs: { has: slug }
-      }
-    });
-  }
+  const article = await findBlogArticle(resolvedParams.slug);
 
   if (!article) {
     notFound();
   }
 
+  const slug = article.slug;
+
   // Prevent Duplicate Content: MARKET_REPORT belongs in /insights
   if (article.category === 'MARKET_REPORT') {
-    const { redirect } = require('next/navigation');
-    redirect(`/insights/${slug}`);
+    permanentRedirect(`/insights/${encodeURIComponent(slug)}`);
   }
 
   if (article.category !== 'GUIDE' && article.category !== 'CAUTION') {

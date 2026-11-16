@@ -13,7 +13,8 @@ import {
   Landmark, 
   Scale, 
   FileCheck2,
-  CheckCircle2
+  CheckCircle2,
+  Newspaper
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -320,6 +321,61 @@ export default function CompanyProfilePage() {
                   </dd>
                 </div>
               </dl>
+            </div>
+
+            {/* Press Releases & Media Coverage */}
+            <div
+              id="press-releases"
+              className="bg-white dark:bg-[#151B22] border border-slate-200/90 dark:border-slate-800 rounded-lg overflow-hidden shadow-2xs"
+            >
+              <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Newspaper className="w-4 h-4 text-[#1B4F8A] dark:text-blue-400" />
+                  <span>プレスリリース・メディア掲載</span>
+                </h2>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Press &amp; Media
+                </span>
+              </div>
+
+              <ul className="divide-y divide-slate-100 dark:divide-slate-800/80 text-sm">
+                <li className="px-5 py-3.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                    <span className="tabular-nums">2026年11月16日</span>
+                    <span className="px-2 py-0.5 rounded bg-blue-50 text-[#1B4F8A] border border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60 font-medium text-[11px]">
+                      Zero-Press
+                    </span>
+                  </div>
+                  <a
+                    href="https://zero-press.net/p/r-mwj77b4vvqtf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-slate-900 dark:text-slate-100 font-semibold hover:text-[#1B4F8A] dark:hover:text-blue-400 hover:underline"
+                  >
+                    <span>全国の不動産競売・公売物件を一括検索・AI分析するプラットフォーム「Keibai-koubai」に関するプレスリリース</span>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                  </a>
+                </li>
+
+                <li className="px-5 py-3.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                    <span className="tabular-nums">2026年11月</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 font-medium text-[11px]">
+                      PRESSNOW
+                    </span>
+                  </div>
+                  {/* Replace href with the exact PRESSNOW article URL once approved */}
+                  <a
+                    href="https://pressnow.jp/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-slate-900 dark:text-slate-100 font-semibold hover:text-[#1B4F8A] dark:hover:text-blue-400 hover:underline"
+                  >
+                    <span>無料プレスリリース配信サイト「PRESSNOW（プレスナウ）」掲載情報</span>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
 

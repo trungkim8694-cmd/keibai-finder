@@ -303,7 +303,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const isMarketReport = art.category === 'MARKET_REPORT';
       const pathPrefix = isMarketReport ? '/insights' : '/blogs';
       return {
-        url: `${baseUrl}${pathPrefix}/${art.slug}`,
+        url: `${baseUrl}${pathPrefix}/${encodeURIComponent(art.slug)}`,
         lastModified: art.updated_at || new Date(),
         changeFrequency: 'weekly' as const,
         priority: isMarketReport ? 0.85 : 0.8,

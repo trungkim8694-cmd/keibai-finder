@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { Calendar, Tag, ArrowLeft } from 'lucide-react';
 import ArticleContent from './ArticleContent';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -11,14 +11,23 @@ type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
+function safeDecodeSlug(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 export async function generateMetadata(
   { params, searchParams }: Props,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const resolvedParams = await params;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resolvedSearchParams = await searchParams;
-  const slug = resolvedParams.slug;
+  const slug = safeDecodeSlug(resolvedParams.slug);
   const digest = await prisma.dailyDigest.findUnique({
     where: { slug }
   });
@@ -32,7 +41,7 @@ export async function generateMetadata(
   const description = rawDesc || `AIが分析する不動産競売・公売市場の掘り出し物トレンドレポート：${title}`;
 
   const baseUrl = 'https://www.keibai-koubai.com';
-  const canonicalUrl = `${baseUrl}/insights/${slug}`;
+  const canonicalUrl = `${baseUrl}/insights/${encodeURIComponent(digest.slug)}`;
 
   return {
     title: `${title} - 市場分析・競売インサイト`,
@@ -57,6 +66,7 @@ export async function generateMetadata(
 }
 
 export const revalidate = 3600;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
@@ -77,7 +87,7 @@ export async function generateStaticParams() {
 
 export default async function DigestDetailPage({ params }: Props) {
   const resolvedParams = await params;
-  const slug = resolvedParams.slug;
+  const slug = safeDecodeSlug(resolvedParams.slug);
 
   const digest = await prisma.dailyDigest.findUnique({
     where: { slug }
@@ -91,7 +101,7 @@ export default async function DigestDetailPage({ params }: Props) {
   if (digest.category !== 'MARKET_REPORT') {
     // If it's a GUIDE or CAUTION, redirect to /blogs
     if (digest.category === 'GUIDE' || digest.category === 'CAUTION') {
-      redirect(`/blogs/${slug}`);
+      permanentRedirect(`/blogs/${encodeURIComponent(digest.slug)}`);
     }
     notFound();
   }
