@@ -156,6 +156,9 @@ def collect_candidate_urls(conn) -> List[Dict[str, str]]:
         # 3. TẦNG 2B: Core Hubs & Dynamic Area Hubs (Hub & Spoke)
         core_hubs = [
             "/",
+            "/llms.txt",
+            "/llms-full.txt",
+            "/market-insights",
             "/insights",
             "/blogs",
             "/auction/schedule",

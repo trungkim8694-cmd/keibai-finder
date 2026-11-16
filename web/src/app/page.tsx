@@ -211,6 +211,10 @@ export default async function HomePage() {
         mainEntity: {
           '@id': 'https://www.keibai-koubai.com/#latest-properties',
         },
+        speakable: {
+          '@type': 'SpeakableSpecification',
+          cssSelector: ['h1', 'h2'],
+        },
       },
       {
         '@type': 'FAQPage',
@@ -235,18 +239,50 @@ export default async function HomePage() {
         '@type': 'Dataset',
         '@id': 'https://www.keibai-koubai.com/#dataset',
         name: '全国不動産競売（BIT）・公売物件・落札結果および国土交通省取引相場統合データベース',
-        description: `日本全国の地方裁判所（BIT）の競売物件、国税局・税務署の公売物件（現在公示中 ${totalActiveCount} 件）、過去の落札結果データ、および国土交通省不動産情報ライブラリ（MLIT）の成約価格を統合・分析した不動産データセット。`,
+        description: `日本全国の地方裁判所（BIT）の競売物件、国税局・税務署の公売物件（現在公示中 ${totalActiveCount} 件）、過去の落札結果データ（${totalAuctionResultsCount > 0 ? totalAuctionResultsCount.toLocaleString() : '34,800'}件超）、および国土交通省不動産情報ライブラリ（MLIT）の成約価格を統合・分析した不動産データセット。`,
         url: 'https://www.keibai-koubai.com',
         inLanguage: 'ja',
         isAccessibleForFree: true,
+        license: 'https://www.keibai-koubai.com/terms',
+        creditText: '出典：Keibai Finder（https://www.keibai-koubai.com）｜TQC株式会社',
         creator: {
           '@id': 'https://www.keibai-koubai.com/#organization',
         },
+        isBasedOn: [
+          'https://www.bit.courts.go.jp/',
+          'https://www.koubai.nta.go.jp/',
+          'https://www.reinfolib.mlit.go.jp/',
+        ],
+        distribution: [
+          {
+            '@type': 'DataDownload',
+            name: 'Keibai Finder AI Knowledge Summary (llms.txt)',
+            contentUrl: 'https://www.keibai-koubai.com/llms.txt',
+            encodingFormat: 'text/markdown',
+          },
+          {
+            '@type': 'DataDownload',
+            name: 'Keibai Finder Full Real Estate Auction Corpus (llms-full.txt)',
+            contentUrl: 'https://www.keibai-koubai.com/llms-full.txt',
+            encodingFormat: 'text/markdown',
+          },
+          {
+            '@type': 'DataDownload',
+            name: 'Keibai Finder Public AI Citation JSON Feed',
+            contentUrl: 'https://www.keibai-koubai.com/api/public/ai-feed',
+            encodingFormat: 'application/json',
+          },
+        ],
         keywords: [
+          'けいばい 競売物件情報',
           '競売物件',
           '公売物件',
           'BIT 不動産競売',
-          '官公庁オークション',
+          '3点セット 読み方',
+          '占有者 立ち退き',
+          '期間入札',
+          'ボロ戸建て 競売',
+          '国税庁 公売 物件',
           '落札結果',
           '売却基準価額',
           '不動産取引価格情報',

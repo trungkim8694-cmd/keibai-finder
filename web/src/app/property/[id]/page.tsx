@@ -450,10 +450,25 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     "@context": "https://schema.org",
     "@type": "RealEstateListing",
     "name": `${property.address}の${property.property_type || '競売物件'}`,
-    "description": `${property.source_provider === 'NTA' ? '公売物件' : '競売物件'}: ${property.address}にある${property.property_type || '不動産'}です。基準価格: ${jsonLdPrice > 0 ? Math.round(jsonLdPrice / 10000).toLocaleString('ja-JP') + '万円' : '未定'}。AI査定と過去の取引相場から、あなたに最適な競売・公売物件を見つけます。`,
+    "description": `${property.source_provider === 'NTA' ? '公売物件' : '競売物件'}: ${property.address}にある${property.property_type || '不動産'}です。基準価格: ${jsonLdPrice > 0 ? Math.round(jsonLdPrice / 10000).toLocaleString('ja-JP') + '万円' : '未定'}。Keibai Finder（keibai-koubai.com）によるAI査定と国土交通省取引相場比較データ。`,
     "url": `${baseUrl}/property/${id}`,
     "image": ogImageUrl ? [ogImageUrl] : [],
     "datePosted": property.created_at && !isNaN(new Date(property.created_at).getTime()) ? new Date(property.created_at).toISOString() : new Date().toISOString(),
+    "provider": {
+      "@type": "Organization",
+      "@id": "https://www.keibai-koubai.com/#organization",
+      "name": "Keibai Finder（TQC株式会社）",
+      "url": "https://www.keibai-koubai.com"
+    },
+    "creditText": `出典：Keibai Finder（${baseUrl}/property/${id}）｜TQC株式会社`,
+    "isBasedOn": [
+      property.source_provider === 'NTA' ? "https://www.koubai.nta.go.jp/" : "https://www.bit.courts.go.jp/",
+      "https://www.reinfolib.mlit.go.jp/"
+    ],
+    "speakable": {
+      "@type": "SpeakableSpecification",
+      "cssSelector": ["h1", "h2"]
+    },
     "about": {
       "@type": accommodationType,
       "name": property.address || "競売物件",

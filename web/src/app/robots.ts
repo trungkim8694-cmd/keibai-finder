@@ -5,41 +5,21 @@ export default function robots(): MetadataRoute.Robots {
 
   return {
     rules: [
-      // 1. General Search Engines (Googlebot, Bingbot, DuckDuckBot, etc.)
-      // Toàn quyền cào dữ liệu và lập chỉ mục 100% nội dung công khai
+      // 1. General Search Engines (Googlebot, Bingbot, DuckDuckBot, Yahoo! Slurp, etc.)
       {
         userAgent: '*',
-        allow: '/',
-        disallow: [
-          '/api/',
-          '/dashboard/',
-          '/admin/',
-          '/login/',
-          '/*?*keyword=*', // Chống lãng phí Crawl Budget vào query params tìm kiếm nội bộ
+        allow: [
+          '/',
+          '/llms.txt',
+          '/llms-full.txt',
+          '/api/public/',
+          '/.well-known/ai-plugin.json',
         ],
-      },
-
-      // 2. AI Search & Generative Engine Optimization (GEO Crawlers)
-      // Mở toàn diện cho các AI Search lớn (ChatGPT, Perplexity, Claude, Apple, Google Gemini)
-      // Định hướng AI đọc trực tiếp bản đồ tri thức /llms.txt
-      {
-        userAgent: [
-          'GPTBot',
-          'OAI-SearchBot',
-          'ChatGPT-User',
-          'PerplexityBot',
-          'ClaudeBot',
-          'Claude-Web',
-          'anthropic-ai',
-          'Applebot',
-          'Applebot-Extended',
-          'Google-Extended',
-          'cohere-ai',
-          'Diffbot',
-        ],
-        allow: ['/', '/llms.txt'],
         disallow: [
-          '/api/',
+          '/api/admin/',
+          '/api/auth/',
+          '/api/cron/',
+          '/api/upload/',
           '/dashboard/',
           '/admin/',
           '/login/',
@@ -47,19 +27,64 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
 
-      // 3. Toxic, Aggressive & Non-Search Scraper Bots (Phòng ngự bot độc hại / cào trộm tài nguyên VPS)
-      // Chặn đứng các bot cào dồn dập không tạo ra lượt click hay giá trị Organic SEO
+      // 2. AI Search & Generative Engine Optimization (GEO Crawlers)
+      // Open access to all authoritative pages, llms.txt, llms-full.txt, and public AI JSON feed
       {
         userAgent: [
-          'Bytespider', // ByteDance scraper gây quá tải server
-          'PetalBot', // Huawei scraper không có traffic tại Nhật
-          'MJ12bot', // Majestic backlink spam crawler
-          'MegaIndex.ru', // Russian SEO scraper
+          'GPTBot',
+          'OAI-SearchBot',
+          'ChatGPT-User',
+          'PerplexityBot',
+          'Perplexity-User',
+          'ClaudeBot',
+          'Claude-Web',
+          'Claude-SearchBot',
+          'Claude-User',
+          'anthropic-ai',
+          'Applebot',
+          'Applebot-Extended',
+          'Google-Extended',
+          'GoogleOther',
+          'Google-CloudVertexBot',
+          'Amazonbot',
+          'Meta-ExternalAgent',
+          'Meta-ExternalFetcher',
+          'DuckAssistBot',
+          'YouBot',
+          'MistralAI-User',
+          'cohere-ai',
+          'Diffbot',
+        ],
+        allow: [
+          '/',
+          '/llms.txt',
+          '/llms-full.txt',
+          '/api/public/',
+          '/.well-known/ai-plugin.json',
+        ],
+        disallow: [
+          '/api/admin/',
+          '/api/auth/',
+          '/api/cron/',
+          '/api/upload/',
+          '/dashboard/',
+          '/admin/',
+          '/login/',
+        ],
+      },
+
+      // 3. Aggressive Non-Search Scraper Bots (Block to protect server resources)
+      {
+        userAgent: [
+          'Bytespider',
+          'PetalBot',
+          'MJ12bot',
+          'MegaIndex.ru',
           'MegaIndex',
-          'BLEXBot', // WebMeUp scraper
-          'ZoominfoBot', // B2B lead scraper thương mại
+          'BLEXBot',
+          'ZoominfoBot',
           'Seekport Crawler',
-          'Scrapy', // Scraper tool mặc định của Python
+          'Scrapy',
           'DataForSeoBot',
         ],
         disallow: '/',

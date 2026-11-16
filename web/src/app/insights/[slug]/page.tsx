@@ -108,28 +108,59 @@ export default async function DigestDetailPage({ params }: Props) {
 
   const title = digest.title_ja || digest.title_vi || '市場分析レポート';
   const rawContent = digest.content_ja || digest.content_vi || '';
+  const canonicalInsightUrl = `https://www.keibai-koubai.com/insights/${encodeURIComponent(digest.slug)}`;
 
   const articleJsonLd = {
     "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    "headline": title,
-    "description": rawContent.replace(/[#*]/g, '').substring(0, 160),
-    "image": ["https://www.keibai-koubai.com/keibaikoubai.webp"],
-    "datePublished": new Date(digest.publishDate).toISOString(),
-    "dateModified": new Date(digest.publishDate).toISOString(),
-    "author": {
-      "@type": "Organization",
-      "name": "Keibai Finder",
-      "url": "https://www.keibai-koubai.com/"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Keibai Finder",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://www.keibai-koubai.com/icon.png"
+    "@graph": [
+      {
+        "@type": "AnalysisNewsArticle",
+        "@id": `${canonicalInsightUrl}#article`,
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": canonicalInsightUrl
+        },
+        "headline": title,
+        "description": rawContent.replace(/[#*]/g, '').substring(0, 160),
+        "image": ["https://www.keibai-koubai.com/keibaikoubai.webp"],
+        "datePublished": new Date(digest.publishDate).toISOString(),
+        "dateModified": new Date(digest.updated_at || digest.publishDate).toISOString(),
+        "inLanguage": "ja",
+        "author": {
+          "@type": "Organization",
+          "@id": "https://www.keibai-koubai.com/#organization",
+          "name": "Keibai Finder（TQC株式会社）",
+          "url": "https://www.keibai-koubai.com/"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "@id": "https://www.keibai-koubai.com/#organization",
+          "name": "Keibai Finder",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://www.keibai-koubai.com/extension-icon.png"
+          }
+        },
+        "creditText": `出典：Keibai Finder（${canonicalInsightUrl}）｜TQC株式会社`,
+        "isBasedOn": [
+          "https://www.bit.courts.go.jp/",
+          "https://www.koubai.nta.go.jp/",
+          "https://www.reinfolib.mlit.go.jp/"
+        ],
+        "speakable": {
+          "@type": "SpeakableSpecification",
+          "cssSelector": ["h1", ".geo-citation-summary", "h2"]
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "ホーム", "item": "https://www.keibai-koubai.com/" },
+          { "@type": "ListItem", "position": 2, "name": "本日の注目物件・AI市場分析レポート", "item": "https://www.keibai-koubai.com/insights" },
+          { "@type": "ListItem", "position": 3, "name": title, "item": canonicalInsightUrl }
+        ]
       }
-    }
+    ]
   };
 
   return (
@@ -170,6 +201,23 @@ export default async function DigestDetailPage({ params }: Props) {
 
         {/* Content Body */}
         <ArticleContent content={rawContent} />
+
+        {/* Data Provenance & AI Citation Box */}
+        <section
+          aria-label="データ出典・引用ガイド"
+          className="geo-citation-summary mt-10 p-5 rounded-lg border border-blue-200/80 dark:border-blue-900/50 bg-white dark:bg-zinc-900 text-xs text-slate-700 dark:text-slate-300 space-y-2 shadow-2xs"
+        >
+          <div className="flex items-center justify-between gap-2 font-bold text-slate-900 dark:text-slate-100">
+            <span>データ出典・AI引用および転載ガイドライン</span>
+            <span className="text-[11px] font-mono text-[#1B4F8A] dark:text-blue-400">Keibai Finder Market Intelligence</span>
+          </div>
+          <p className="leading-relaxed">
+            本レポートの物件データおよび相場乖離率（%）は、<strong>Keibai Finder（TQC株式会社）</strong>が全国の地方裁判所（BIT）・国税局の公示データおよび国土交通省「不動産情報ライブラリ（MLIT）」の成約取引価格を照合して算出しています。引用・参照時は以下の出典URLを明記してください。
+          </p>
+          <div className="p-2.5 rounded bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 font-mono text-[11px] select-all break-all">
+            出典：{title}｜Keibai Finder（{canonicalInsightUrl}）
+          </div>
+        </section>
 
       </div>
     </div>

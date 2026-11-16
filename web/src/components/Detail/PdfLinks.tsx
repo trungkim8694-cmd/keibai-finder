@@ -87,16 +87,21 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
         {/* Primary Action (3点セット / 物件資料PDF) */}
         <div className="flex-1 flex flex-wrap gap-2">
           {(() => {
-             if (sourceProvider === 'NTA') {
+             const isNtaStylePdf =
+               sourceProvider === 'NTA' ||
+               (typeof pdfUrl === 'string' &&
+                 (pdfUrl.trim().startsWith('[') || pdfUrl.includes('koubai.nta.go.jp')));
+
+             if (isNtaStylePdf) {
                let ntaPdfs: string[] = [];
                try {
                  if (pdfUrl) {
                    const parsed = JSON.parse(pdfUrl);
-                   if (Array.isArray(parsed)) ntaPdfs = parsed;
-                   else ntaPdfs = [pdfUrl];
+                   if (Array.isArray(parsed)) ntaPdfs = parsed.filter((u) => typeof u === 'string' && u.startsWith('http'));
+                   else if (typeof pdfUrl === 'string' && pdfUrl.startsWith('http')) ntaPdfs = [pdfUrl];
                  }
                } catch {
-                 if (pdfUrl) ntaPdfs = [pdfUrl];
+                 if (pdfUrl && pdfUrl.startsWith('http')) ntaPdfs = [pdfUrl];
                }
 
                const resolveNtaDoc = (url: string, index: number) => {

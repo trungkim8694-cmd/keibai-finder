@@ -45,7 +45,18 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     images: ['/keibaikoubai.webp'],
-  }
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-snippet': -1,
+      'max-image-preview': 'large',
+      'max-video-preview': -1,
+    },
+  },
 };
 
 export default function RootLayout({
@@ -61,8 +72,8 @@ export default function RootLayout({
         '@id': 'https://www.keibai-koubai.com/#website',
         url: 'https://www.keibai-koubai.com',
         name: 'Keibai Finder',
-        alternateName: ['競売ファインダー', 'Keibai-Koubai Finder'],
-        description: '全国不動産競売・公売物件一括検索＆落札相場データベース',
+        alternateName: ['競売ファインダー', 'Keibai-Koubai Finder', 'けいばい 競売物件情報・公売検索ポータル'],
+        description: '全国不動産競売・公売物件一括検索＆落札相場データベース（裁判所BIT・国税庁公売・国土交通省取引価格連携）',
         inLanguage: 'ja',
         publisher: {
           '@id': 'https://www.keibai-koubai.com/#organization',
@@ -98,12 +109,20 @@ export default function RootLayout({
           streetAddress: '南池袋２丁目３３－６ 佐藤ビル３F',
           addressCountry: 'JP',
         },
+        sameAs: [
+          'https://zero-press.net/p/r-mwj77b4vvqtf',
+        ],
         knowsAbout: [
+          'けいばい 競売物件情報',
           '不動産競売',
           '公売物件',
           'BIT不動産競売物件情報',
+          '3点セット（物件明細書・現況調査報告書・評価書）',
+          '占有者立ち退き・引渡命令',
+          '期間入札・特別売却',
+          '国税庁公売物件検索',
           '国土交通省不動産取引価格情報',
-          '不動産投資分析',
+          'ボロ戸建て・再建築不可物件再生投資',
         ],
       },
     ],
@@ -112,6 +131,24 @@ export default function RootLayout({
   return (
     <html lang="ja" className="h-[100dvh] overflow-hidden" suppressHydrationWarning>
       <head>
+        <link
+          rel="alternate"
+          type="text/markdown"
+          href="https://www.keibai-koubai.com/llms.txt"
+          title="Keibai Finder AI Knowledge Summary (llms.txt)"
+        />
+        <link
+          rel="alternate"
+          type="text/markdown"
+          href="https://www.keibai-koubai.com/llms-full.txt"
+          title="Keibai Finder Full Real Estate Auction Dataset & Guides (llms-full.txt)"
+        />
+        <link
+          rel="alternate"
+          type="application/json"
+          href="https://www.keibai-koubai.com/api/public/ai-feed"
+          title="Keibai Finder Public AI Citation JSON Feed"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

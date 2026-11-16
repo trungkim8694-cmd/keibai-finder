@@ -145,28 +145,59 @@ export default async function LogDetailPage({ params }: Props) {
 
   const title = article.title_ja || '実務ナレッジ・投資ガイド';
   const rawContent = article.content_ja || '';
+  const canonicalArticleUrl = `https://www.keibai-koubai.com/blogs/${encodeURIComponent(slug)}`;
 
   const articleJsonLd = {
     "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "headline": title,
-    "description": rawContent.replace(/[#*]/g, '').substring(0, 160),
-    "image": article.featuredImage ? [article.featuredImage] : ["https://www.keibai-koubai.com/keibaikoubai.webp"],
-    "datePublished": new Date(article.publishDate).toISOString(),
-    "dateModified": new Date(article.publishDate).toISOString(),
-    "author": {
-      "@type": "Organization",
-      "name": "Keibai Finder",
-      "url": "https://www.keibai-koubai.com/"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Keibai Finder",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://www.keibai-koubai.com/icon.png"
+    "@graph": [
+      {
+        "@type": "BlogPosting",
+        "@id": `${canonicalArticleUrl}#article`,
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": canonicalArticleUrl
+        },
+        "headline": title,
+        "description": rawContent.replace(/[#*]/g, '').substring(0, 160),
+        "image": article.featuredImage ? [article.featuredImage] : ["https://www.keibai-koubai.com/keibaikoubai.webp"],
+        "datePublished": new Date(article.publishDate).toISOString(),
+        "dateModified": new Date(article.updated_at || article.publishDate).toISOString(),
+        "inLanguage": "ja",
+        "author": {
+          "@type": "Organization",
+          "@id": "https://www.keibai-koubai.com/#organization",
+          "name": "Keibai Finder（TQC株式会社）",
+          "url": "https://www.keibai-koubai.com/"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "@id": "https://www.keibai-koubai.com/#organization",
+          "name": "Keibai Finder",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://www.keibai-koubai.com/extension-icon.png"
+          }
+        },
+        "creditText": `出典：Keibai Finder（${canonicalArticleUrl}）｜TQC株式会社`,
+        "isBasedOn": [
+          "https://www.bit.courts.go.jp/",
+          "https://www.koubai.nta.go.jp/",
+          "https://www.reinfolib.mlit.go.jp/"
+        ],
+        "speakable": {
+          "@type": "SpeakableSpecification",
+          "cssSelector": ["article h1", ".geo-citation-summary", "article h2"]
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "ホーム", "item": "https://www.keibai-koubai.com/" },
+          { "@type": "ListItem", "position": 2, "name": "実務ナレッジ・投資ガイド", "item": "https://www.keibai-koubai.com/blogs" },
+          { "@type": "ListItem", "position": 3, "name": title, "item": canonicalArticleUrl }
+        ]
       }
-    }
+    ]
   };
 
   const isCaution = article.category === 'CAUTION';
@@ -255,6 +286,23 @@ export default async function LogDetailPage({ params }: Props) {
             <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h2:text-xl sm:prose-h2:text-2xl prose-h2:border-l-4 prose-h2:border-[#1B4F8A] prose-h2:pl-3.5 prose-h2:mt-8 prose-h2:mb-4 prose-p:leading-relaxed prose-p:text-slate-700 dark:prose-p:text-slate-300 text-sm sm:text-base">
               <ArticleContent content={rawContent} />
             </div>
+
+            {/* Data Provenance & AI Citation Box (GEO Optimization) */}
+            <section
+              aria-label="データ出典・引用ガイド"
+              className="geo-citation-summary mt-8 p-4 sm:p-5 rounded-lg border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 text-xs text-slate-700 dark:text-slate-300 space-y-2"
+            >
+              <div className="flex items-center justify-between gap-2 font-bold text-slate-900 dark:text-slate-100">
+                <span>データ出典・AI引用および転載ガイドライン</span>
+                <span className="text-[11px] font-mono text-[#1B4F8A] dark:text-blue-400">Keibai Finder Research</span>
+              </div>
+              <p className="leading-relaxed">
+                本記事の解説および統計データは、<strong>Keibai Finder（TQC株式会社）</strong>が全国の地方裁判所「不動産競売物件情報サイト（BIT）」、国税庁「公売情報」、および国土交通省「不動産情報ライブラリ（MLIT）」の一次公開データを統合・検証して作成しています。メディア・ブログ・AI検索回答等で本記事のデータを引用される際は、以下の出典リンクを明記してください。
+              </p>
+              <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-slate-200 dark:border-slate-800 font-mono text-[11px] text-slate-700 dark:text-slate-300 select-all break-all">
+                出典：{title}｜Keibai Finder（{canonicalArticleUrl}）
+              </div>
+            </section>
 
             {/* Legal Footnote */}
             <div className="mt-10 pt-6 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-slate-50/70 dark:bg-slate-900/40 p-4 rounded-lg text-xs text-slate-600 dark:text-slate-400">
