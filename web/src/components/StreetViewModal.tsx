@@ -119,7 +119,7 @@ export function StreetViewModal({
                     <a
                       href={externalGoogleUrl}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="nofollow noopener noreferrer"
                       className="p-1.5 text-slate-500 hover:text-[#1B4F8A] dark:text-zinc-400 dark:hover:text-blue-400 rounded-md hover:bg-slate-200/60 transition-colors"
                       title="Google Mapsアプリで開く"
                     >
@@ -175,7 +175,7 @@ export function StreetViewModal({
                   <a
                     href={externalGoogleUrl}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="nofollow noopener noreferrer"
                     className="text-[#1B4F8A] dark:text-blue-400 hover:underline font-semibold flex items-center gap-1"
                   >
                     <span>Google Mapsで全画面表示</span>

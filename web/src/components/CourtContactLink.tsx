@@ -48,7 +48,7 @@ export function CourtContactLink({ courtName, contactUrl, className = '', theme 
       <a
         href={contactUrl}
         target="_blank"
-        rel="noopener noreferrer"
+        rel="nofollow noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
         className={`inline-flex items-center gap-1 hover:underline underline-offset-2 transition-colors duration-150 ${colorClass} ${className}`}
       >

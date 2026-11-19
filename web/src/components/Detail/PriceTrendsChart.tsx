@@ -190,7 +190,7 @@ export function PriceTrendsChart({ data, city, prefecture, propertyType }: Price
         <a 
           href="https://www.reinfolib.mlit.go.jp/landPrices/" 
           target="_blank" 
-          rel="noopener noreferrer"
+          rel="nofollow noopener noreferrer"
           className="inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-blue-600 transition-colors"
         >
           出典: 国土交通省 不動産情報ライブラリ（実取引データ）

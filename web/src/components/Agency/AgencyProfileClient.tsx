@@ -280,7 +280,7 @@ export function AgencyProfileClient({ agencyProfile, currentUser, hasReviewed }:
               </div>
               <div>
                 <p className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase font-black">ウェブサイト</p>
-                <a href={agencyProfile.website} target="_blank" rel="noopener noreferrer" className="hover:underline font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 break-all text-xs">
+                <a href={agencyProfile.website} target="_blank" rel="ugc nofollow noopener noreferrer" className="hover:underline font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 break-all text-xs">
                   {agencyProfile.website}
                 </a>
               </div>

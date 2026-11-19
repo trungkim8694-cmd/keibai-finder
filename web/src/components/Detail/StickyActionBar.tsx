@@ -121,7 +121,7 @@ export function StickyActionBar({
               <a 
                 href={pdfUrl} 
                 target="_blank" 
-                rel="noopener noreferrer" 
+                rel="nofollow noopener noreferrer" 
                 className="hidden lg:flex items-center gap-1 text-xs font-medium border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 h-8 px-2.5 rounded-md hover:bg-slate-50 transition-colors shadow-2xs"
               >
                 <FileText className="w-3.5 h-3.5 text-blue-600" />
@@ -156,7 +156,7 @@ export function StickyActionBar({
               <a
                 href={pdfUrl}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="nofollow noopener noreferrer"
                 className="h-11 px-2.5 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 font-bold text-[11px] flex items-center gap-1 hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
                 title="3点セットPDFを閲覧"
               >

@@ -125,7 +125,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                            key={i}
                            href={url} 
                            target="_blank" 
-                           rel="noreferrer"
+                           rel="nofollow noopener noreferrer"
                            className={`inline-flex items-center justify-center gap-1.5 px-3 py-2.5 font-semibold rounded-md transition-colors text-xs shadow-2xs ${
                              doc.isPrimary
                                ? 'bg-[#1B4F8A] hover:bg-[#153e6d] text-white flex-1 min-w-[170px]'
@@ -168,7 +168,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                           key={index}
                           href={pdfStr} 
                           target="_blank" 
-                          rel="noreferrer"
+                          rel="nofollow noopener noreferrer"
                           className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-[#1B4F8A] hover:bg-[#153e6d] text-white font-semibold rounded-md transition-colors text-xs shadow-2xs"
                         >
                           <Download className="w-4 h-4" />
@@ -182,7 +182,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
                    <a 
                       href={pdfUrl} 
                       target="_blank" 
-                      rel="noreferrer"
+                      rel="nofollow noopener noreferrer"
                       className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1B4F8A] hover:bg-[#153e6d] text-white font-semibold rounded-md transition-colors text-xs shadow-2xs"
                     >
                       <Download className="w-4 h-4" />
@@ -207,7 +207,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
               <a 
                 href={eTaxLink || "https://www.koubai.nta.go.jp/auctionx/mngr/MngrLoginInit.action"}
                 target="_blank"
-                rel="noreferrer"
+                rel="nofollow noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-rose-700 hover:bg-rose-800 text-white font-semibold rounded-md text-xs transition-colors shadow-2xs"
               >
                 <span>国税庁e-Tax入札システム</span>
@@ -216,7 +216,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
               <a 
                 href={ntaMapUrl || sourceUrl || 'https://www.nta.go.jp/'}
                 target="_blank"
-                rel="noreferrer"
+                rel="nofollow noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200 font-medium rounded-md text-xs transition-colors shadow-2xs"
               >
                 <MapPin className="w-3.5 h-3.5 text-slate-500" />
@@ -228,7 +228,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
               <a 
                 href="https://www.bit.courts.go.jp/guidance/guidance03/index.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="nofollow noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200 font-medium rounded-md text-xs transition-colors shadow-2xs"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
@@ -237,7 +237,7 @@ export function PdfLinks({ saleUnitId, images, pdfUrl, courtId, sourceProvider, 
               <a 
                 href={contactUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="nofollow noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200 font-medium rounded-md text-xs transition-colors shadow-2xs"
               >
                 <Phone className="w-3.5 h-3.5 text-slate-500" />

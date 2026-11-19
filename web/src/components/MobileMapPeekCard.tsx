@@ -162,7 +162,7 @@ export default function MobileMapPeekCard({ property, onClose }: MobileMapPeekCa
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${property.lat},${property.lng}`}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="nofollow noopener noreferrer"
               className="h-11 px-2.5 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 font-bold text-[11px] flex items-center gap-1 hover:bg-slate-50 transition-colors shadow-2xs shrink-0"
               title="Google Mapsでナビ"
             >
