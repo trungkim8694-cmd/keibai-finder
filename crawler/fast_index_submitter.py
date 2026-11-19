@@ -59,6 +59,7 @@ BING_API_BASE = "https://ssl.bing.com/webmaster/api.svc/json"
 
 GSC_SITE_ID = "sc-domain:keibai-koubai.com"
 SITEMAP_URL = f"{WWW_BASE_URL}/sitemap.xml"
+FEED_URL = f"{WWW_BASE_URL}/feed.xml"
 
 
 def init_tracking_table(conn):
@@ -419,11 +420,14 @@ def discover_google_key_files() -> List[str]:
     return key_files
 
 
-def submit_google_indexing_and_sitemap(conn, candidates: List[Dict[str, str]], limit: int = 200) -> Tuple[int, str, str]:
+def submit_google_indexing_and_sitemap(
+    conn, candidates: List[Dict[str, str]], limit: int = 200, enable_api: bool = False
+) -> Tuple[int, str, str]:
     """
     Kênh 3 & 4:
-    - Bắn URL_UPDATED lên Google Indexing API VIP (xoay vòng qua pool Service Account keys).
     - Nộp/Ping lại Sitemap (https://www.keibai-koubai.com/sitemap.xml) qua Google Search Console API.
+    - Tùy chọn (--enable-google-api): Bắn URL_UPDATED lên Google Indexing API VIP nếu người dùng bật.
+      (Mặc định tắt vì Google chính thức quy định API này chỉ dùng cho JobPosting và BroadcastEvent).
     """
     key_files = discover_google_key_files()
     if not key_files:
@@ -438,7 +442,7 @@ def submit_google_indexing_and_sitemap(conn, candidates: List[Dict[str, str]], l
         print(f"⚠️ [Google Indexing] Thiếu thư viện google-api-python-client: {e}")
         return 0, "Thiếu thư viện ⚠️", "Lỗi ⏳"
 
-    # 1. Ping Sitemap trên Google Search Console bằng key đầu tiên
+    # 1. Ping Sitemap & RSS Feed trên Google Search Console bằng key đầu tiên
     sitemap_status = "Chưa nộp ⏳"
     try:
         creds_gsc = service_account.Credentials.from_service_account_file(
@@ -446,13 +450,23 @@ def submit_google_indexing_and_sitemap(conn, candidates: List[Dict[str, str]], l
         )
         svc_gsc = build("searchconsole", "v1", credentials=creds_gsc)
         svc_gsc.sitemaps().submit(siteUrl=GSC_SITE_ID, feedpath=SITEMAP_URL).execute()
-        sitemap_status = "Đã ping Sitemap GSC thành công ✅"
-        print(f"🗺️ [Google Search Console] Đã ping nộp lại {SITEMAP_URL} thành công!")
+        print(f"🗺️ [Google Search Console] Đã nộp/ping sitemap: {SITEMAP_URL} thành công!")
+        try:
+            svc_gsc.sitemaps().submit(siteUrl=GSC_SITE_ID, feedpath=FEED_URL).execute()
+            print(f"📡 [Google Search Console] Đã nộp RSS Feed: {FEED_URL} thành công!")
+            sitemap_status = "Đã ping Sitemap & RSS Feed GSC thành công ✅"
+        except Exception as e_feed:
+            print(f"⚠️ [Google Search Console] Ping RSS Feed: {e_feed}")
+            sitemap_status = "Đã ping Sitemap GSC thành công (Feed cảnh báo) ⚠️"
     except Exception as e:
         print(f"⚠️ [Google Search Console] Lỗi ping sitemap: {e}")
         sitemap_status = "Lỗi ping Sitemap ⚠️"
 
-    # 2. Bắn Google Indexing API VIP
+    # 2. Bắn Google Indexing API VIP (Chỉ khi có cờ --enable-google-api)
+    if not enable_api:
+        print("ℹ️ [Google Indexing API] Tắt mặc định theo chuẩn Google Search Central (BĐS tối ưu qua Sitemap + RSS + Internal Links).")
+        return 0, "Tắt mặc định (chuẩn Google) 🛡️", sitemap_status
+
     batch = filter_unsubmitted_for_channel(conn, candidates, "GOOGLE_INDEXING", limit)
     if not batch:
         print("✅ [Google Indexing API] Toàn bộ URL ưu tiên đều đã được gửi trước đó.")
@@ -568,6 +582,7 @@ def main():
     parser.add_argument("--indexnow-limit", type=int, default=2000, help="Số URL tối đa bắn qua IndexNow mỗi lượt")
     parser.add_argument("--bing-limit", type=int, default=100, help="Số URL tối đa bắn qua Bing Webmaster API mỗi lượt")
     parser.add_argument("--google-limit", type=int, default=200, help="Số URL tối đa bắn qua Google Indexing API mỗi lượt")
+    parser.add_argument("--enable-google-api", action="store_true", default=False, help="Bật bắn Google Indexing API VIP (Lưu ý: Google chỉ cam kết cho JobPosting/BroadcastEvent; mặc định tắt để dùng GSC Sitemap Ping chính thống)")
     parser.add_argument("--stats-only", action="store_true", help="Chỉ xem thống kê lũy kế")
     args = parser.parse_args()
 
@@ -597,7 +612,7 @@ def main():
         idx_count, idx_status = submit_indexnow(conn, candidates, limit=args.indexnow_limit)
         bing_count, bing_status = submit_bing_webmaster_batch(conn, candidates, max_batch=args.bing_limit)
         goog_count, goog_status, sitemap_status = submit_google_indexing_and_sitemap(
-            conn, candidates, limit=args.google_limit
+            conn, candidates, limit=args.google_limit, enable_api=args.enable_google_api
         )
 
         print_summary_stats(conn)

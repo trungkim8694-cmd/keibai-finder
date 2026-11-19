@@ -16,6 +16,7 @@ export interface MapLayerControlProps {
   showRailways: boolean;
   setShowRailways: (v: boolean) => void;
   hasRegionBar?: boolean;
+  isDetailMode?: boolean;
 }
 
 export function MapLayerControl({
@@ -30,6 +31,7 @@ export function MapLayerControl({
   showRailways,
   setShowRailways,
   hasRegionBar = false,
+  isDetailMode = false,
 }: MapLayerControlProps) {
   const [showLegend, setShowLegend] = useState(false);
   const [isOpenMobile, setIsOpenMobile] = useState(false);
@@ -51,10 +53,12 @@ export function MapLayerControl({
 
   return (
     <>
-      {/* Mobile Backdrop to close popover when clicking anywhere outside */}
+      {/* Backdrop to close popover when clicking anywhere outside */}
       {isOpenMobile && (
         <div 
-          className="lg:hidden fixed inset-0 z-[999] bg-slate-900/10 backdrop-blur-[0.5px]"
+          className={`fixed inset-0 z-[999] bg-slate-900/10 backdrop-blur-[0.5px] ${
+            isDetailMode ? 'block' : 'lg:hidden'
+          }`}
           onClick={() => setIsOpenMobile(false)}
           onTouchStart={() => setIsOpenMobile(false)}
         />
@@ -73,8 +77,8 @@ export function MapLayerControl({
         onClick={(e) => e.stopPropagation()}
         onMouseMove={(e) => e.stopPropagation()}
       >
-        {/* Mobile Toggle Button (Thu gọn bảng trên Mobile để giải phóng tối đa tầm nhìn bản đồ) */}
-        <div className="lg:hidden">
+        {/* Toggle Button: In detail mode, always visible (mobile + desktop). In list mode, only on mobile (lg:hidden) */}
+        <div className={isDetailMode ? 'block' : 'lg:hidden'}>
           <button
             type="button"
             onClick={() => setIsOpenMobile(v => !v)}
@@ -88,18 +92,24 @@ export function MapLayerControl({
             <span className="text-xs">🗺️</span>
             <span>レイヤー</span>
             {activeOverlayCount > 0 && (
-              <span className="ml-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#1B4F8A] text-white text-[10px] font-mono flex items-center justify-center font-bold">
+              <span className={`ml-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-mono flex items-center justify-center font-bold ${
+                isOpenMobile ? 'bg-white text-[#1B4F8A]' : 'bg-[#1B4F8A] text-white'
+              }`}>
                 {activeOverlayCount}
               </span>
             )}
           </button>
         </div>
 
-      {/* Unified B2B Map Layer Panel (Hiển thị cố định trên Desktop, mở dạng Popover thả xuống trên Mobile) */}
+      {/* Unified B2B Map Layer Panel */}
       <div className={`bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-slate-200 dark:border-zinc-800 shadow-xl lg:shadow-md rounded-xl lg:rounded-lg p-2.5 lg:p-1.5 flex flex-col gap-2 lg:gap-1.5 min-w-[200px] lg:min-w-[170px] select-none ${
-        isOpenMobile ? 'flex animate-in fade-in zoom-in-95 duration-150' : 'hidden lg:flex'
+        isDetailMode
+          ? (isOpenMobile ? 'flex animate-in fade-in zoom-in-95 duration-150' : 'hidden')
+          : (isOpenMobile ? 'flex animate-in fade-in zoom-in-95 duration-150' : 'hidden lg:flex')
       }`}>
-        <div className="flex items-center justify-between lg:hidden pb-1.5 border-b border-slate-100 dark:border-zinc-800">
+        <div className={`items-center justify-between pb-1.5 border-b border-slate-100 dark:border-zinc-800 ${
+          isDetailMode ? 'flex' : 'flex lg:hidden'
+        }`}>
           <span className="text-xs font-bold text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
             <span>🗺️</span>
             <span>地図・ハザード設定</span>
@@ -107,7 +117,7 @@ export function MapLayerControl({
           <button
             type="button"
             onClick={() => setIsOpenMobile(false)}
-            className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-slate-900 text-xs font-bold"
+            className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-slate-900 text-xs font-bold cursor-pointer"
           >
             ✕
           </button>

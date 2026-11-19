@@ -133,6 +133,12 @@ export default function RootLayout({
       <head>
         <link
           rel="alternate"
+          type="application/rss+xml"
+          href="https://www.keibai-koubai.com/feed.xml"
+          title="Keibai Finder 最新競売・公売物件 RSS Feed"
+        />
+        <link
+          rel="alternate"
           type="text/markdown"
           href="https://www.keibai-koubai.com/llms.txt"
           title="Keibai Finder AI Knowledge Summary (llms.txt)"

@@ -123,3 +123,10 @@ Khi người dùng yêu cầu **Audit Technical SEO** cho bất kỳ trang nào 
 6. **Module 6 — Core Web Vitals & Layout Scrollability (LCP / INP / CLS):** Kiểm tra CSS khóa cuộn (`overflow-hidden` trên `<html>`/`<body>`), kích thước ảnh, `priority` loading và khung giữ chỗ bản đồ.
 7. **Module 7 — Internal Link Silos & Click-Depth Flattening:** Kiểm tra mạng lưới liên kết từ `/` xuống 47 Tỉnh thành (`/search/area/[pref]`), Tuyến tàu (`/search/station/[line]`), Phân khúc giá, Lịch đấu giá (`/auction/schedule`), Kết quả (`/auction-results`) và Bài phân tích (`/insights`, `/blogs`).
 8. **Module 8 — AI Search / GEO Readiness (`llms.txt` & Fact Blocks):** Kiểm tra cấu hình AI bots, tệp `/llms.txt` và bảng dữ liệu định lượng cho các công cụ trả lời AI.
+
+---
+
+## 7. 🔗 Quy Chuẩn Đối Ứng Press & Media Hai Chiều (`/company`)
+
+- Mục **「プレスリリース・メディア掲載」** trên `/company` đóng vai trò xác thực thực thể (`Organization.sameAs` / Co-citation) và phễu kéo Googlebot sang index nhanh các bài PR/Media mới.
+- **Bộ lọc chống loãng PageRank:** Chỉ gắn các **URL bài viết/thông cáo công khai cụ thể** (PR báo chí, Note, Wantedly, Qiita, Zenn). Tuyệt đối không đưa các link bình luận blog/Substack/GitHub, bài social ngắn (Facebook, X, LinkedIn) hoặc trang biên nhận (`/thanks/`, `/campaign/`), đồng thời giữ cấu trúc dữ liệu tách rời (JSON) để cập nhật tự động mà không sửa code giao diện mỗi ngày.

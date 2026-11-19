@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import AdminShellClient from "./AdminShellClient";

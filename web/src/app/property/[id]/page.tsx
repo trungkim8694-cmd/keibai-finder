@@ -27,6 +27,8 @@ import { NearbyActiveGrid } from '@/components/Detail/NearbyActiveGrid';
 import { Inbox, HelpCircle, ChevronDown, BookOpen, Scale, Sparkles } from 'lucide-react';
 import { ImageGallery } from '@/components/Detail/ImageGallery';
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { logBotHitAsync } from '@/lib/botTracker';
 import { PropertyComments } from '@/components/Detail/PropertyComments';
 import { PropertyAgencies } from '@/components/Detail/PropertyAgencies';
 import { getCompaniesForProperty } from '@/actions/companyActions';
@@ -146,6 +148,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function PropertyDetail({ params }: { params: Promise<{ id: string }> }) {
   // Fix Next.js 15+ async params error by awaiting params
   const { id } = await params;
+
+  // Track search engine crawlers asynchronously
+  try {
+    const headersList = await headers();
+    const userAgent = headersList.get('user-agent');
+    const ip = headersList.get('cf-connecting-ip') || headersList.get('x-forwarded-for') || headersList.get('x-real-ip');
+    logBotHitAsync({ url: `/property/${id}`, userAgent, ip });
+  } catch {
+    // Silently continue
+  }
 
   const property = await getPropertyById(id);
 

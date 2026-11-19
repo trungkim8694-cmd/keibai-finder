@@ -27,6 +27,8 @@ from psycopg2.extras import Json
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
+from crawler_utils import is_ghost_sweep_safe
+
 # Đảm bảo in UTF-8 trên Windows
 if sys.platform == 'win32':
     try:
@@ -232,15 +234,31 @@ def scrape_nta(limit=9999):
             else:
                 pass  # Đã có trong cache và còn hạn
 
-    # 3. Thực thi Ghost Sweep bằng Memory O(1)
-    ghost_ids = memory_cache_ids.difference(all_scraped_ids)
-    if ghost_ids:
-        print(f"[GHOST SWEEP NTA] Cảnh báo: Tìm thấy {len(ghost_ids)} tài sản đã biến mất khỏi Web. Đang lưu trữ...", flush=True)
-        cur.execute('UPDATE "Property" SET status = \'ARCHIVED\', updated_at = NOW() WHERE sale_unit_id IN %s', (tuple(ghost_ids),))
-        conn.commit()
-        print(f"[GHOST SWEEP NTA] Đã Archive thành công {len(ghost_ids)} tài sản.", flush=True)
+    # 3. Thực thi Ghost Sweep bằng Memory O(1) với Circuit Breaker an toàn
+    if limit < 1000:
+        print(f"[GHOST SWEEP NTA] Đang chạy với limit={limit} (chế độ thử nghiệm). Bỏ qua Ghost Sweep để bảo vệ dữ liệu.", flush=True)
     else:
-        print("[GHOST SWEEP NTA] Toàn bộ tài sản trên hệ thống vẫn đồng bộ đầy đủ.", flush=True)
+        ghost_ids = memory_cache_ids.difference(all_scraped_ids)
+        if ghost_ids:
+            total_active = len(memory_cache_ids)
+            scraped_cnt = len(all_scraped_ids)
+            ghost_cnt = len(ghost_ids)
+            is_safe, reason = is_ghost_sweep_safe(
+                total_active=total_active,
+                ghost_count=ghost_cnt,
+                scraped_count=scraped_cnt,
+                max_drop_ratio=0.40,
+                min_sample=8
+            )
+            if not is_safe:
+                print(f"🛑 [CIRCUIT BREAKER NTA] BẢO VỆ DỮ LIỆU: Hủy Ghost Sweep NTA!\n   Lý do: {reason}", flush=True)
+            else:
+                print(f"[GHOST SWEEP NTA] Cảnh báo: Tìm thấy {len(ghost_ids)} tài sản đã biến mất khỏi Web. Đang lưu trữ...", flush=True)
+                cur.execute('UPDATE "Property" SET status = \'ARCHIVED\', updated_at = NOW() WHERE sale_unit_id IN %s', (tuple(ghost_ids),))
+                conn.commit()
+                print(f"[GHOST SWEEP NTA] Đã Archive thành công {len(ghost_ids)} tài sản.", flush=True)
+        else:
+            print("[GHOST SWEEP NTA] Toàn bộ tài sản trên hệ thống vẫn đồng bộ đầy đủ.", flush=True)
 
     print(f"[FAST SCAN NTA] Tổng web: {len(detail_links)}. Cần cào sâu: {len(links_to_fetch)} tài sản mới.\n", flush=True)
 

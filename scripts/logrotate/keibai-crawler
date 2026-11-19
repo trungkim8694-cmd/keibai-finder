@@ -1,0 +1,17 @@
+# /etc/logrotate.d/keibai-crawler
+# Quản lý vòng đời và xoay vòng file log của hệ thống Keibai-Koubai trên VPS
+#
+# Cài đặt:
+#   sudo cp /app/scripts/logrotate/keibai-crawler /etc/logrotate.d/keibai-crawler
+#   sudo chmod 644 /etc/logrotate.d/keibai-crawler
+#   sudo logrotate -d /etc/logrotate.d/keibai-crawler  # Chạy thử kiểm tra cú pháp
+
+/app/logs/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}

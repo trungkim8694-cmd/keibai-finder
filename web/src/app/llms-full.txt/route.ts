@@ -33,7 +33,7 @@ export async function GET() {
     starting_price: bigint | null;
     mlit_investment_gap: number | null;
     court_name: string | null;
-    bid_end_date: string | null;
+    bid_end_date: Date | string | null;
     source_provider: string | null;
   }[] = [];
 

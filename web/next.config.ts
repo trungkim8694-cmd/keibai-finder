@@ -51,6 +51,45 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Edge Caching for Programmatic SEO Search Pages
+        source: '/search/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        // Edge Caching for Market Insights & AI SEO Articles
+        source: '/insights/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, s-maxage=7200, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/blogs/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, s-maxage=7200, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        // RSS Feed Caching
+        source: '/feed.xml',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
     ];
   },
   async rewrites() {

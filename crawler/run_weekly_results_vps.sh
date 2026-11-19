@@ -29,9 +29,14 @@ fi
 # Chuyển hướng stdout & stderr
 exec > >(tee -a "$LOG_FILE") 2>&1
 
+START_TIME=$(date +%s)
+
 echo "=============================================================================="
 echo "⚖️ [KEIBAI VPS] BẮT ĐẦU CÀO KẾT QUẢ ĐẤU GIÁ TUẦN: $(date +'%Y-%m-%d %H:%M:%S %Z')"
 echo "=============================================================================="
+
+# 0. Quản lý vòng đời log kết quả hàng tuần (giữ 30 ngày)
+find "$LOG_DIR" -maxdepth 1 -name "weekly_results_*.log" -mtime +30 -delete 2>/dev/null || true
 
 # 1. Kích hoạt virtualenv Python
 VENV_PATH=""
@@ -76,14 +81,24 @@ else
     echo "❌ Cào kết quả đấu giá gặp sự cố!"
 fi
 
-# 3. Gửi thông báo Telegram
+# 3. Gửi thông báo Telegram & Tín hiệu Dead Man's Switch
 if [ -f "telegram_notify.py" ]; then
     JST_TIME="$(TZ='Asia/Tokyo' date +'%Y-%m-%d %H:%M JST')"
     MSG="⚖️ <b>Keibai Finder - Weekly Results Report</b>%0A📅 $JST_TIME%0AKết quả cào đấu giá toàn quốc: $STATUS_TXT"
     python3 telegram_notify.py "$MSG" || true
 fi
 
+HC_WEEKLY_URL="${HEALTHCHECKS_WEEKLY_URL:-${HEALTHCHECK_WEEKLY_URL:-}}"
+if [ -n "$HC_WEEKLY_URL" ]; then
+    if [ "$STATUS_TXT" = "Thành công ✅" ]; then
+        curl -fsS -m 10 --retry 3 "${HC_WEEKLY_URL}" >/dev/null 2>&1 || true
+    else
+        curl -fsS -m 10 --retry 3 "${HC_WEEKLY_URL}/fail" >/dev/null 2>&1 || true
+    fi
+fi
+
+RUNTIME_SEC=$(( $(date +%s) - START_TIME ))
 echo "=============================================================================="
-echo "🏁 HOÀN THÀNH TIẾN TRÌNH KẾT QUẢ ĐẤU GIÁ: $(date +'%Y-%m-%d %H:%M:%S %Z')"
+echo "🏁 HOÀN THÀNH TIẾN TRÌNH KẾT QUẢ ĐẤU GIÁ: $(date +'%Y-%m-%d %H:%M:%S %Z') (${RUNTIME_SEC}s)"
 echo "=============================================================================="
 

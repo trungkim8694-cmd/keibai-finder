@@ -16,12 +16,21 @@ function safeDecodeURIComponent(val: string): string {
   }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ prefecture: string, city: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ prefecture: string; city: string }>;
+  searchParams?: Promise<{ page?: string }>;
+}): Promise<Metadata> {
   const { prefecture, city } = await params;
+  const sParams = searchParams ? await searchParams : {};
+  const currentPage = Math.max(1, parseInt(sParams?.page || '1', 10));
   const decodedPref = safeDecodeURIComponent(prefecture);
   const decodedCity = safeDecodeURIComponent(city);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
-  const canonicalUrl = `${baseUrl}/search/area/${encodeURIComponent(decodedPref)}/${encodeURIComponent(decodedCity)}`;
+  const pageSuffix = currentPage > 1 ? `?page=${currentPage}` : '';
+  const canonicalUrl = `${baseUrl}/search/area/${encodeURIComponent(decodedPref)}/${encodeURIComponent(decodedCity)}${pageSuffix}`;
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -67,7 +76,8 @@ export async function generateMetadata({ params }: { params: Promise<{ prefectur
 
   // Dynamic CTR-Magnet Title (theo quy chuẩn AgriciDaniel/claude-seo)
   const priceSnippet = minPriceMan > 0 ? `・最安${minPriceMan.toLocaleString('ja-JP')}万円〜` : '';
-  const title = `【${currentYear}年最新｜${count}件${priceSnippet}】${decodedPref}${decodedCity}の競売物件・公売物件一覧`;
+  const pageSnippet = currentPage > 1 ? `（${currentPage}ページ目）` : '';
+  const title = `【${currentYear}年最新｜${count}件${priceSnippet}】${decodedPref}${decodedCity}の競売物件・公売物件一覧${pageSnippet}`;
   const description = `${decodedPref}${decodedCity}の不動産競売・公売情報を${count}件掲載中。相場より割安な戸建て・マンション・土地の入札価格、AI査定、過去の落札相場をリアルタイム公開。`;
 
   return {
@@ -96,20 +106,40 @@ export async function generateMetadata({ params }: { params: Promise<{ prefectur
   };
 }
 
-export default async function AreaSearchPage({ params }: { params: Promise<{ prefecture: string, city: string }> }) {
+export default async function AreaSearchPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ prefecture: string; city: string }>;
+  searchParams?: Promise<{ page?: string }>;
+}) {
   const { prefecture, city } = await params;
+  const sParams = searchParams ? await searchParams : {};
+  const currentPage = Math.max(1, parseInt(sParams?.page || '1', 10));
   const decodedPref = safeDecodeURIComponent(prefecture);
   const decodedCity = safeDecodeURIComponent(city);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const pageSize = 50;
 
-  // Fetch properties filtered by prefecture and city
-  const response = await getProperties({
-    prefecture: decodedPref,
-    keyword: decodedCity,
-    limit: 50
-  });
+  // Fetch properties and total count for crawlable pagination
+  const [response, totalCount] = await Promise.all([
+    getProperties({
+      prefecture: decodedPref,
+      keyword: decodedCity,
+      limit: pageSize,
+      page: currentPage,
+    }),
+    prisma.property.count({
+      where: {
+        prefecture: decodedPref,
+        city: { contains: decodedCity },
+        status: 'ACTIVE',
+      },
+    }),
+  ]);
 
   const properties = Array.isArray(response) ? response : [];
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   // Schema.org ItemList + BreadcrumbList
   const jsonLdBreadcrumb = {
@@ -171,7 +201,7 @@ export default async function AreaSearchPage({ params }: { params: Promise<{ pre
           <h1 className="text-xl lg:text-2xl font-bold text-zinc-900 dark:text-white">
             📍 {decodedPref} {decodedCity}の競売物件・公売物件
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">該当物件: {properties.length} 件</p>
+          <p className="text-sm text-zinc-500 mt-1">該当物件: {totalCount} 件{totalPages > 1 ? `（${currentPage}/${totalPages}ページ）` : ''}</p>
         </div>
       </div>
 
@@ -183,11 +213,36 @@ export default async function AreaSearchPage({ params }: { params: Promise<{ pre
             <p className="text-zinc-500 text-sm">別の市区町村で検索するか、後日再度ご確認ください。</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {properties.map((property: any) => (
-              <PropertyCard key={property.sale_unit_id} property={property} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {properties.map((property: any) => (
+                <PropertyCard key={property.sale_unit_id} property={property} />
+              ))}
+            </div>
+
+            {/* Crawlable Static Pagination for Googlebot & Users */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                  const href = `/search/area/${encodeURIComponent(decodedPref)}/${encodeURIComponent(decodedCity)}${p === 1 ? '' : `?page=${p}`}`;
+                  const isCurrent = p === currentPage;
+                  return (
+                    <Link
+                      key={p}
+                      href={href}
+                      className={`px-4 py-2 text-sm font-semibold rounded-lg border transition-colors ${
+                        isCurrent
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                          : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                      }`}
+                    >
+                      {p}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* SEO Content Block */}

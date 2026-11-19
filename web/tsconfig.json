@@ -36,6 +36,11 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "migrate_area.ts",
+    "test*.ts",
+    "test_*.ts",
+    "test-*.ts",
+    "wipe_nta.ts"
   ]
 }

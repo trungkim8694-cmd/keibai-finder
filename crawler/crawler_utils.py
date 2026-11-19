@@ -470,3 +470,41 @@ def extract_pdf_images_to_vps(pdf_bytes: bytes, sale_unit_id: str, max_images: i
         print(f"      [PDF Image Error] {sale_unit_id}: {e}", flush=True)
 
     return pdf_images
+
+
+def is_ghost_sweep_safe(
+    total_active: int,
+    ghost_count: int,
+    scraped_count: int,
+    max_drop_ratio: float = 0.40,
+    min_sample: int = 5
+) -> tuple[bool, str]:
+    """
+    Circuit Breaker bảo vệ toàn vẹn dữ liệu chống xoá/archive nhầm hàng loạt
+    do lỗi mạng, nhà đài đổi cấu trúc website, CAPTCHA, hoặc bị chặn IP/rate-limit.
+
+    Returns:
+        (is_safe: bool, reason: str)
+    """
+    if ghost_count <= 0:
+        return True, "Không có tài sản nào cần lưu trữ (Ghost count = 0)."
+
+    # Nếu DB có lượng tài sản đáng kể (>= min_sample) nhưng crawler quét được 0
+    # -> 99.9% là lỗi request/block/layout, tuyệt đối không được wipe sạch DB
+    if total_active >= min_sample and scraped_count == 0:
+        return False, (
+            f"Nguy hiểm: Quét được 0 tài sản trên web trong khi CSDL đang có {total_active} "
+            f"tài sản ACTIVE. Có thể do lỗi kết nối hoặc đổi cấu trúc trang."
+        )
+
+    # Nếu số lượng tài sản trong DB đủ lớn, kiểm tra tỷ lệ biến mất đột ngột
+    if total_active >= min_sample:
+        drop_ratio = ghost_count / total_active
+        if drop_ratio > max_drop_ratio:
+            return False, (
+                f"Tỷ lệ biến mất bất thường: {ghost_count}/{total_active} "
+                f"({drop_ratio:.1%} > ngưỡng an toàn {max_drop_ratio:.0%})."
+            )
+
+    return True, f"An toàn: {ghost_count}/{total_active} tài sản sẽ được chuyển sang ARCHIVED."
+

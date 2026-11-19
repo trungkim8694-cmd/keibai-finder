@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SeoArticleAgent } from '@/lib/seoArticleAgent';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from "@/lib/authOptions";
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Hỗ trợ chạy tối đa 60s trên serverless

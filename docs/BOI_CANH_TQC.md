@@ -4,7 +4,7 @@
 ---
 
 ## 1. THÔNG TIN DOANH NGHIỆP CƠ BẢN
-* **Tên công ty:** 株式会社ＴＱＣ (TQC Co., Ltd. / TQC株式会社)
+* **Tên công ty chính thức:** ＴＱＣ株式会社 (TQC Co., Ltd.) — ⚠️ *Tuyệt đối không viết ngược thành `株式会社ＴＱＣ`.*
 * **Mã số công ty (Cục Pháp vụ):** `0133-01-048678`
 * **Mã số thuế doanh nghiệp (法人番号):** `4-0133-0104-8678`
 * **Tài khoản e-Tax (Chi cục thuế quốc gia):** `2131062002910026`
@@ -20,7 +20,8 @@
 * **Số điện thoại công ty:** `03-6907-1219`
 * **Số FAX:** `03-6701-2399`
 * **Email chính thức:** `info@keibai-koubai.com`
-* **Người phụ trách / Liên hệ:** Nguyễn Văn Biên (グエン・ヴァン・ビエン - Di động: `070-5688-1999`)
+* **Facebook chính thức:** https://www.facebook.com/keibaikoubai/
+* **Người phụ trách / Liên hệ:** KIM VĂN TRUNG (キム・バン・チュン - Di động: `080-7746-0793`, `info@keibai-koubai.com`)
 * **Ngày thành lập:** 09/02/2022
 * **Vốn điều lệ:** 20.550.000 Yên (2.055 cổ phần)
 * **Thuế lý sĩ phụ trách (税理士):** **Ishiwata Masao (石渡 正雄)**

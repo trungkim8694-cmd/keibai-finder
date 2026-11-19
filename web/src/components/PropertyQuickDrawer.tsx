@@ -101,7 +101,7 @@ export default function PropertyQuickDrawer({
         {/* Drawer Header */}
         <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0 pr-2">
-            <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${providerMeta.badgeColor}`}>
+            <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${providerMeta.badgeClass}`}>
               {isPublic ? providerMeta.badgeText : '競売物件'}
             </span>
             <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${typeColor.bg} ${typeColor.text} ${typeColor.border}`}>

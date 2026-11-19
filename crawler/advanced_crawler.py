@@ -65,7 +65,8 @@ from crawler_utils import (
     convert_reiwa_range_to_datetimes,
     get_nearest_station_from_db,
     get_random_user_agent,
-    geocode_address
+    geocode_address,
+    is_ghost_sweep_safe
 )
 
 # Cấu hình lưu trữ ảnh cục bộ VPS (Nginx) & Cloudflare R2 Storage (fallback)
@@ -609,7 +610,7 @@ def crawl_active_bit():
             # Khởi tạo Memory Cache cho tỉnh
             conn = get_db_connection()
             cur = conn.cursor()
-            cur.execute('SELECT sale_unit_id, starting_price FROM "Property" WHERE prefecture = %s AND status = %s AND source_provider = %s AND COALESCE(array_length(images, 1), 0) > 1', (pref_name, 'ACTIVE', 'BIT'))
+            cur.execute('SELECT sale_unit_id, starting_price FROM "Property" WHERE prefecture = %s AND status = %s AND source_provider = %s', (pref_name, 'ACTIVE', 'BIT'))
             memory_cache_prices = {row[0]: row[1] for row in cur.fetchall()}
             cur.close()
             conn.close()
@@ -732,14 +733,27 @@ def crawl_active_bit():
                 if should_sweep:
                     ghost_ids = set(memory_cache_prices.keys()) - effective_scraped
                     if ghost_ids:
-                        print(f"    [GHOST SWEEP BIT] Cảnh báo: Tìm thấy {len(ghost_ids)} tài sản đã biến mất ở {pref_name}. Đang lưu trữ...", flush=True)
-                        conn = get_db_connection()
-                        cur = conn.cursor()
-                        cur.execute('UPDATE "Property" SET status = %s, updated_at = NOW() WHERE sale_unit_id IN %s', ('ARCHIVED', tuple(ghost_ids)))
-                        conn.commit()
-                        cur.close()
-                        conn.close()
-                        print(f"    [GHOST SWEEP BIT] Đã Archive thành công {len(ghost_ids)} tài sản.", flush=True)
+                        total_active = len(memory_cache_prices)
+                        scraped_cnt = len(effective_scraped)
+                        ghost_cnt = len(ghost_ids)
+                        is_safe, reason = is_ghost_sweep_safe(
+                            total_active=total_active,
+                            ghost_count=ghost_cnt,
+                            scraped_count=scraped_cnt,
+                            max_drop_ratio=0.45,
+                            min_sample=5
+                        )
+                        if not is_safe:
+                            print(f"    🛑 [CIRCUIT BREAKER BIT] BẢO VỆ DỮ LIỆU: Bỏ qua Ghost Sweep ở {pref_name}!\n       Lý do: {reason}", flush=True)
+                        else:
+                            print(f"    [GHOST SWEEP BIT] Cảnh báo: Tìm thấy {len(ghost_ids)} tài sản đã biến mất ở {pref_name}. Đang lưu trữ...", flush=True)
+                            conn = get_db_connection()
+                            cur = conn.cursor()
+                            cur.execute('UPDATE "Property" SET status = %s, updated_at = NOW() WHERE sale_unit_id IN %s', ('ARCHIVED', tuple(ghost_ids)))
+                            conn.commit()
+                            cur.close()
+                            conn.close()
+                            print(f"    [GHOST SWEEP BIT] Đã Archive thành công {len(ghost_ids)} tài sản.", flush=True)
 
                 completed_courts.append(checkpoint_key)
                 save_state(completed_courts)

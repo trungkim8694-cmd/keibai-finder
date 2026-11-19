@@ -18,6 +18,7 @@ from crawler_utils import (
     get_nearest_station_from_db,
     clean_area_string,
     extract_prefecture_and_city,
+    is_ghost_sweep_safe,
 )
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'web', '.env.local'))
@@ -323,17 +324,36 @@ def run_ksi_crawler(limit: int = 0):
             print(f"⚠️ Error processing KSI {item_id}: {e}")
             conn.rollback()
 
-    # Ghost Sweep O(1) only on full run
+    # Ghost Sweep O(1) only on full run với Circuit Breaker
     archived = 0
     if limit == 0 and scraped_unit_ids:
-        cur.execute("""
-            UPDATE "Property"
-            SET status = 'ARCHIVED', updated_at = NOW()
-            WHERE source_provider = 'KSI'
-              AND status = 'ACTIVE'
-              AND sale_unit_id != ALL(%s)
-        """, (scraped_unit_ids,))
-        archived = cur.rowcount
+        cur.execute('SELECT COUNT(*) FROM "Property" WHERE source_provider = %s AND status = %s', ('KSI', 'ACTIVE'))
+        total_active = cur.fetchone()[0]
+        scraped_cnt = len(scraped_unit_ids)
+        # Ước tính số tài sản sẽ bị archive
+        cur.execute('SELECT COUNT(*) FROM "Property" WHERE source_provider = %s AND status = %s AND sale_unit_id != ALL(%s)', ('KSI', 'ACTIVE', scraped_unit_ids))
+        potential_ghost = cur.fetchone()[0]
+        
+        is_safe, reason = is_ghost_sweep_safe(
+            total_active=total_active,
+            ghost_count=potential_ghost,
+            scraped_count=scraped_cnt,
+            max_drop_ratio=0.50,
+            min_sample=10
+        )
+        if not is_safe:
+            print(f"🛑 [CIRCUIT BREAKER KSI] Hủy Ghost Sweep KSI: {reason}", flush=True)
+        else:
+            cur.execute("""
+                UPDATE "Property"
+                SET status = 'ARCHIVED', updated_at = NOW()
+                WHERE source_provider = 'KSI'
+                  AND status = 'ACTIVE'
+                  AND sale_unit_id != ALL(%s)
+            """, (scraped_unit_ids,))
+            archived = cur.rowcount
+            if archived > 0:
+                print(f"📦 [GHOST SWEEP KSI] Đã lưu trữ {archived} tài sản không còn mở thầu.", flush=True)
 
     conn.commit()
     cur.close()

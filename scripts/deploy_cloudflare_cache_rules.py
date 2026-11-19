@@ -76,11 +76,10 @@ def main():
                 "cache": True,
                 "edge_ttl": {
                     "mode": "override_origin",
-                    "default": 604800  # 7 days
+                    "default": 3600    # 1 hour (prevents stale HTML referencing old Vercel CSS hashes)
                 },
                 "browser_ttl": {
-                    "mode": "override_origin",
-                    "default": 14400   # 4 hours
+                    "mode": "respect_origin"  # Respect Next.js max-age=0, must-revalidate for HTML
                 },
                 "serve_stale": {
                     "disable_stale_while_updating": False

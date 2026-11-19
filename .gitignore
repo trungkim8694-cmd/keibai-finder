@@ -49,3 +49,12 @@ crawler/data/competitor_crawl_progress.json
 crawler/check_live_results.py
 tests/
 
+# Sensitive Data & PR Portal Credentials
+data/
+docs/PR_ACCOUNTS_GUIDE.md
+docs/pr-portal-accounts.md
+*ACCOUNT_CREDENTIALS*
+scripts/probe_portal_forms.py
+scripts/inspect_details.py
+
+

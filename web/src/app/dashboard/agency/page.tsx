@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../api/auth/[...nextauth]/route';
+import { authOptions } from "@/lib/authOptions";
 import { prisma } from '@/lib/prisma';
 import { AgencyForm } from '@/components/Dashboard/AgencyForm';
 import Link from 'next/link';

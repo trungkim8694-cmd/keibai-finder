@@ -6,156 +6,183 @@ export const revalidate = 86400; // 24-hour ISR cache for dynamic sitemap
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const stableBuildDate = new Date('2026-11-01T00:00:00Z');
 
-  // 1. Core pages
+  // Lấy thời điểm cập nhật thực tế từ DB cho <lastmod>.
+  // Nếu DB lỗi, fallback về stableBuildDate để sitemap vẫn trả 200 (không bao giờ 500 với Googlebot).
+  const [latestProp, latestArticle, latestAgency] = await Promise.all([
+    prisma.property.findFirst({
+      where: { status: 'ACTIVE' },
+      select: { updated_at: true },
+      orderBy: { updated_at: 'desc' },
+    }),
+    prisma.dailyDigest.findFirst({
+      select: { updated_at: true },
+      orderBy: { updated_at: 'desc' },
+    }),
+    prisma.agencyProfile.findFirst({
+      where: { isVerified: true },
+      select: { updated_at: true },
+      orderBy: { updated_at: 'desc' },
+    }),
+  ]).catch((error) => {
+    console.error('sitemap: failed to load lastmod timestamps, using stableBuildDate:', error);
+    return [null, null, null] as const;
+  });
+
+  const latestPropDate = latestProp?.updated_at || stableBuildDate;
+  const latestArticleDate = latestArticle?.updated_at || stableBuildDate;
+  const latestAgencyDate = latestAgency?.updated_at || stableBuildDate;
+
+  // 1. Core pages with authentic Last-Modified timestamps
   const coreRoutes: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 1.0,
     },
     {
       url: `${baseUrl}/map`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 0.95,
     },
     {
       url: `${baseUrl}/features`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'monthly' as const,
       priority: 0.85,
     },
     {
       url: `${baseUrl}/extension`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'monthly' as const,
       priority: 0.85,
     },
     {
       url: `${baseUrl}/features/keyword-trends`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/features/map-search`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'monthly' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/features/trade-price-search`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'monthly' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/features/area-map`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'monthly' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/extension/privacy`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'yearly' as const,
       priority: 0.5,
     },
     {
       url: `${baseUrl}/trade-find`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/auction/schedule`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 0.95,
     },
     {
       url: `${baseUrl}/auction-results`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/blogs`,
-      lastModified: new Date(),
+      lastModified: latestArticleDate,
       changeFrequency: 'daily' as const,
       priority: 0.85,
     },
     {
       url: `${baseUrl}/insights`,
-      lastModified: new Date(),
+      lastModified: latestArticleDate,
       changeFrequency: 'daily' as const,
       priority: 0.85,
     },
     {
       url: `${baseUrl}/area-map`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'weekly' as const,
       priority: 0.85,
     },
     {
       url: `${baseUrl}/search/area`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 0.85,
     },
     {
       url: `${baseUrl}/search/station`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 0.85,
     },
     {
       url: `${baseUrl}/agencies`,
-      lastModified: new Date(),
+      lastModified: latestAgencyDate,
       changeFrequency: 'weekly' as const,
       priority: 0.85,
     },
     {
       url: `${baseUrl}/market-insights`,
-      lastModified: new Date(),
+      lastModified: latestArticleDate,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/company`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     },
     {
       url: `${baseUrl}/contact`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'yearly' as const,
       priority: 0.5,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
+      lastModified: stableBuildDate,
       changeFrequency: 'yearly' as const,
       priority: 0.5,
     },
     {
       url: `${baseUrl}/llms.txt`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/llms-full.txt`,
-      lastModified: new Date(),
+      lastModified: latestPropDate,
       changeFrequency: 'daily' as const,
       priority: 0.9,
     },
@@ -212,9 +239,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ];
 
     // 3. Programmatic SEO Routes (Area)
-    // Extract distinct active prefectures and cities to prevent "Submitted URL marked 'noindex'"
+    // Extract distinct active prefectures and cities with max updated_at for true lastmod
     const distinctLocations = await prisma.property.groupBy({
       by: ['prefecture', 'city'],
+      _max: {
+        updated_at: true,
+      },
       where: {
         prefecture: { not: null },
         city: { not: null },
@@ -224,26 +254,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const areaRoutes: MetadataRoute.Sitemap = [];
     
+    // Map max updated_at for prefectures
+    const prefMaxMap = new Map<string, Date>();
+    distinctLocations.forEach((loc) => {
+      if (loc.prefecture) {
+        const curMax = prefMaxMap.get(loc.prefecture);
+        const locDate = loc._max.updated_at || latestPropDate;
+        if (!curMax || locDate > curMax) {
+          prefMaxMap.set(loc.prefecture, locDate);
+        }
+      }
+    });
+
     // Extract distinct prefectures
-    const prefectures: string[] = Array.from(
-      new Set(
-        distinctLocations
-          .map((loc) => loc.prefecture)
-          .filter((p): p is string => typeof p === 'string' && p.length > 0)
-      )
-    );
+    const prefectures: string[] = Array.from(prefMaxMap.keys());
     
     prefectures.forEach(pref => {
+      const prefDate = prefMaxMap.get(pref) || latestPropDate;
       areaRoutes.push({
         url: `${baseUrl}/search/area/${encodeURIComponent(pref)}`,
-        lastModified: new Date(),
+        lastModified: prefDate,
         changeFrequency: 'daily' as const,
         priority: 0.8, // prefectures have higher priority than cities
       });
       // Add area-map specific routes
       areaRoutes.push({
         url: `${baseUrl}/area-map/${encodeURIComponent(pref)}`,
-        lastModified: new Date(),
+        lastModified: prefDate,
         changeFrequency: 'weekly' as const,
         priority: 0.8, 
       });
@@ -256,16 +293,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         typeof loc.city === 'string' && loc.city.length > 0
       )
       .forEach((loc) => {
+        const cityDate = loc._max.updated_at || latestPropDate;
         areaRoutes.push({
           url: `${baseUrl}/search/area/${encodeURIComponent(loc.prefecture)}/${encodeURIComponent(loc.city)}`,
-          lastModified: new Date(),
+          lastModified: cityDate,
           changeFrequency: 'daily' as const,
           priority: 0.7,
         });
         // Add area-map specific routes
         areaRoutes.push({
           url: `${baseUrl}/area-map/${encodeURIComponent(loc.prefecture)}/${encodeURIComponent(loc.city)}`,
-          lastModified: new Date(),
+          lastModified: cityDate,
           changeFrequency: 'weekly' as const,
           priority: 0.7,
         });
@@ -279,7 +317,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Add the line silo page
       stationRoutes.push({
         url: `${baseUrl}/search/station/${encodeURIComponent(lineItem.line)}`,
-        lastModified: new Date(),
+        lastModified: latestPropDate,
         changeFrequency: 'daily' as const,
         priority: 0.8,
       });
@@ -288,7 +326,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lineItem.stations.forEach(station => {
         stationRoutes.push({
           url: `${baseUrl}/search/station/${encodeURIComponent(lineItem.line)}/${encodeURIComponent(station.name)}`,
-          lastModified: new Date(),
+          lastModified: latestPropDate,
           changeFrequency: 'daily' as const,
           priority: 0.7,
         });

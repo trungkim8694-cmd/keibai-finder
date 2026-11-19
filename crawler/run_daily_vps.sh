@@ -8,7 +8,7 @@
 # 3. Rà quét Thuế quốc gia NTA (nta_parser.py)
 # 4. Thẩm định giá MLIT (mlit_calculator.py)
 # 5. Dọn dẹp ảnh mồ côi (cleanup_property_images.py)
-# 6. Viết bài tin tức AI SEO hàng ngày (ai_seo_writer.py)
+# 6. Tự động viết bài AI SEO hàng ngày (ĐÃ VÔ HIỆU HOÁ: chuyển sang tạo có kiểm duyệt tại /admin/seo-agent)
 # 7. Xóa đệm Edge Cache Next.js (Revalidation API)
 # 8. Báo cáo trực tiếp tình trạng qua Telegram
 # ==============================================================================
@@ -34,9 +34,25 @@ fi
 # Chuyển hướng stdout & stderr vào file log và terminal
 exec > >(tee -a "$LOG_FILE") 2>&1
 
+START_TIME=$(date +%s)
+
 echo "=============================================================================="
 echo "🚀 [KEIBAI VPS] KHỞI ĐỘNG TIẾN TRÌNH CÀO DỮ LIỆU HÀNG NGÀY: $(date +'%Y-%m-%d %H:%M:%S %Z')"
 echo "=============================================================================="
+
+# 0. Quản lý vòng đời file log (giữ 14 ngày, thu gọn systemd log > 25MB)
+echo "🧹 Quản lý vòng đời file log trên đĩa..."
+find "$LOG_DIR" -maxdepth 1 -name "*.log" -mtime +14 -delete 2>/dev/null || true
+find "$LOG_DIR" -maxdepth 1 -name "error_*.png" -mtime +7 -delete 2>/dev/null || true
+for SYSLOG in "$LOG_DIR/systemd_daily_crawler.log" "$LOG_DIR/systemd_weekly_results.log"; do
+    if [ -f "$SYSLOG" ]; then
+        FILE_SIZE=$(stat -c%s "$SYSLOG" 2>/dev/null || stat -f%z "$SYSLOG" 2>/dev/null || echo 0)
+        if [ "$FILE_SIZE" -gt 26214400 ]; then # 25MB
+            echo "⚠️ File $SYSLOG vượt 25MB ($FILE_SIZE bytes). Đang thu gọn giữ 5,000 dòng gần nhất..."
+            tail -n 5000 "$SYSLOG" > "${SYSLOG}.tmp" && mv "${SYSLOG}.tmp" "$SYSLOG"
+        fi
+    fi
+done
 
 # 1. Nạp virtualenv Python
 VENV_PATH=""
@@ -81,8 +97,15 @@ if [ "$ENV_LOADED" = false ]; then
     echo "❌ Không tìm thấy file .env hoặc .env.local trong $PROJECT_ROOT/web!"
 fi
 
-# Biến đếm lỗi
-ARCHIVE_STATUS="Thành công ✅"
+# Tín hiệu bắt đầu tới Dead Man's Switch (Healthchecks.io) nếu cấu hình
+HC_PING_URL="${HEALTHCHECKS_URL:-${HEALTHCHECK_URL:-}}"
+if [ -n "$HC_PING_URL" ]; then
+    echo "📡 [Healthchecks.io] Bắn tín hiệu bắt đầu (Start Ping)..."
+    curl -fsS -m 10 --retry 3 "${HC_PING_URL}/start" >/dev/null 2>&1 || true
+fi
+
+# Biến đếm lỗi & trạng thái luồng
+ARCHIVE_STATUS="Thất bại ❌"
 BIT_STATUS="Thất bại ❌"
 NTA_STATUS="Thất bại ❌"
 NTA_RES_STATUS="Bỏ qua ⏭️"
@@ -98,27 +121,33 @@ echo ""
 echo "------------------------------------------------------------------------------"
 echo "👉 BƯỚC 0: Tự động chuyển đổi tài sản hết hạn sang ARCHIVED..."
 echo "------------------------------------------------------------------------------"
-python3 -c "
-import os, psycopg2
+if python3 -c "
+import os, sys, psycopg2
 db_url = os.environ.get('DATABASE_URL')
-if db_url:
-    try:
-        conn = psycopg2.connect(db_url)
-        cur = conn.cursor()
-        cur.execute('''
-            UPDATE \"Property\"
-            SET status = 'ARCHIVED', updated_at = NOW()
-            WHERE status = 'ACTIVE' AND bid_end_date < NOW();
-        ''')
-        conn.commit()
-        print(f'✅ Đã lưu trữ thành công {cur.rowcount} tài sản đã hết hạn đấu giá.')
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f'⚠️ Lỗi tự động lưu trữ tài sản: {e}')
-else:
+if not db_url:
     print('⚠️ Không tìm thấy DATABASE_URL để tự động archive!')
-"
+    sys.exit(1)
+try:
+    conn = psycopg2.connect(db_url)
+    cur = conn.cursor()
+    cur.execute('''
+        UPDATE \"Property\"
+        SET status = 'ARCHIVED', updated_at = NOW()
+        WHERE status = 'ACTIVE' AND bid_end_date < NOW();
+    ''')
+    conn.commit()
+    print(f'✅ Đã lưu trữ thành công {cur.rowcount} tài sản đã hết hạn đấu giá.')
+    cur.close()
+    conn.close()
+except Exception as e:
+    print(f'⚠️ Lỗi tự động lưu trữ tài sản: {e}')
+    sys.exit(1)
+"; then
+    ARCHIVE_STATUS="Thành công ✅"
+else
+    ARCHIVE_STATUS="Thất bại ❌"
+    echo "❌ Bước 0 tự động lưu trữ gặp lỗi!"
+fi
 
 # 3. Bước 1: Cào Tòa Án BIT
 echo ""
@@ -204,18 +233,19 @@ echo "👉 Dọn dẹp ảnh mồ côi (cleanup_property_images.py)..."
 echo "------------------------------------------------------------------------------"
 python3 cleanup_property_images.py --delete || echo "⚠️ Dọn dẹp ảnh gặp lỗi nhưng tiếp tục tiến trình."
 
-# 7. Bước 4: Viết bài báo AI SEO
-echo ""
-echo "------------------------------------------------------------------------------"
-echo "👉 BƯỚC 4/5: Chạy AI SEO Writer (ai_seo_writer.py)..."
-echo "------------------------------------------------------------------------------"
-if python3 ai_seo_writer.py; then
-    SEO_STATUS="Thành công ✅"
-    echo "✅ AI SEO Writer đã tạo bài báo mới."
-else
-    SEO_STATUS="Thất bại ❌"
-    echo "❌ AI SEO Writer gặp lỗi!"
-fi
+# 7. Bước 4: Viết bài báo AI SEO (ĐÃ VÔ HIỆU HOÁ: Không tự động chạy ngầm, quản lý thủ công có kiểm duyệt trong /admin/seo-agent)
+SEO_STATUS="Đã tắt (Quản lý thủ công qua Admin) ⚪"
+# echo ""
+# echo "------------------------------------------------------------------------------"
+# echo "👉 BƯỚC 4/5: Chạy AI SEO Writer (ai_seo_writer.py)... [ĐÃ TẮT]"
+# echo "------------------------------------------------------------------------------"
+# if python3 ai_seo_writer.py; then
+#     SEO_STATUS="Thành công ✅"
+#     echo "✅ AI SEO Writer đã tạo bài báo mới."
+# else
+#     SEO_STATUS="Thất bại ❌"
+#     echo "❌ AI SEO Writer gặp lỗi!"
+# fi
 
 # 8. Bước 5: Revalidate Cache Webhook
 echo ""
@@ -250,18 +280,52 @@ else
     echo "⚠️ Fast Indexing Engine gặp sự cố!"
 fi
 
-# 10. Gửi báo cáo Telegram
+# 10. Gửi báo cáo Telegram & Bắn tín hiệu Dead Man's Switch
 echo ""
 echo "=============================================================================="
 echo "📢 GỬI BÁO CÁO TELEGRAM TỔNG KẾT TIẾN TRÌNH..."
 echo "=============================================================================="
-if [ -f "telegram_notify.py" ]; then
+END_TIME=$(date +%s)
+RUNTIME_SEC=$((END_TIME - START_TIME))
+
+if [ -f "report_generator.py" ]; then
+    echo "📊 Đang sinh báo cáo Telegram chi tiết sản lượng hôm nay..."
+    python3 report_generator.py --send --runtime "$RUNTIME_SEC" \
+        --status "archive=$ARCHIVE_STATUS" \
+        --status "bit=$BIT_STATUS" \
+        --status "nta=$NTA_STATUS" \
+        --status "nta_res=$NTA_RES_STATUS" \
+        --status "ksi=$KSI_STATUS" \
+        --status "mof=$MOF_STATUS" \
+        --status "mlit=$MLIT_STATUS" \
+        --status "seo=$SEO_STATUS" \
+        --status "cache=$CACHE_STATUS" \
+        --status "index=$INDEX_STATUS" || {
+            echo "⚠️ Report generator gặp sự cố, fallback sang telegram_notify.py cơ bản..."
+            if [ -f "telegram_notify.py" ]; then
+                JST_TIME="$(TZ='Asia/Tokyo' date +'%Y-%m-%d %H:%M JST')"
+                REPORT="🏠 <b>Keibai Finder - VPS Daily Crawler Report</b>%0A📅 $JST_TIME%0A1️⃣ Toà án BIT: $BIT_STATUS%0A2️⃣ Thuế NTA: $NTA_STATUS%0A3️⃣ Thẩm định MLIT: $MLIT_STATUS"
+                python3 telegram_notify.py "$REPORT" || echo "⚠️ Không thể gửi thông báo Telegram."
+            fi
+        }
+elif [ -f "telegram_notify.py" ]; then
     JST_TIME="$(TZ='Asia/Tokyo' date +'%Y-%m-%d %H:%M JST')"
     REPORT="🏠 <b>Keibai Finder - VPS Daily Crawler Report</b>%0A📅 $JST_TIME%0A1️⃣ Toà án BIT (Đang mở): $BIT_STATUS%0A2️⃣ Thuế Quốc gia NTA (Đang mở): $NTA_STATUS%0A3️⃣ Kết quả NTA (Đã đấu giá): $NTA_RES_STATUS%0A4️⃣ Công bán KSI (官公庁公売): $KSI_STATUS%0A5️⃣ Tài sản Quốc hữu MOF (国有財産): $MOF_STATUS%0A6️⃣ Thẩm định giá MLIT: $MLIT_STATUS%0A7️⃣ Bản tin AI Insights: $SEO_STATUS%0A8️⃣ Bộ đệm Next.js: $CACHE_STATUS%0A9️⃣ Bắn Index (Google/Bing): $INDEX_STATUS"
     python3 telegram_notify.py "$REPORT" || echo "⚠️ Không thể gửi thông báo Telegram."
 fi
 
+# Tín hiệu hoàn tất tới Dead Man's Switch (Healthchecks.io)
+if [ -n "$HC_PING_URL" ]; then
+    if [ "$BIT_STATUS" = "Thành công ✅" ] || [ "$NTA_STATUS" = "Thành công ✅" ]; then
+        echo "📡 [Healthchecks.io] Bắn tín hiệu thành công (Success Ping)..."
+        curl -fsS -m 10 --retry 3 "${HC_PING_URL}" >/dev/null 2>&1 || true
+    else
+        echo "📡 [Healthchecks.io] Bắn tín hiệu thất bại (Fail Ping)..."
+        curl -fsS -m 10 --retry 3 "${HC_PING_URL}/fail" >/dev/null 2>&1 || true
+    fi
+fi
+
 echo "=============================================================================="
-echo "🏁 TIẾN TRÌNH CÀO DỮ LIỆU VPS HOÀN TẤT LÚC: $(date +'%Y-%m-%d %H:%M:%S %Z')"
+echo "🏁 TIẾN TRÌNH CÀO DỮ LIỆU VPS HOÀN TẤT LÚC: $(date +'%Y-%m-%d %H:%M:%S %Z') (Thời gian chạy: ${RUNTIME_SEC}s)"
 echo "=============================================================================="
 

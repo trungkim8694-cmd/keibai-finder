@@ -190,7 +190,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
 
   const railData = stats?.railData || [];
   const typeStats = stats?.typeStats || {};
-  const areaStats = stats?.areaStats || {};
+  const areaStats: Record<string, number> = (stats?.areaStats as Record<string, number>) || {};
   const authorityData = stats?.authorityStats || { bit: [], nta: [] };
   
   useEffect(() => {
@@ -1240,7 +1240,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                      className={`text-sm lg:text-[11px] font-bold border-none bg-transparent outline-none cursor-pointer appearance-none max-w-[120px] truncate ${selectedLine !== 'ALL' ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-700 dark:text-zinc-300'}`}
                    >
                      <option value="ALL">路線指定なし</option>
-                     {railData.map(r => (
+                     {railData.map((r: any) => (
                        <option key={r.line} value={r.line}>{r.line} ({r.count})</option>
                      ))}
                    </select>
@@ -1274,7 +1274,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                          className="text-sm lg:text-[11px] font-bold border-none bg-transparent outline-none text-zinc-700 dark:text-zinc-300 cursor-pointer appearance-none max-w-[100px] truncate"
                        >
                          <option value="ALL">駅指定なし</option>
-                         {(railData.find(r => r.line === selectedLine)?.stations || []).map(st => (
+                         {(railData.find((r: any) => r.line === selectedLine)?.stations || []).map((st: any) => (
                            <option key={st} value={st}>{st}</option>
                          ))}
                        </select>

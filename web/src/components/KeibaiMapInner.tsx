@@ -205,7 +205,7 @@ function MapHoverSync({ activeItemId }: { activeItemId?: string | null }) {
   const map = useMap();
   useEffect(() => {
     if (!map) return;
-    syncHoveredMarkerDOM(map, activeItemId, null);
+    syncHoveredMarkerDOM(map, activeItemId ?? null, null);
   }, [activeItemId, map]);
   return null;
 }
@@ -716,6 +716,7 @@ export default function KeibaiMapInner({
 
         <MapLayerControl 
           hasRegionBar={mode === 'list'}
+          isDetailMode={mode === 'detail'}
           baseMapMode={baseMapMode}
           setBaseMapMode={setBaseMapMode}
           focusJapan={focusJapan}
