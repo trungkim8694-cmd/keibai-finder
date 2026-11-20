@@ -97,10 +97,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     ? '【特別売却・先着順】'
     : isMof
       ? '【財務省 国有財産売却】'
-      : isNta
-        ? '【国税庁 公売】'
-        : isKsi
-          ? '【官公庁 公売】'
+      : isKsi
+        ? '【自治体 公有財産売却】'
+        : isNta
+          ? '【国税庁 公売】'
           : isBudgetHouse
             ? '【格安戸建て・利回り投資】'
             : property.status === 'SOLD'
@@ -111,9 +111,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   const authorityName = isMof 
     ? (property.court_name ? `${property.court_name} ` : '財務局 ') 
-    : isKoubai 
-      ? (property.managing_authority ? `${property.managing_authority} ` : '') 
-      : (property.court_name ? `${property.court_name} ` : '');
+    : isKsi
+      ? (property.managing_authority ? `${property.managing_authority} ` : (property.court_name ? `${property.court_name} ` : '自治体 '))
+      : isNta 
+        ? (property.managing_authority ? `${property.managing_authority} ` : '国税局 ') 
+        : (property.court_name ? `${property.court_name} ` : '');
 
   const title = `${statusPrefix}【${priceFormatted}】${address}の${typeStr}｜${authorityName}${tagStr}情報`;
 
@@ -258,16 +260,23 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
                 summaryData[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
               }
             }
+            const isPublicAsset = summaryData['オークション種別'] === '公有財産売却' || property.source_provider === 'MOF';
             propertySections.push({
-              asset_title: "物件概要・公売情報",
+              asset_title: isPublicAsset ? "物件概要・公有財産情報" : "物件概要・公売情報",
               asset_type: property.source_provider || "KSI",
               data: summaryData
             });
 
+            const excludedExtraKeys = [
+              'summary', 'title', 'source_url', 'bidding_period', 'nta_map_link', 'etax_link',
+              'image_urls', 'images', 'thumbnailUrl', 'land_area', 'building_area', 'area',
+              'id', 'item_id', 'raw_text', 'status', 'overview', 'details', 'contact'
+            ];
             const extraData: Record<string, string> = {};
             for (const [k, v] of Object.entries(rawObj)) {
-              if (!['summary', 'title', 'source_url', 'bidding_period', 'nta_map_link', 'etax_link'].includes(k) && v !== null && v !== undefined) {
-                extraData[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
+              if (!excludedExtraKeys.includes(k) && v !== null && v !== undefined && v !== '') {
+                if (typeof v === 'object') continue; // Do not render raw JSON dumps
+                extraData[k] = String(v);
               }
             }
             if (Object.keys(extraData).length > 0) {
@@ -282,7 +291,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         } else {
             const sanitizedData: Record<string, string> = {};
             for (const [k, v] of Object.entries(rawObj)) {
-              if (['nta_map_link', 'etax_link'].includes(k)) continue;
+              if (['nta_map_link', 'etax_link', 'image_urls', 'images', 'thumbnailUrl', 'land_area', 'building_area', 'area'].includes(k)) continue;
               if (v !== null && v !== undefined) {
                 sanitizedData[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
               }
@@ -423,8 +432,8 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
       }).then(res => res.companies || [])
     : Promise.resolve([]);
 
-  // RUN ALL 6 IN PARALLEL
-  const [stationsResult, nearbyResult, soldResult, similarProps, propertyComments, agenciesResult] = await Promise.all([
+  // RUN ALL 6 IN PARALLEL SAFELY with Promise.allSettled to prevent single peripheral failures from crashing the page
+  const [stationsSettled, nearbySettled, soldSettled, similarSettled, commentsSettled, agenciesSettled] = await Promise.allSettled([
     stationsPromise,
     nearbyActivePromise,
     nearbySoldPromise,
@@ -432,6 +441,13 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     commentsPromise,
     agenciesPromise
   ]);
+
+  const stationsResult = stationsSettled.status === 'fulfilled' ? stationsSettled.value : [];
+  const nearbyResult = nearbySettled.status === 'fulfilled' ? nearbySettled.value : [];
+  const soldResult = soldSettled.status === 'fulfilled' ? soldSettled.value : [];
+  const similarProps = similarSettled.status === 'fulfilled' ? similarSettled.value : [];
+  const propertyComments = commentsSettled.status === 'fulfilled' ? commentsSettled.value : [];
+  const agenciesResult = agenciesSettled.status === 'fulfilled' ? agenciesSettled.value : [];
 
   const safeComments = deepSerialize(propertyComments || []);
   const safeAgencies = deepSerialize(agenciesResult || []);
@@ -633,6 +649,39 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "周辺の成約相場および賃料相場から想定表面利回りをシミュレーション可能です。戸建てや土地の用途地域・建蔽率・容積率を確認の上、再生投資や事業用利用を検討できます。"
+      }
+    }
+  ] : isKsi ? [
+    {
+      "@type": "Question",
+      "name": "この自治体公有財産の入札案内書・物件調書の確認方法は？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Keibai Finderの物件詳細画面から出品自治体（市役所・県庁等）およびKSI官公庁オークション公式ページへ直接アクセス可能です。土地・建物の現況表示、境界確定の有無、公法上の制限（用途地域・建蔽率・容積率）、上下水道の引込状況を事前に精読することが重要です。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "自治体の公有財産売却における登記や権利関係の特徴は？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "公有財産の売却は自治体との直接売買契約となり、落札代金完納後に自治体が法務局へ所有権移転登記を嘱託（嘱託登記）するため安全性が高く手続きも円滑です。また抵当権等の債務差押登記も一切ありません。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "KSI官公庁オークションでの一般競争入札の流れと入札保証金は？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "参加申込期間内にクレジットカードや銀行振込等で所定の入札保証金（予定価格の10%程度）を納付し、入札期間内にオークションシステムで入札します。開札期日に予定価格（最低入札価格）以上で最高価格を付けた方が落札者となります。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "この物件の有効活用や建築・再生投資のポイントは？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "実需の注文住宅用地、アパート・賃貸レジデンス開発、事業用オフィス・倉庫・資材置場など多彩な活用が可能です。周辺の成約相場対比で割安な予定価格で取得できるチャンスがあります。"
       }
     }
   ] : isKoubai ? [
@@ -1032,7 +1081,9 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     <div className="text-center py-16 mb-8 lg:mb-0 bg-white dark:bg-zinc-900 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-400">
       <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
       <p className="font-medium text-sm text-slate-600 dark:text-slate-300">抽出詳細データは登録されていません</p>
-      <p className="text-xs mt-1 text-slate-400">物件調書PDFまたは競売サイト原本にてご確認ください。</p>
+      <p className="text-xs mt-1 text-slate-400">
+        {isMof ? '財務省公示案内書' : isKsi ? '官公庁オークション案内書' : isKoubai ? '公売サイト原本' : '物件調書PDFまたは競売サイト原本'}にてご確認ください。
+      </p>
     </div>
   );
 
@@ -1229,9 +1280,11 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
               }`}></span>
               {isMof
                 ? 'よくある質問・国有財産入札ガイド（物件調書・一般競争入札・嘱託登記）'
-                : isKoubai
-                  ? 'よくある質問・公売入札ガイド（公売財産明細・見積価額・公売保証金）'
-                  : 'よくある質問・競売入札ガイド（3点セット・立ち退き・期間入札）'}
+                : isKsi
+                  ? 'よくある質問・公有財産売却入札ガイド（案内書・予定価格・自治体嘱託登記）'
+                  : isKoubai
+                    ? 'よくある質問・公売入札ガイド（公売財産明細・見積価額・公売保証金）'
+                    : 'よくある質問・競売入札ガイド（3点セット・立ち退き・期間入札）'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               この物件の調査や入札にあたって、初心者が疑問を持ちやすいポイントを専門的に解説しています。

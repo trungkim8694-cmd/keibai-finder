@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
   const [clickedPropertyId, setClickedPropertyId] = useState<string | null>(null);
   const [previewProperty, setPreviewProperty] = useState<SharedProperty | null>(null);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   const [bounds, setBounds] = useState<BoundingBox | undefined>(undefined);
   const [currentFilters, setCurrentFilters] = useState<SearchFilters>({});
@@ -343,7 +344,7 @@ export default function DashboardPage() {
       {/* 2. Docked Horizontal B2B Toolbar (Search & Filter) */}
       <div className="w-full z-40 bg-white dark:bg-zinc-900 shrink-0 relative">
         <Suspense fallback={<div className="h-[88px] w-full animate-pulse bg-slate-50 dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800"></div>}>
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar onSearch={handleSearch} onMobileFilterOpenChange={setIsFilterModalOpen} />
         </Suspense>
       </div>
 
@@ -486,8 +487,8 @@ export default function DashboardPage() {
           onClose={() => setPreviewProperty(null)}
         />
 
-        {/* Floating Toggle Button (Mobile Only) - Automatically hidden when Peek Card is active */}
-        {(!clickedProperty || viewMode === 'list') && (
+        {/* Floating Toggle Button (Mobile Only) - Automatically hidden when Peek Card, Filter Modal or Quick Drawer is active */}
+        {(!clickedProperty || viewMode === 'list') && !isFilterModalOpen && !previewProperty && (
           <div 
             className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[45] animate-in fade-in-0 duration-150"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}

@@ -34,8 +34,9 @@ export function CourtValuation({
 }: CourtValuationProps) {
   const isBit = !sourceProvider || sourceProvider === 'BIT';
   const isMof = sourceProvider === 'MOF';
-  const isKoubai = sourceProvider === 'NTA' || sourceProvider === 'KSI';
+  const isKsi = sourceProvider === 'KSI';
   const isNta = sourceProvider === 'NTA';
+  const isKoubai = isNta || isKsi;
 
   // Calculate Progress Percent for expiration
   let progressPercent = 0;
@@ -72,12 +73,13 @@ export function CourtValuation({
 
   const priceLabel = valuationSummary?.priceLabel || (
     isMof ? '予定価格（最低入札価格）' :
-    isKoubai ? '見積価額' : '売却基準価額'
+    isKsi ? '予定価格（最低入札価格）' :
+    isNta ? '見積価額' : '売却基準価額'
   );
   const priceSubLabel = valuationSummary?.priceSubLabel || (
     isMof ? '財務省 国有財産売却' :
-    isNta ? '国税庁公売基準額' :
-    isKoubai ? '官公庁公売' : '裁判所評価額'
+    isKsi ? '自治体 公有財産売却' :
+    isNta ? '国税庁公売基準額' : '裁判所評価額'
   );
 
   // Format Deposit & Minimum Price
@@ -135,7 +137,7 @@ export function CourtValuation({
                 {depositMan && depositMan > 0 && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-zinc-700 tabular-nums" title="入札参加時に納付する保証金">
                     <span className="text-slate-500 dark:text-slate-400">
-                      {isMof ? '入札保証金(目安):' : isKoubai ? '公売保証金:' : '買受申出保証額:'}
+                      {isMof ? '入札保証金(目安):' : isKsi ? '入札保証金:' : isNta ? '公売保証金:' : '買受申出保証額:'}
                     </span>
                     <span className="font-bold text-slate-900 dark:text-slate-100">{depositMan.toLocaleString('ja-JP')}万円</span>
                   </span>
@@ -255,7 +257,7 @@ export function CourtValuation({
             }}
             className="inline-flex items-center gap-1 text-[#1B4F8A] dark:text-blue-400 font-semibold hover:underline shrink-0 text-xs self-end sm:self-auto"
           >
-            <span>{isMof ? '物件調書詳細診断 ↓' : isKoubai ? '公売財産詳細診断 ↓' : '3点セット詳細診断 ↓'}</span>
+            <span>{isMof ? '物件調書詳細診断 ↓' : isKsi ? '公有財産詳細診断 ↓' : isNta ? '公売財産詳細診断 ↓' : '3点セット詳細診断 ↓'}</span>
           </a>
         </div>
       )}

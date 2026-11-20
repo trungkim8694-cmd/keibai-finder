@@ -9,7 +9,7 @@ import { extractAuctionEndDate, extractTotalArea, cleanAddress } from '../lib/ut
 import { formatDateJapan } from '../utils/dateFormatter';
 import { CourtContactLink } from './CourtContactLink';
 import { resolvePropertyAiAnalysis } from '../lib/aiRiskExtractor';
-import { getSourceProviderMeta, isPublicAuctionProvider } from '../lib/sourceProviderConfig';
+import { getSourceProviderMeta, isPublicAuctionProvider, getPriceLabel } from '../lib/sourceProviderConfig';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
@@ -259,7 +259,9 @@ export default function PropertyCard({
         
         <div className="border-t border-slate-100 dark:border-slate-800 pt-2.5 mt-auto flex items-end justify-between pr-1 gap-1">
           <div className="shrink-0 overflow-hidden">
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">売却基準価額</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              {getPriceLabel(property.source_provider)}
+            </p>
             <p className="font-bold text-[13px] lg:text-[12px] tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap tabular-nums">{formattedPrice}</p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">

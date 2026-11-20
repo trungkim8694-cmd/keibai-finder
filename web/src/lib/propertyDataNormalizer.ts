@@ -117,11 +117,12 @@ export function resolveAccuratePropertyType(property: any): string {
     textToInspect = JSON.stringify(rawData);
   }
 
-  // 1. Check NTA overview & details specific fields
+  // 1. Check NTA & KSI overview / details / summary specific fields
   if (rawData && typeof rawData === 'object' && !Array.isArray(rawData)) {
     const overview = rawData.overview || {};
     const details = rawData.details || {};
-    const mainType = overview['主たる種類'] || details['種類（登記簿表示内容）'] || details['主たる種類'];
+    const summary = rawData.summary || {};
+    const mainType = overview['主たる種類'] || details['種類（登記簿表示内容）'] || details['主たる種類'] || summary['物件の種類'] || summary['地目'];
     if (mainType) {
       const cleanMain = mainType.trim();
       if (cleanMain.includes('旅館') || cleanMain.includes('ホテル') || cleanMain.includes('店舗')) {
@@ -131,7 +132,9 @@ export function resolveAccuratePropertyType(property: any): string {
       if (cleanMain.includes('工場') || cleanMain.includes('倉庫')) return '工場・倉庫';
       if (cleanMain.includes('共同住宅') || cleanMain.includes('アパート') || cleanMain.includes('一棟')) return '一棟マンション・アパート';
       if (cleanMain.includes('区分所有') || cleanMain.includes('マンション')) return 'マンション';
-      if (cleanMain.includes('居宅') || cleanMain.includes('住宅') || cleanMain.includes('戸建')) return '戸建て';
+      if (cleanMain.includes('居宅') || cleanMain.includes('住宅') || cleanMain.includes('戸建') || cleanMain.includes('土地付建物')) return '戸建て';
+      if (cleanMain.includes('宅地') || cleanMain.includes('更地') || cleanMain.includes('山林') || cleanMain.includes('雑種地') || cleanMain.includes('土地')) return '土地';
+      if (cleanMain.includes('農地') || cleanMain === '田' || cleanMain === '畑') return '農地';
     }
   }
 
@@ -355,7 +358,7 @@ export function extractValuationSummary(property: any): ValuationSummary {
   if (isKsi && rawData && typeof rawData === 'object' && !Array.isArray(rawData) && rawData.summary) {
     const summary = rawData.summary || {};
     let depositYen: number | null = null;
-    const depStr = summary['入札 保証金'] || summary['入札保証金'] || summary['公売保証金'];
+    const depStr = summary['入札 保証金'] || summary['入札保証金'] || summary['公売保証金'] || summary['保証金'];
     if (depStr) {
       const cl = normalizeZenkaku(depStr).replace(/[^0-9]/g, '');
       if (cl) depositYen = parseInt(cl, 10);
@@ -363,10 +366,12 @@ export function extractValuationSummary(property: any): ValuationSummary {
       depositYen = Math.round(startPriceYen * 0.1);
     }
 
+    const isPublicAsset = summary['オークション種別'] === '公有財産売却' || !summary['公売の方法'];
+
     return {
-      isNta: true,
-      priceLabel: '見積価額',
-      priceSubLabel: '官公庁公売（行政・自治体）',
+      isNta: false,
+      priceLabel: isPublicAsset ? '予定価格（最低入札価格）' : '見積価額',
+      priceSubLabel: isPublicAsset ? '自治体 公有財産売却' : '官公庁公売（差押財産）',
       startPriceYen,
       minimumBidPriceYen: null,
       depositYen,
@@ -375,7 +380,7 @@ export function extractValuationSummary(property: any): ValuationSummary {
       bidEndDate: summary['入札期間'] || (property.bid_end_date ? new Date(property.bid_end_date).toLocaleDateString('ja-JP') : null),
       openDate: summary['開札期日'] ? normalizeZenkaku(summary['開札期日']).trim() : null,
       saleDivisionNo: summary['売却区分番号'] ? normalizeZenkaku(summary['売却区分番号']).trim() : null,
-      method: summary['実施方法'] || '公有財産売却（入札）'
+      method: isPublicAsset ? '公有財産売却（一般競争入札）' : (summary['実施方法'] || '公売（入札）')
     };
   }
 

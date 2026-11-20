@@ -118,7 +118,13 @@ export async function GET() {
         typeof prop.mlit_investment_gap === 'number' && prop.mlit_investment_gap > 0
           ? `-${Math.round(prop.mlit_investment_gap)}%`
           : '-';
-      const prov = prop.source_provider === 'NTA' ? '国税庁公売' : '裁判所競売(BIT)';
+      const prov = prop.source_provider === 'NTA' 
+        ? '国税庁公売' 
+        : prop.source_provider === 'KSI' 
+          ? '自治体公有財産売却(KSI)' 
+          : prop.source_provider === 'MOF' 
+            ? '財務省国有財産売却' 
+            : '裁判所競売(BIT)';
       return `| [${prop.sale_unit_id}](${baseUrl}/property/${prop.sale_unit_id}) | ${prov} | ${prop.prefecture || ''}${prop.city || ''} | ${prop.property_type || '不動産'} | ${priceMan} | ${gap} | ${prop.court_name || '-'} |`;
     })
     .join('\n');

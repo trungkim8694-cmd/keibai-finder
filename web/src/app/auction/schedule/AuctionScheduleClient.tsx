@@ -29,7 +29,7 @@ export default function AuctionScheduleClient({ initialData }: Props) {
   const [data, setData] = useState<ScheduleDataResponse>(initialData);
   const [year, setYear] = useState<number>(initialData.year);
   const [month, setMonth] = useState<number>(initialData.month);
-  const [provider, setProvider] = useState<'ALL' | 'BIT' | 'NTA'>(initialData.provider);
+  const [provider, setProvider] = useState<'ALL' | 'BIT' | 'NTA' | 'KSI' | 'MOF'>(initialData.provider);
   const [mode, setMode] = useState<'end_date' | 'start_date'>(initialData.mode);
   const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(null);
   
@@ -195,11 +195,31 @@ export default function AuctionScheduleClient({ initialData }: Props) {
                 onClick={() => handleFetchMonth(year, month, 'NTA')}
                 className={`min-h-[40px] px-3.5 py-2 text-xs font-semibold rounded-md transition-all ${
                   provider === 'NTA'
-                    ? 'bg-white dark:bg-zinc-900 text-emerald-700 dark:text-emerald-400 shadow-sm'
+                    ? 'bg-white dark:bg-zinc-900 text-rose-700 dark:text-rose-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
-                公売スケジュール ({data.stats.ntaCount}件)
+                国税公売 ({data.stats.ntaCount}件)
+              </button>
+              <button
+                onClick={() => handleFetchMonth(year, month, 'KSI')}
+                className={`min-h-[40px] px-3.5 py-2 text-xs font-semibold rounded-md transition-all ${
+                  provider === 'KSI'
+                    ? 'bg-white dark:bg-zinc-900 text-teal-700 dark:text-teal-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                官公庁公売 ({data.stats.ksiCount || 0}件)
+              </button>
+              <button
+                onClick={() => handleFetchMonth(year, month, 'MOF')}
+                className={`min-h-[40px] px-3.5 py-2 text-xs font-semibold rounded-md transition-all ${
+                  provider === 'MOF'
+                    ? 'bg-white dark:bg-zinc-900 text-amber-700 dark:text-amber-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                国有財産 ({data.stats.mofCount || 0}件)
               </button>
             </div>
           </div>

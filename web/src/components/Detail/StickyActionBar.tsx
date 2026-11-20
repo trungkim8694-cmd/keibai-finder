@@ -6,6 +6,7 @@ import { ChevronRight, FileText, Phone, MessageSquareQuote } from 'lucide-react'
 import FavoriteButton from '@/components/FavoriteButton';
 import { SocialShareDropdown } from '@/components/Detail/SocialShare';
 import { AgencyLeadModal } from '@/components/Detail/AgencyLeadModal';
+import { getShortPriceLabel, getPriceLabel, getDocumentLabel } from '@/lib/sourceProviderConfig';
 
 export function StickyActionBar({ 
   saleUnitId, 
@@ -29,8 +30,11 @@ export function StickyActionBar({
   sourceProvider?: string | null;
 }) {
   const isMof = sourceProvider === 'MOF';
-  const isKoubai = sourceProvider === 'NTA' || sourceProvider === 'KSI';
-  const docLabel = isMof ? '物件調書' : isKoubai ? '公売明細' : '3点セット';
+  const isKsi = sourceProvider === 'KSI';
+  const isKoubai = sourceProvider === 'NTA';
+  const shortPrefix = getShortPriceLabel(sourceProvider);
+  const fullPriceLabel = getPriceLabel(sourceProvider);
+  const docLabel = getDocumentLabel(sourceProvider);
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
@@ -92,7 +96,7 @@ export function StickyActionBar({
               <div className="hidden md:flex items-center gap-2 ml-3 shrink-0">
                 {startPrice && (
                   <span className="px-2 py-0.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-semibold rounded text-[11px] border border-slate-200 dark:border-zinc-700 tabular-nums">
-                    基準: {startPrice}
+                    {shortPrefix}: {startPrice}
                   </span>
                 )}
                 {predictedPrice && predictedPrice !== '-' && (
@@ -148,7 +152,7 @@ export function StickyActionBar({
           {/* Left: Price Stack (基準価額 & AI想定) */}
           <div className="flex flex-col min-w-0 pr-1 shrink">
             <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-semibold truncate leading-none mb-1">
-              {startPrice ? `基準: ${startPrice}` : (isMof ? '予定価格' : isKoubai ? '見積価額' : '売却基準価額')}
+              {startPrice ? `${shortPrefix}: ${startPrice}` : fullPriceLabel}
             </span>
             <span className="text-sm sm:text-base font-extrabold font-mono tabular-nums text-[#1B4F8A] dark:text-blue-400 leading-none truncate">
               {predictedPrice && predictedPrice !== '-' ? predictedPrice : (startPrice || '査定中')}

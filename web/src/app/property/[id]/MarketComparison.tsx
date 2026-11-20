@@ -76,7 +76,7 @@ export default function MarketComparison({
 
           <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200/80 dark:border-zinc-800">
             <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-tight">平均落札乖離</span>
-            <span className={`text-base font-bold tabular-nums ${avgMargin > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
+            <span className="text-base font-bold text-slate-900 dark:text-slate-100 tabular-nums">
               {avgMargin > 0 ? `+${avgMargin}%` : `${avgMargin}%`}
             </span>
           </div>
@@ -109,24 +109,24 @@ export default function MarketComparison({
           <span className="text-[10px] text-slate-400">距離が近い順</span>
         </h3>
         
-        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-          <table className="w-full text-[11px] text-left border-collapse">
-            <thead className="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-700">
+        <div className="overflow-x-auto rounded border border-slate-200 dark:border-zinc-800">
+          <table className="w-full text-[11px] text-left">
+            <thead className="bg-slate-50 dark:bg-zinc-800/60 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-zinc-800">
               <tr>
-                <th className="px-2.5 py-2 whitespace-nowrap">物件・エリア</th>
-                <th className="px-2.5 py-2 whitespace-nowrap text-right">基準 ▶ 落札価額</th>
-                <th className="px-2 py-2 whitespace-nowrap text-center">乖離率</th>
-                <th className="px-2 py-2 whitespace-nowrap text-center">入札数</th>
-                <th className="px-2 py-2 whitespace-nowrap text-center">年度</th>
+                <th className="px-2.5 py-1.5 whitespace-nowrap">物件・エリア</th>
+                <th className="px-2.5 py-1.5 whitespace-nowrap text-right">基準 ▶ 落札価額</th>
+                <th className="px-2 py-1.5 whitespace-nowrap text-right">乖離率</th>
+                <th className="px-2 py-1.5 whitespace-nowrap text-center">応札</th>
+                <th className="px-2 py-1.5 whitespace-nowrap text-center">年度</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 tabular-nums">
+            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800 tabular-nums">
               {nearbySold.slice(0, 12).map((sold) => {
                 const district = getCleanDistrict(sold.address);
                 const baseMan = sold.basePrice ? Math.round(sold.basePrice / 10000) : null;
                 const winMan = sold.winningPrice ? Math.round(sold.winningPrice / 10000) : null;
 
-                // Build spec badge: e.g. "戸建て 113m² 築45年"
+                // Build spec: e.g. "戸建て 113m² 築45年"
                 const specParts = [];
                 if (sold.grp) specParts.push(sold.grp);
                 if (sold.sqm) specParts.push(`${sold.sqm}m²`);
@@ -134,18 +134,16 @@ export default function MarketComparison({
                 const specText = specParts.join(' ');
 
                 const bids = sold.bidderCount || 1;
-                const isHighBid = bids >= 6;
-                const isMediumBid = bids >= 3;
 
                 return (
-                  <tr key={sold.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                  <tr key={sold.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40 transition-colors">
                     {/* Col 1: Area & Property Specs */}
-                    <td className="px-2.5 py-2 whitespace-nowrap">
-                      <div className="font-semibold text-slate-800 dark:text-slate-200 max-w-[130px] truncate" title={sold.address || ''}>
+                    <td className="px-2.5 py-1.5 whitespace-nowrap">
+                      <div className="font-medium text-slate-800 dark:text-slate-200 max-w-[130px] truncate" title={sold.address || ''}>
                         {district}
                       </div>
-                      <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                        <span className="font-medium text-slate-500 dark:text-slate-400">{sold.distance.toFixed(1)}km</span>
+                      <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                        <span className="text-slate-500 dark:text-slate-400">{sold.distance.toFixed(1)}km</span>
                         {specText && (
                           <span className="text-slate-400 dark:text-slate-500 truncate max-w-[110px]" title={specText}>
                             • {specText}
@@ -155,15 +153,15 @@ export default function MarketComparison({
                     </td>
 
                     {/* Col 2: Base -> Winning Price */}
-                    <td className="px-2.5 py-2 text-right whitespace-nowrap">
-                      <div className="font-bold text-slate-900 dark:text-white flex items-center justify-end gap-1">
+                    <td className="px-2.5 py-1.5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1 font-medium">
                         {winMan ? (
                           <>
-                            <span className="text-[10px] text-slate-400 font-normal">
+                            <span className="text-[10px] text-slate-400">
                               {baseMan ? `${baseMan.toLocaleString('ja-JP')}万` : '-'}
                             </span>
-                            <span className="text-slate-300 dark:text-slate-600 text-[10px]">▶</span>
-                            <span className="text-rose-600 dark:text-rose-400 font-black">
+                            <span className="text-slate-300 dark:text-slate-600 text-[9px]">▶</span>
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">
                               {winMan.toLocaleString('ja-JP')}万円
                             </span>
                           </>
@@ -172,35 +170,23 @@ export default function MarketComparison({
                     </td>
 
                     {/* Col 3: Margin Rate */}
-                    <td className="px-2 py-2 text-center whitespace-nowrap">
+                    <td className="px-2 py-1.5 text-right whitespace-nowrap font-medium">
                       {sold.marginRate !== null && sold.marginRate !== undefined ? (
-                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold tabular-nums whitespace-nowrap ${
-                          sold.marginRate > 50 
-                            ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30' 
-                            : sold.marginRate > 0 
-                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30' 
-                              : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30'
-                        }`}>
-                          {sold.marginRate > 0 ? '+' : ''}{Math.round(sold.marginRate)}%
+                        <span className={sold.marginRate > 0 ? 'text-slate-800 dark:text-slate-200 font-semibold' : 'text-slate-500'}>
+                          {sold.marginRate > 0 ? `+${Math.round(sold.marginRate)}%` : `${Math.round(sold.marginRate)}%`}
                         </span>
-                      ) : '-'}
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
                     </td>
 
                     {/* Col 4: Bidder Count */}
-                    <td className="px-2 py-2 text-center whitespace-nowrap">
-                      <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold tabular-nums ${
-                        isHighBid 
-                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300' 
-                          : isMediumBid 
-                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300' 
-                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                      }`}>
-                        入札{bids}
-                      </span>
+                    <td className="px-2 py-1.5 text-center whitespace-nowrap text-slate-600 dark:text-slate-400">
+                      {bids}<span className="text-[10px] text-slate-400 ml-0.5">名</span>
                     </td>
 
                     {/* Col 5: Year */}
-                    <td className="px-2 py-2 text-center whitespace-nowrap text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                    <td className="px-2 py-1.5 text-center whitespace-nowrap text-[10px] text-slate-500 dark:text-slate-400">
                       {sold.endYear ? `${sold.endYear}年` : (sold.completionDate ? new Date(sold.completionDate).getFullYear() + '年' : '-')}
                     </td>
                   </tr>

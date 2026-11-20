@@ -15,9 +15,9 @@ const globalForPrisma = globalThis as unknown as {
 
 const pool = globalForPrisma.pgPool || new Pool({ 
   connectionString,
-  max: 2,
-  idleTimeoutMillis: 5000,
-  connectionTimeoutMillis: 10000,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 20000,
 });
 if (process.env.NODE_ENV !== 'production') globalForPrisma.pgPool = pool;
 

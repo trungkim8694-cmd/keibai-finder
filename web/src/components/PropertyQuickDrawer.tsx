@@ -7,7 +7,7 @@ import { X, ExternalLink, MapPin, Train, Calendar, Maximize2, Compass, Tag, Buil
 import type { SharedProperty } from '@/types';
 import { cleanAddress } from '@/lib/utils';
 import { getPropertyTypeColor } from '@/types';
-import { getSourceProviderMeta, isPublicAuctionProvider } from '@/lib/sourceProviderConfig';
+import { getSourceProviderMeta, isPublicAuctionProvider, getPriceLabel, getAuthorityDisplayName } from '@/lib/sourceProviderConfig';
 import FavoriteButton from '@/components/FavoriteButton';
 
 interface PropertyQuickDrawerProps {
@@ -107,11 +107,9 @@ export default function PropertyQuickDrawer({
             <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${typeColor.bg} ${typeColor.text} ${typeColor.border}`}>
               {property.property_type || '不動産'}
             </span>
-            {property.court_name && (
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium truncate max-w-[140px]">
-                {property.court_name}
-              </span>
-            )}
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium truncate max-w-[140px]">
+              {getAuthorityDisplayName(property as any)}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <FavoriteButton id={property.sale_unit_id} compact />
@@ -151,7 +149,7 @@ export default function PropertyQuickDrawer({
                 onClick={() => onOpenStreetView({
                   lat: property.lat,
                   lng: property.lng,
-                  title: `売却基準価額: ${formattedPrice}`,
+                  title: `${getPriceLabel(property.source_provider)}: ${formattedPrice}`,
                   address: displayAddress
                 })}
                 className="absolute top-2 right-2 px-2.5 py-1 text-[11px] font-medium border border-amber-300/80 bg-amber-500/90 hover:bg-amber-600 text-white rounded-lg shadow-md transition-colors inline-flex items-center gap-1 backdrop-blur-xs"
@@ -166,7 +164,7 @@ export default function PropertyQuickDrawer({
           <div className="p-3.5 bg-gradient-to-br from-blue-50/80 via-white to-slate-50/60 dark:from-blue-950/20 dark:via-zinc-900 dark:to-zinc-900 border border-blue-200/80 dark:border-blue-900/50 rounded-xl shadow-xs">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400">
-                売却基準価額 (最低入札価格の目安)
+                {getPriceLabel(property.source_provider)} (最低入札価格の目安)
               </span>
               {property.roiPercent && property.roiPercent > 0 && (
                 <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded">

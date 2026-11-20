@@ -13,31 +13,36 @@ import { resolvePropertyImages, isExtractedImage, normalizeImageUrl } from '@/li
 let relistLookupCache: { timestamp: number; map: Map<string, { roundCount: number; priceDropYen: number }> } | null = null;
 const RELIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-async function getActiveRelistLookupMap(): Promise<Map<string, { roundCount: number; priceDropYen: number }>> {
-  if (relistLookupCache && Date.now() - relistLookupCache.timestamp < RELIST_CACHE_TTL_MS) {
-    return relistLookupCache.map;
-  }
+async function getActiveRelistLookupMap(targetAddresses?: string[]): Promise<Map<string, { roundCount: number; priceDropYen: number }>> {
   const map = new Map<string, { roundCount: number; priceDropYen: number }>();
   try {
-    const rows = await prisma.$queryRaw<Array<{
-      sale_unit_id: string;
-      address: string;
-      property_type: string;
-      area: number | null;
-      starting_price: bigint | number | null;
-      status: string;
-      raw_display_data: any;
-      thumbnailUrl: string | null;
-      images: string[] | null;
-      source_provider: string;
-    }>>`
-      SELECT p.sale_unit_id, p.address, p.property_type, p.area, p.starting_price, p.status, p.raw_display_data, p."thumbnailUrl", p.images, p.source_provider
-      FROM "Property" p
-      WHERE p.address IN (
-        SELECT address FROM "Property"
-        WHERE status = 'ACTIVE' AND address IS NOT NULL AND address != 'Unknown'
-      )
-    `;
+    const validAddresses = targetAddresses ? Array.from(new Set(targetAddresses.filter(a => a && a !== 'Unknown'))) : null;
+    if (validAddresses && validAddresses.length === 0) return map;
+
+    let rows: any[] = [];
+    if (validAddresses && validAddresses.length > 0) {
+      // Targeted fast-path: only query rows matching the current page's properties
+      rows = await prisma.property.findMany({
+        where: { address: { in: validAddresses } },
+        select: {
+          sale_unit_id: true,
+          address: true,
+          property_type: true,
+          area: true,
+          starting_price: true,
+          status: true,
+          raw_display_data: true,
+          thumbnailUrl: true,
+          images: true,
+          source_provider: true,
+        }
+      });
+    } else {
+      if (relistLookupCache && Date.now() - relistLookupCache.timestamp < RELIST_CACHE_TTL_MS) {
+        return relistLookupCache.map;
+      }
+      return map;
+    }
 
     const byKey = new Map<string, any[]>();
     for (const r of rows) {
@@ -60,7 +65,6 @@ async function getActiveRelistLookupMap(): Promise<Map<string, { roundCount: num
         }
       }
     }
-    relistLookupCache = { timestamp: Date.now(), map };
   } catch (err) {
     console.error('Failed to build relist lookup map:', err);
   }
@@ -736,7 +740,8 @@ async function getPropertiesCore(filters: SearchFilters) {
             });
             
             const coordinateMap = new Map();
-            const relistMap = await getActiveRelistLookupMap();
+            const targetAddrs = data.map((d: any) => d.address).filter(Boolean);
+            const relistMap = await getActiveRelistLookupMap(targetAddrs);
 
             const mappedPayload = data.map((d: any) => {
                const relistInfo = relistMap.get(String(d.sale_unit_id));
@@ -931,7 +936,8 @@ export async function getNearestStationInfo(lat: number, lng: number, sale_unit_
 
 // Helper to batch evaluate stations and map data
 async function mapPropertiesWithStations(data: any[]) {
-    const relistMap = await getActiveRelistLookupMap();
+    const targetAddrs = data.map((d: any) => d.address).filter(Boolean);
+    const relistMap = await getActiveRelistLookupMap(targetAddrs);
     // MAP TO SHARED FORMAT
     const formattedData = await Promise.all(data.map(async p => {
       const relistInfo = relistMap.get(String(p.sale_unit_id));

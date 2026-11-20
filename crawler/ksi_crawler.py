@@ -41,14 +41,28 @@ def get_db_connection():
 
 
 def map_ksi_property_type(raw_type: str, title: str = "") -> str:
-    txt = f"{raw_type} {title}"
-    if any(k in txt for k in ["マンション", "区分所有", "共同住宅"]):
+    # 1. First inspect raw_type (地目 or 物件の種類) strictly
+    # Important: Check condominium / apartment (区分所有) BEFORE generic "建物"
+    rt = (raw_type or "").strip()
+    if any(k in rt for k in ["マンション", "区分所有", "共同住宅"]):
         return "マンション"
-    if any(k in txt for k in ["戸建", "一戸建", "住宅", "居宅", "宅地及び建物", "建物付"]):
+    if any(k in rt for k in ["戸建", "住宅", "居宅", "建物", "家屋"]):
         return "戸建て"
-    if any(k in txt for k in ["農地", "田", "畑"]):
+    if any(k in rt for k in ["宅地", "土地", "山林", "雑種地", "原野", "更地", "公衆用道路", "墓地"]):
+        return "土地"
+    if rt in ["田", "畑", "農地"] or "農地" in rt:
         return "農地"
-    if any(k in txt for k in ["宅地", "土地", "山林", "雑種地", "原野", "更地"]):
+
+    # 2. Then check title safely (avoid single-kanji "田" matching town names like 池新田)
+    if any(k in title for k in ["マンション", "区分所有", "共同住宅"]):
+        return "マンション"
+    if any(k in title for k in ["戸建", "一戸建", "住宅", "居宅", "土地付建物", "建物付"]):
+        return "戸建て"
+    if any(k in title for k in ["宅地", "更地", "山林", "雑種地", "原野"]):
+        return "土地"
+    if "農地" in title:
+        return "農地"
+    if any(k in title for k in ["土地"]):
         return "土地"
     return "その他"
 
@@ -102,20 +116,32 @@ def parse_ksi_detail(item_id: str, session: requests.Session) -> dict | None:
     if any(k in authority for k in ["国税局", "税務署", "国税庁"]):
         return {"_skip_nta": True, "authority": authority}
 
-    # Extract starting price (見積価額)
+    # Extract starting price (予定価格 or 見積価額)
     starting_price = None
-    # Try DOM label 見積価額 -> parent/next sibling
-    label_el = soup.find(string=re.compile(r"見積価額"))
-    if label_el and label_el.parent and label_el.parent.parent:
-        block_txt = label_el.parent.parent.get_text(" ", strip=True)
-        pm = re.search(r'([0-9,]+)\s*円', block_txt)
-        if pm:
-            starting_price = int(pm.group(1).replace(",", ""))
+    for label in ["予定価格", "見積価額", "開始価格", "最低入札価格"]:
+        label_el = soup.find(string=re.compile(label))
+        if label_el and label_el.parent and label_el.parent.parent:
+            block_txt = label_el.parent.parent.get_text(" ", strip=True)
+            pm = re.search(r'([0-9,]+)\s*円', block_txt)
+            if pm:
+                starting_price = int(pm.group(1).replace(",", ""))
+                break
     if not starting_price:
         # Fallback: RSC payload minimumPrice / estimatedPrice
-        pm2 = re.search(r'"(?:minimumPrice|estimatedPrice|estimatePrice)"\s*:\s*(\d+)', r.text)
+        pm2 = re.search(r'"(?:minimumPrice|estimatedPrice|estimatePrice|startingPrice)"\s*:\s*(\d+)', r.text)
         if pm2:
             starting_price = int(pm2.group(1))
+
+    # Extract deposit (入札保証金 or 公売保証金)
+    for dep_label in ["入札保証金", "公売保証金", "保証金"]:
+        dep_el = soup.find(string=re.compile(dep_label))
+        if dep_el and dep_el.parent and dep_el.parent.parent:
+            block_txt = dep_el.parent.parent.get_text(" ", strip=True)
+            dm = re.search(r'([0-9,]+)\s*円', block_txt)
+            if dm:
+                deposit_val = int(dm.group(1).replace(",", ""))
+                meta[dep_label] = f"{deposit_val:,}円"
+                break
 
     # Address
     address = meta.get("所在地") or ""
@@ -158,24 +184,48 @@ def parse_ksi_detail(item_id: str, session: requests.Session) -> dict | None:
         start_date = parse_jp_datetime(parts[0])
         end_date = parse_jp_datetime(parts[1])
 
-    # Images (unwrap /_next/image/?url=...)
-    images = []
-    for img in soup.find_all("img"):
+    # Images (Target ONLY the item's own gallery/hero container, excluding recommendation sections)
+    hero = None
+    for div in soup.find_all('div', class_=re.compile(r'flex-col.*md:flex-row')):
+        if div.find('h1'):
+            hero = div
+            break
+
+    search_context = hero
+    if not search_context:
+        basic_info = soup.find(string=re.compile("基本情報"))
+        if basic_info:
+            img_tags = basic_info.find_all_previous('img')
+        else:
+            img_tags = soup.find_all('img')
+    else:
+        img_tags = search_context.find_all('img')
+
+    raw_images = []
+    for img in img_tags:
         src = img.get("src") or img.get("data-src") or ""
         if "/_next/image" in src and "url=" in src:
             parsed = urllib.parse.urlparse(src)
             qs = urllib.parse.parse_qs(parsed.query)
             if "url" in qs and qs["url"]:
                 raw_img = qs["url"][0]
-                if "_large" in raw_img or "_medium" in raw_img or "upload-images" in raw_img:
-                    if raw_img not in images:
-                        images.append(raw_img)
-        elif "upload-images" in src and src not in images:
-            images.append(src)
+                if "upload-images" in raw_img:
+                    raw_images.append(raw_img)
+        elif "upload-images" in src:
+            raw_images.append(src)
 
-    # Prefer large images first
-    large_imgs = [i for i in images if "_large" in i]
-    thumb_url = large_imgs[0] if large_imgs else (images[0] if images else None)
+    # Normalize thumbnail to high-res (_large) and deduplicate
+    images = []
+    seen_bases = set()
+    for img_url in raw_images:
+        high_res = re.sub(r'_(?:thumbnail|small|medium)\.([a-zA-Z]+)$', r'_large.\1', img_url)
+        base_match = re.search(r'([a-f0-9\-]{20,})', high_res)
+        base_id = base_match.group(1) if base_match else high_res
+        if base_id not in seen_bases:
+            seen_bases.add(base_id)
+            images.append(high_res)
+
+    thumb_url = images[0] if images else None
 
     return {
         "sale_unit_id": f"KSI_{item_id}",

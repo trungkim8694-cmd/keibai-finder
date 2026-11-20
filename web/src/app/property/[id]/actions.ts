@@ -6,6 +6,15 @@ export async function getNearbyAuctionResults(lat: number, lng: number, radiusKm
   if (!lat || !lng) return [];
   
   try {
+    const latDelta = (radiusKm / 111) * 1.2;
+    const rad = (lat * Math.PI) / 180;
+    const cosLat = Math.cos(rad);
+    const lngDelta = (radiusKm / (111 * (cosLat > 0.1 ? cosLat : 1))) * 1.2;
+    const minLat = lat - latDelta;
+    const maxLat = lat + latDelta;
+    const minLng = lng - lngDelta;
+    const maxLng = lng + lngDelta;
+
     const results = await prisma.$queryRaw`
       SELECT * FROM (
         SELECT 
@@ -13,7 +22,8 @@ export async function getNearbyAuctionResults(lat: number, lng: number, radiusKm
           "basePrice", "winningPrice", "bidderCount", "marginRate", "completionDate", "winnerType", "raw_data",
           ( 6371 * acos( cos( radians(${lat}) ) * cos( radians( "lat" ) ) * cos( radians( "lng" ) - radians(${lng}) ) + sin( radians(${lat}) ) * sin( radians( "lat" ) ) ) ) AS distance
         FROM "AuctionResult"
-        WHERE "lat" IS NOT NULL AND "lng" IS NOT NULL
+        WHERE "lat" BETWEEN ${minLat} AND ${maxLat}
+          AND "lng" BETWEEN ${minLng} AND ${maxLng}
       ) AS derivedTable
       WHERE distance <= ${radiusKm}
       ORDER BY distance ASC
@@ -62,16 +72,24 @@ export async function getNearbyAuctionResults(lat: number, lng: number, radiusKm
 export async function getNearestStations(lat: number, lng: number) {
   if (!lat || !lng) return [];
 
-  console.log(`[getNearestStations] Querying nearby stations for Lat: ${lat}, Lng: ${lng}`);
-
   try {
+    const latDelta = 0.35; // ~40km
+    const rad = (lat * Math.PI) / 180;
+    const cosLat = Math.cos(rad);
+    const lngDelta = 0.35 / (cosLat > 0.1 ? cosLat : 1);
+    const minLat = lat - latDelta;
+    const maxLat = lat + latDelta;
+    const minLng = lng - lngDelta;
+    const maxLng = lng + lngDelta;
+
     const results = await prisma.$queryRaw`
       SELECT * FROM (
         SELECT 
           "id", "name_ja", "line_name", "lat", "lng",
           ( 6371 * acos( cos( radians(${lat}) ) * cos( radians( "lat" ) ) * cos( radians( "lng" ) - radians(${lng}) ) + sin( radians(${lat}) ) * sin( radians( "lat" ) ) ) ) AS distance
         FROM "RailwayStation"
-        WHERE "lat" IS NOT NULL AND "lng" IS NOT NULL
+        WHERE "lat" BETWEEN ${minLat} AND ${maxLat}
+          AND "lng" BETWEEN ${minLng} AND ${maxLng}
       ) AS stationTable
       ORDER BY distance ASC
       LIMIT 3

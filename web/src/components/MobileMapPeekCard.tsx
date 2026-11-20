@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { X, ChevronRight, TrendingDown, Train, ExternalLink, Calendar, MapPin, Navigation } from 'lucide-react';
 import FavoriteButton from './FavoriteButton';
-import { getSourceProviderMeta } from '../lib/sourceProviderConfig';
+import { getSourceProviderMeta, getPriceLabel, getAuthorityDisplayName } from '../lib/sourceProviderConfig';
 import { cleanAddress } from '../lib/utils';
 import { getPropertyTypeColor, type SharedProperty } from '../types';
 
@@ -103,11 +103,9 @@ export default function MobileMapPeekCard({ property, onClose }: MobileMapPeekCa
                 <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${providerMeta.badgeClass}`}>
                   {providerMeta.label}
                 </span>
-                {property.court_name && (
-                  <span className="text-[10px] text-slate-500 dark:text-zinc-400 truncate">
-                    {property.court_name}
-                  </span>
-                )}
+                <span className="text-[10px] text-slate-500 dark:text-zinc-400 truncate">
+                  {getAuthorityDisplayName(property as any)}
+                </span>
               </div>
 
               <h4 className="text-[12px] font-bold text-slate-800 dark:text-zinc-100 line-clamp-1 leading-snug">
@@ -131,7 +129,9 @@ export default function MobileMapPeekCard({ property, onClose }: MobileMapPeekCa
 
             <div>
               <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium">売却基準価額</span>
+                <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium">
+                  {getPriceLabel(property.source_provider)}
+                </span>
                 <span className="text-base font-extrabold font-mono tabular-nums text-[#1B4F8A] dark:text-blue-400">
                   {formattedPrice}
                 </span>

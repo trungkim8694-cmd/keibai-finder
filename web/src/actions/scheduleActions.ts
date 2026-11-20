@@ -15,6 +15,8 @@ export interface ScheduleMonthStats {
   totalProperties: number;
   bitCount: number;
   ntaCount: number;
+  ksiCount: number;
+  mofCount: number;
   activePrefecturesCount: number;
   peakDate: string | null;
   peakCount: number;
@@ -26,7 +28,7 @@ export interface ScheduleMonthStats {
 export interface ScheduleDataResponse {
   year: number;
   month: number;
-  provider: 'ALL' | 'BIT' | 'NTA';
+  provider: 'ALL' | 'BIT' | 'NTA' | 'KSI' | 'MOF';
   mode: 'end_date' | 'start_date';
   days: ScheduleDayItem[];
   stats: ScheduleMonthStats;
@@ -47,7 +49,7 @@ const REGION_MAP: Record<string, string[]> = {
 export async function getAuctionSchedule(
   year: number,
   month: number,
-  provider: 'ALL' | 'BIT' | 'NTA' = 'ALL',
+  provider: 'ALL' | 'BIT' | 'NTA' | 'KSI' | 'MOF' = 'ALL',
   mode: 'end_date' | 'start_date' = 'end_date'
 ): Promise<ScheduleDataResponse> {
   try {
@@ -97,6 +99,8 @@ export async function getAuctionSchedule(
     // Stats Accumulators
     let bitCount = 0;
     let ntaCount = 0;
+    let ksiCount = 0;
+    let mofCount = 0;
     const uniquePrefectures = new Set<string>();
     const regionCounts: Record<string, number> = {
       '北海道・東北': 0,
@@ -157,6 +161,8 @@ export async function getAuctionSchedule(
       // Provider counts
       if (p.source_provider === 'BIT') bitCount++;
       else if (p.source_provider === 'NTA') ntaCount++;
+      else if (p.source_provider === 'KSI') ksiCount++;
+      else if (p.source_provider === 'MOF') mofCount++;
 
       // Region aggregation
       for (const [regionName, prefList] of Object.entries(REGION_MAP)) {
@@ -244,6 +250,8 @@ export async function getAuctionSchedule(
         totalProperties: properties.length,
         bitCount,
         ntaCount,
+        ksiCount,
+        mofCount,
         activePrefecturesCount: uniquePrefectures.size,
         peakDate,
         peakCount,
@@ -264,6 +272,8 @@ export async function getAuctionSchedule(
         totalProperties: 0,
         bitCount: 0,
         ntaCount: 0,
+        ksiCount: 0,
+        mofCount: 0,
         activePrefecturesCount: 0,
         peakDate: null,
         peakCount: 0,
@@ -277,7 +287,7 @@ export async function getAuctionSchedule(
 
 export async function getScheduleDayProperties(
   dateStr: string,
-  provider: 'ALL' | 'BIT' | 'NTA' = 'ALL',
+  provider: 'ALL' | 'BIT' | 'NTA' | 'KSI' | 'MOF' = 'ALL',
   prefecture?: string,
   mode: 'end_date' | 'start_date' = 'end_date'
 ) {

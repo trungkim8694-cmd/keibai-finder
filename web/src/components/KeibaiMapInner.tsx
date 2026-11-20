@@ -18,7 +18,7 @@ import { PropertyInfoTags } from './PropertyInfoTags';
 import { CourtContactLink } from './CourtContactLink';
 import FavoriteButton from './FavoriteButton';
 import { resolvePropertyAiAnalysis } from '../lib/aiRiskExtractor';
-import { getSourceProviderMeta, isPublicAuctionProvider } from '../lib/sourceProviderConfig';
+import { getSourceProviderMeta, isPublicAuctionProvider, getPriceLabel } from '../lib/sourceProviderConfig';
 import { extractTotalArea, cleanAddress } from '../lib/utils';
 import { createPricePillIcon, createSoldPricePillIcon, createClusterCustomIcon, syncHoveredMarkerDOM, formatMarkerPrice } from './MapPriceMarker';
 import { MapLayerControl, BaseMapMode } from './MapLayerControl';
@@ -649,7 +649,7 @@ export default function KeibaiMapInner({
                   
                   <div className="border-t border-slate-100 dark:border-slate-800 pt-2 pb-0.5 flex items-center justify-between gap-1">
                     <div className="shrink-0 overflow-hidden">
-                      <p className="text-[9px] text-slate-500 dark:text-slate-400 whitespace-nowrap">売却基準価額</p>
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{getPriceLabel(p.source_provider)}</p>
                       <p className="font-bold text-[13px] tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap tabular-nums">
                          {p.starting_price ? (p.starting_price >= 10000 ? `${(p.starting_price / 10000).toLocaleString('ja-JP')}万円` : `¥${p.starting_price.toLocaleString('ja-JP')}`) : '未定'}
                       </p>
@@ -662,7 +662,7 @@ export default function KeibaiMapInner({
                           setStreetViewTarget({
                             lat: p.lat,
                             lng: p.lng,
-                            title: p.starting_price ? `売却基準価額: ${formatMarkerPrice(p.starting_price)}` : '競売・公売物件',
+                            title: p.starting_price ? `${getPriceLabel(p.source_provider)}: ${formatMarkerPrice(p.starting_price)}` : '競売・公売物件',
                             address: cleanAddress(p.address, p.prefecture, p.city),
                           });
                         }}

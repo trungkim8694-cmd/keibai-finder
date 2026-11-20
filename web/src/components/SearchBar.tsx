@@ -63,7 +63,12 @@ export interface SavedFilter {
   };
 }
 
-export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) => void }) {
+export interface SearchBarProps {
+  onSearch: (f: SearchFilters) => void;
+  onMobileFilterOpenChange?: (isOpen: boolean) => void;
+}
+
+export default function SearchBar({ onSearch, onMobileFilterOpenChange }: SearchBarProps) {
   const {refs, floatingStyles} = useFloating({
     placement: 'bottom-end',
     middleware: [offset(10), flip(), shift({ padding: 16 })],
@@ -155,6 +160,11 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
   const [isBitOpen, setIsBitOpen] = useState(false);
   const [isNtaOpen, setIsNtaOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  const handleSetMobileFilterOpen = (open: boolean) => {
+    setIsMobileFilterOpen(open);
+    onMobileFilterOpenChange?.(open);
+  };
   
   const router = useRouter();
   const pathname = usePathname() || '/map';
@@ -252,7 +262,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
            setIsUrgent(true);
            initialOverrides.isClosingSoon = true;
         }
-        if (providerParam === 'BIT' || providerParam === 'NTA') {
+        if (providerParam && ['BIT', 'NTA', 'KSI', 'MOF'].includes(providerParam)) {
            setProvider(providerParam);
            setActiveProviders([providerParam]);
            initialOverrides.provider = providerParam;
@@ -505,7 +515,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
     if (types.length > 0) parts.push(types[0] + (types.length > 1 ? '...' : ''));
     if (minPrice || maxPrice) parts.push('価格指定あり');
     if (isUrgent) parts.push('入札間近');
-    if (provider && provider !== 'ALL') parts.push(provider === 'BIT' ? 'BITのみ' : 'NTAのみ');
+    if (provider && provider !== 'ALL') parts.push(provider === 'BIT' ? 'BITのみ' : provider === 'NTA' ? 'NTAのみ' : provider === 'KSI' ? 'KSI公売のみ' : '国有財産のみ');
     if (selectedLine && selectedLine !== 'ALL') parts.push(selectedLine);
     if (selectedStation && selectedStation !== 'ALL') parts.push(selectedStation);
 
@@ -960,7 +970,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                    {/* Mobile Filter Button (SUUMO / HOME'S Style Sheet Launcher) */}
                    <button 
                      type="button"
-                     onClick={() => setIsMobileFilterOpen(true)}
+                     onClick={() => handleSetMobileFilterOpen(true)}
                      className="lg:hidden flex items-center justify-center gap-1.5 bg-[#F0F4F9] hover:bg-blue-100 dark:bg-blue-950/60 border border-[#1B4F8A]/30 text-[#1B4F8A] dark:text-blue-300 font-bold py-1.5 px-2.5 rounded-md text-xs shadow-2xs"
                      title="詳細条件で絞り込み"
                    >
@@ -1367,22 +1377,30 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
 
       {/* SUUMO / LIFULL HOME'S Style Mobile Filter Bottom Sheet Modal */}
       {isMobileFilterOpen && (
-        <div className="lg:hidden fixed inset-0 z-[100000] flex flex-col bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="mt-auto w-full max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col overflow-hidden border-t border-slate-200 dark:border-zinc-800 animate-in slide-in-from-bottom duration-250">
-            {/* Sheet Header */}
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-slate-50 dark:bg-zinc-950">
-              <div className="flex items-center gap-2">
-                <span className="text-base">⚙️</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-zinc-100">詳細条件で絞り込み</span>
+        <Portal>
+          <div 
+            className="lg:hidden fixed inset-0 z-[999999] flex flex-col justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                handleSetMobileFilterOpen(false);
+              }
+            }}
+          >
+            <div className="mt-auto w-full max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col overflow-hidden border-t border-slate-200 dark:border-zinc-800 animate-in slide-in-from-bottom duration-250">
+              {/* Sheet Header */}
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-slate-50 dark:bg-zinc-950">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">⚙️</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-zinc-100">詳細条件で絞り込み</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSetMobileFilterOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 flex items-center justify-center font-bold text-sm hover:bg-slate-300 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsMobileFilterOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 flex items-center justify-center font-bold text-sm"
-              >
-                ✕
-              </button>
-            </div>
 
             {/* Sheet Body: Touch-friendly Thumb-Zone Controls */}
             <div className="flex-1 overflow-y-auto p-4 space-y-5">
@@ -1528,7 +1546,10 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
             </div>
 
             {/* Sheet Footer: Apply & Reset Actions */}
-            <div className="p-4 border-t border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 flex items-center gap-2">
+            <div 
+              className="p-4 border-t border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 flex items-center gap-2"
+              style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))' }}
+            >
               <button
                 type="button"
                 onClick={() => {
@@ -1558,7 +1579,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
                     stationName: selectedStation !== 'ALL' ? selectedStation : undefined,
                     providers: activeProviders,
                   });
-                  setIsMobileFilterOpen(false);
+                  handleSetMobileFilterOpen(false);
                 }}
                 className="w-2/3 h-12 rounded-xl bg-[#1B4F8A] hover:bg-[#143D6C] text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition-colors"
               >
@@ -1567,6 +1588,7 @@ export default function SearchBar({ onSearch }: { onSearch: (f: SearchFilters) =
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );

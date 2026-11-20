@@ -41,6 +41,8 @@ export function AiAnalysisPanel({
   const isNta = sourceProvider === 'NTA';
   const isKoubai = isNta || isKsi;
   const isLand = propertyType === '土地';
+  const isMansion = propertyType === 'マンション';
+  const priceTerm = isMof ? '予定価格' : isKoubai ? '見積価額' : '売却基準価額';
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
 
@@ -193,7 +195,7 @@ export function AiAnalysisPanel({
                   ① 買受人の引受権利
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  {isMof ? '国との契約・物件調書' : isKoubai ? '公売公告・明細' : '物件明細書'}
+                  {isMof ? '国との契約・物件調書' : isKsi ? '自治体契約・案内書' : isNta ? '公売公告・明細' : '物件明細書'}
                 </span>
               </div>
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
@@ -205,7 +207,7 @@ export function AiAnalysisPanel({
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span className="text-emerald-700 dark:text-emerald-400 font-medium">
-                    {isMof ? '抵当権なし（国保有財産）' : '担保権等抹消見込み'}
+                    {isMof ? '抵当権なし（国保有財産）' : isKsi ? '抵当権なし（自治体公有財産）' : '担保権等抹消見込み'}
                   </span>
                 </>
               ) : (
@@ -225,7 +227,7 @@ export function AiAnalysisPanel({
                   ② 占有状況・明渡し
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  {isMof ? '物件調書（現況）' : isKoubai ? '使用状況・現況' : '現況調査報告書'}
+                  {isMof ? '物件調書（現況）' : isKsi ? '現況・案内書' : isNta ? '使用状況・現況' : '現況調査報告書'}
                 </span>
               </div>
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
@@ -247,7 +249,7 @@ export function AiAnalysisPanel({
                   ③ 滞納管理費等の承継
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  {isMof ? '物件調書（債務承継なし）' : isKoubai ? '公売特記事項' : '評価書/調査報告'}
+                  {isMof ? '物件調書（債務承継なし）' : isKsi ? '案内書（債務承継なし）' : isNta ? '公売特記事項' : '評価書/調査報告'}
                 </span>
               </div>
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug tabular-nums">
@@ -267,7 +269,7 @@ export function AiAnalysisPanel({
                   ④ 権利形態・建物現況
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  {isMof ? '登記簿・現況表示' : isKoubai ? '登記簿・現況表示' : '評価書'}
+                  {isMof ? '登記簿・現況表示' : isKsi ? '登記簿・現況表示' : isNta ? '登記簿・現況表示' : '評価書'}
                 </span>
               </div>
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
@@ -328,7 +330,7 @@ export function AiAnalysisPanel({
         )}
 
         {/* --- DEEP RISK INTELLIGENCE: 占有者 立ち退き 費用 期間 --- */}
-        {isMof ? (
+        {(isMof || isKsi) ? (
           <div className="mt-4 p-4 rounded-lg bg-blue-50/40 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-900/40 text-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -336,34 +338,50 @@ export function AiAnalysisPanel({
                   <ShieldCheck className="w-3.5 h-3.5" />
                 </div>
                 <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                  国有財産の引渡し・所有権移転（嘱託登記）と契約手続きの安心ポイント
+                  {isMof
+                    ? '国有財産の引渡し・所有権移転（嘱託登記）と契約手続きの安心ポイント'
+                    : '公有財産（自治体）の引渡し・所有権移転（嘱託登記）と契約手続きの安心ポイント'}
                 </h4>
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/80 text-[#1B4F8A] dark:text-blue-300 font-semibold">
-                国有財産法・会計法準拠
+                {isMof ? '国有財産法・会計法準拠' : '地方自治法準拠（公有財産売却）'}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
               <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-blue-200/60 dark:border-blue-900/50">
                 <span className="text-slate-500 dark:text-slate-400 block mb-0.5">所有権移転登記の手続き</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100 block">国による嘱託登記</span>
-                <span className="text-[10px] text-slate-500">国（財務局）が法務局へ直接登記嘱託を行うため手続安心</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 block">
+                  {isMof ? '国による嘱託登記' : '自治体による嘱託登記'}
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  {isMof ? '国（財務局）が法務局へ直接登記嘱託を行うため手続安心' : '出品自治体（市役所・県庁等）が法務局へ直接登記嘱託を行うため手続安心'}
+                </span>
               </div>
               <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-blue-200/60 dark:border-blue-900/50">
                 <span className="text-slate-500 dark:text-slate-400 block mb-0.5">権利関係の安全性</span>
                 <span className="font-bold text-slate-900 dark:text-slate-100 block">抵当権・差押等なし</span>
-                <span className="text-[10px] text-slate-500">旧債務者による担保権や第三者の占有トラブルなし</span>
+                <span className="text-[10px] text-slate-500">
+                  {isMof ? '国保有・管理財産のため旧債務者トラブルや占有問題なし' : '自治体保有財産のため旧債務者トラブルや第三者占有問題なし'}
+                </span>
               </div>
               <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-blue-200/60 dark:border-blue-900/50">
-                <span className="text-slate-500 dark:text-slate-400 block mb-0.5">契約・税制上の優遇</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100 block">印紙税 非課税</span>
-                <span className="text-[10px] text-slate-500">国との売買契約のため契約書の印紙税は非課税（0円）</span>
+                <span className="text-slate-500 dark:text-slate-400 block mb-0.5">
+                  {isMof ? '契約・税制上の優遇' : '契約・手続きの信頼性'}
+                </span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 block">
+                  {isMof ? '印紙税 非課税' : '行政機関との直接契約'}
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  {isMof ? '国との売買契約のため契約書の印紙税は非課税（0円）' : '地方自治法および自治体規程に基づき透明性の高い安全取引'}
+                </span>
               </div>
             </div>
 
             <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-              ※ 国有財産の引渡しは「現況有姿（現状のまま）」となります。境界標の有無や越境物、地下埋設物等の有無については、必ず入札前に管轄財務局が公示する「物件調書」の原本精読および現地確認を行ってください。
+              {isMof
+                ? '※ 国有財産の引渡しは「現況有姿（現状のまま）」となります。境界標の有無や越境物、地下埋設物等の有無については、必ず入札前に管轄財務局が公示する「物件調書」の原本精読および現地確認を行ってください。'
+                : '※ 公有財産の引渡しは「現況有姿（現状のまま）」となります。境界標の有無や越境物、給排水設備等の引込状況については、必ず入札前に自治体が公示する「入札案内書・物件調書」の原本精読および現地確認を行ってください。'}
             </p>
           </div>
         ) : (
@@ -434,6 +452,21 @@ export function AiAnalysisPanel({
               本物件は土地（更地）案件です。用途地域・建蔽率・容積率および接道状況に応じ、実需の注文住宅建築、アパート・賃貸レジデンス開発、事業用オフィス・倉庫・資材置場、太陽光発電用地など幅広い活用が可能です。境界確定状況やインフラ（上下水道・都市ガス・電気）の引き込み状況を{isMof ? '物件調書' : isKoubai ? '公売財産明細書' : '3点セット'}で確認することで、相場対比で割安な取得・高収益開発が期待できます。
             </p>
           </div>
+        ) : isMansion ? (
+          <div className="mt-4 p-4 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 text-xs space-y-2.5">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
+                <Wrench className="w-3.5 h-3.5" />
+              </div>
+              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                中古マンション・専有部分のリノベーション投資ポイント
+              </h4>
+            </div>
+
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+              {priceTerm}が市場相場対比で割安な区分マンションは、水回り設備（キッチン・バス・洗面台）の刷新や内装クロス・床材の全面リフォームを行うことで、賃料アップおよび高利回り運用が期待できます。
+            </p>
+          </div>
         ) : (
           <div className="mt-4 p-4 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 text-xs space-y-2.5">
             <div className="flex items-center gap-2">
@@ -441,12 +474,12 @@ export function AiAnalysisPanel({
                 <Wrench className="w-3.5 h-3.5" />
               </div>
               <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                再建築不可・ボロ戸建て・空き家のリノベーション再生投資ポイント
+                中古戸建て・空き家のリノベーション再生投資ポイント
               </h4>
             </div>
 
             <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-              基準価格が格安な中古戸建て（ボロ戸建て）や、接道要件により建て替えが難しい「再建築不可」物件でも、建築確認申請を要しない<strong>「4号特例リフォーム・大規模スケルトン修繕」</strong>により現代的な住居へ再生が可能です。取得コストを抑えることで、想定利回り15%〜20%超の高利回り賃貸運用モデルとして全国の投資家に注目されています。
+              {priceTerm}が格安な中古戸建て（空き家）や、接道要件により建て替えが難しい「再建築不可」物件でも、建築確認申請を要しない<strong>「4号特例リフォーム・大規模スケルトン修繕」</strong>により現代的な住居へ再生が可能です。取得コストを抑えることで、想定利回り15%〜20%超の高利回り賃貸運用モデルとして全国の投資家に注目されています。
             </p>
           </div>
         )}
@@ -458,7 +491,9 @@ export function AiAnalysisPanel({
             <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug">
               {isMof
                 ? '現地確認・物件調書の精読・建築プランや入札価格の査定に不安がある場合、管轄エリアの宅建業者・不動産会社にご相談いただけます。'
-                : '現地確認・占有者明渡し交渉・入札手続きに不安がある場合、管轄エリアの宅建業者・不動産会社をご確認いただけます。'}
+                : isKsi
+                  ? '現地確認・公有財産入札案内書の精読・建築プランや入札価格の査定に不安がある場合、管轄エリアの宅建業者・不動産会社にご相談いただけます。'
+                  : '現地確認・占有者明渡し交渉・入札手続きに不安がある場合、管轄エリアの宅建業者・不動産会社をご確認いただけます。'}
             </p>
           </div>
           <a

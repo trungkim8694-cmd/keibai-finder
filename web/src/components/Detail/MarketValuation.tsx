@@ -132,7 +132,17 @@ export async function MarketValuation({
     return `${Math.round(val / 10000).toLocaleString('ja-JP')}万円`;
   };
 
+  const isMof = sourceProvider === 'MOF';
+  const isKsi = sourceProvider === 'KSI';
   const isKoubai = sourceProvider === 'NTA';
+  const priceBoxLabel = isMof 
+    ? '予定価格（国有財産）' 
+    : isKsi 
+      ? '予定価格（公有財産売却）' 
+      : isKoubai 
+        ? '見積価額（公売基準）' 
+        : '売却基準価額（競売）';
+  const priceRefLabel = isMof || isKsi ? '予定価格' : isKoubai ? '見積価額' : '売却基準価額';
   const effectiveTypeLabel = displayPropertyType && displayPropertyType !== propertyType 
     ? `${displayPropertyType}（参考：${propertyType}相場）`
     : propertyType;
@@ -173,7 +183,7 @@ export async function MarketValuation({
             <div className="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
               <div>
                 <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1 leading-tight">
-                  {isKoubai ? '見積価額（公売基準）' : '売却基準価額（競売）'}
+                  {priceBoxLabel}
                 </div>
                 <div className="text-base font-bold text-slate-900 dark:text-slate-100 tabular-nums">
                   {basePriceNum > 0 ? manYenFormat(basePriceNum) : '-'}
@@ -259,7 +269,7 @@ export async function MarketValuation({
           <div className="mt-3.5 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-xs">
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
               <span className="font-semibold text-slate-900 dark:text-slate-100">相場分析: </span> 
-              当物件の{isKoubai ? '見積価額' : '売却基準価額'}（{manYenFormat(basePriceNum)}）は、国土交通省の取引データおよび建物現況の減価修正に基づく想定市場相場（{manYenFormat(estimatedMarketPrice)}）に対して、
+              当物件の{priceRefLabel}（{manYenFormat(basePriceNum)}）は、国土交通省の取引データおよび建物現況の減価修正に基づく想定市場相場（{manYenFormat(estimatedMarketPrice)}）に対して、
               <span className="font-bold text-[#1B4F8A] dark:text-blue-400 mx-1 tabular-nums">
                 {investmentGapPercent > 0 
                   ? `約${Math.round((estimatedMarketPrice - basePriceNum) / 10000).toLocaleString('ja-JP')}万円（${investmentGapPercent.toFixed(1)}%）割安` 

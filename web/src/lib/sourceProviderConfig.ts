@@ -74,3 +74,56 @@ export function getSourceProviderMeta(provider?: string | null): SourceProviderM
 export function isPublicAuctionProvider(provider?: string | null): boolean {
   return provider === 'NTA' || provider === 'KSI' || provider === 'MOF';
 }
+
+/**
+ * Get accurate Japanese price label depending on auction legal framework
+ */
+export function getPriceLabel(provider?: string | null, aucType?: string | null): string {
+  if (provider === 'MOF') return '予定価格';
+  if (provider === 'KSI') {
+    return aucType === '公売' ? '見積価額' : '予定価格';
+  }
+  if (provider === 'NTA') return '見積価額';
+  return '売却基準価額';
+}
+
+/**
+ * Get compact Japanese price prefix (e.g. for pills, chips, sticky bars)
+ */
+export function getShortPriceLabel(provider?: string | null, aucType?: string | null): string {
+  if (provider === 'MOF') return '予定';
+  if (provider === 'KSI') {
+    return aucType === '公売' ? '見積' : '予定';
+  }
+  if (provider === 'NTA') return '見積';
+  return '基準';
+}
+
+/**
+ * Get accurate official document label (3点セット vs 物件調書 vs 入札案内書 vs 公売明細)
+ */
+export function getDocumentLabel(provider?: string | null, aucType?: string | null): string {
+  if (provider === 'MOF') return '物件調書';
+  if (provider === 'KSI') {
+    return aucType === '公売' ? '公売案内書・明細' : '入札案内書・物件調書';
+  }
+  if (provider === 'NTA') return '公売明細';
+  return '3点セット';
+}
+
+/**
+ * Clean & resolve accurate managing authority display name
+ */
+export function getAuthorityDisplayName(property?: { 
+  managing_authority?: string | null; 
+  court_name?: string | null; 
+  source_provider?: string | null; 
+} | null): string {
+  if (!property) return '地方裁判所';
+  if (property.source_provider === 'KSI' || property.source_provider === 'MOF' || property.source_provider === 'NTA') {
+    if (property.managing_authority && property.managing_authority.trim()) {
+      return property.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim();
+    }
+  }
+  return property.court_name?.trim() || getSourceProviderMeta(property.source_provider).authorityFallback;
+}
