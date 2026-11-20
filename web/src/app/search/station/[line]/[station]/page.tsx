@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ line: str
         line_name: { contains: decodedLine },
         nearest_station: { contains: decodedStation },
         status: 'ACTIVE',
+        address: { not: 'Unknown' },
         OR: [
           { bid_end_date: { gte: now } },
           { bid_end_date: null }
@@ -149,12 +150,28 @@ export default async function StationSearchPage({ params }: { params: Promise<{ 
   const decodedStation = safeDecodeURIComponent(station);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
 
-  // Fetch properties filtered by line and station
-  const properties = await getProperties({
-    lineName: decodedLine,
-    stationName: decodedStation,
-    limit: 50
-  });
+  // Fetch properties filtered by line and station + neighbor stations along the same line
+  const now = new Date();
+  const [properties, lineStations] = await Promise.all([
+    getProperties({
+      lineName: decodedLine,
+      stationName: decodedStation,
+      limit: 50
+    }),
+    prisma.property.groupBy({
+      by: ['nearest_station'],
+      where: {
+        line_name: { contains: decodedLine },
+        nearest_station: { not: null, notIn: [decodedStation, ''] },
+        status: 'ACTIVE',
+        address: { not: 'Unknown' },
+        OR: [{ bid_end_date: { gte: now } }, { bid_end_date: null }],
+      },
+      _count: { _all: true },
+      orderBy: { _count: { nearest_station: 'desc' } },
+      take: 12,
+    }),
+  ]);
 
   let zeroData = { endedProperties: [] as any[], lineActiveProperties: [] as any[] };
   if (!properties || properties.length === 0) {
@@ -304,11 +321,34 @@ export default async function StationSearchPage({ params }: { params: Promise<{ 
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {properties.map((property) => (
-              <PropertyCard key={property.sale_unit_id} property={property as any} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {properties.map((property) => (
+                <PropertyCard key={property.sale_unit_id} property={property as any} />
+              ))}
+            </div>
+
+            {lineStations.length > 0 && (
+              <div className="mt-12 p-6 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <h2 className="text-sm font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Train className="w-4 h-4 text-indigo-600" />
+                  <span>{decodedLine}沿線の他の駅周辺の競売物件を探す</span>
+                </h2>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {lineStations.map((ls: any) => (
+                    <Link
+                      key={ls.nearest_station}
+                      href={`/search/station/${encodeURIComponent(decodedLine)}/${encodeURIComponent(ls.nearest_station)}`}
+                      className="inline-flex items-center text-xs px-2.5 py-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-[#1B4F8A] hover:text-white transition-colors"
+                    >
+                      <span>{ls.nearest_station}駅</span>
+                      <span className="ml-1 text-[10px] text-zinc-400 dark:text-zinc-500 tabular-nums">({ls._count._all})</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

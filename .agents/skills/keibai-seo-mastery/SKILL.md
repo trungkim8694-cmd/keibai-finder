@@ -130,3 +130,41 @@ Khi người dùng yêu cầu **Audit Technical SEO** cho bất kỳ trang nào 
 
 - Mục **「プレスリリース・メディア掲載」** trên `/company` đóng vai trò xác thực thực thể (`Organization.sameAs` / Co-citation) và phễu kéo Googlebot sang index nhanh các bài PR/Media mới.
 - **Bộ lọc chống loãng PageRank:** Chỉ gắn các **URL bài viết/thông cáo công khai cụ thể** (PR báo chí, Note, Wantedly, Qiita, Zenn). Tuyệt đối không đưa các link bình luận blog/Substack/GitHub, bài social ngắn (Facebook, X, LinkedIn) hoặc trang biên nhận (`/thanks/`, `/campaign/`), đồng thời giữ cấu trúc dữ liệu tách rời (JSON) để cập nhật tự động mà không sửa code giao diện mỗi ngày.
+
+---
+
+## 8. 🛡️ Quy Chuẩn Chốt Chặn Bánh Cóc 4 Tầng (4-Layer Compounding Ratchet Gate)
+
+Từ nay về sau, toàn bộ mã nguồn trước khi commit hoặc deploy lên VPS bắt buộc phải chạy lệnh kiểm toán tự động:
+```bash
+python scripts/ratchet_gate.py
+```
+**Quy tắc Đóng Băng Chất Lượng (Quality Ratchet Principle):** Dự án CHỈ ĐƯỢC PHÉP đi lên hoặc giữ vững các mốc kỷ lục, tuyệt đối không được phép suy thoái. Mọi Pull Request hoặc đợt triển khai thất bại ở bất kỳ tầng nào đều bị REJECT ngay lập tức.
+
+### Chi Tiết 4 Tầng Chốt Chặn Bắt Buộc:
+
+1. **Layer 1: Code & Build Ratchet (TypeScript & Compiler Integrity)**
+   - Chạy `npx tsc --noEmit` ở chế độ `strict: true` — Bắt buộc **0 lỗi TypeScript**.
+   - Kiểm tra `robots.ts`: Bắt buộc phải có `allow: ['/api/auth/session']` ngay trước quy tắc `disallow: ['/api/auth/', ...]` để bảo vệ Googlebot rendering.
+   - Ngăn chặn triệt để rò rỉ Crawl Budget sang các locale chưa hoàn thiện bằng cách đưa `/en/`, `/vi/`, `/zh/`, `/ja/` vào `disallow`.
+
+2. **Layer 2: Real Estate Data Invariants (PostgreSQL Database Hygiene)**
+   - **0 Active Corrupt Records:** Bắt buộc 100% tài sản có `status = 'ACTIVE'` phải có địa chỉ hợp lệ (`address != 'Unknown'` và `address IS NOT NULL`).
+   - **0 Missing Coordinates:** Bắt buộc 100% tài sản `ACTIVE` phải có toạ độ địa lý (`lat IS NOT NULL` và `lng IS NOT NULL`) để phục vụ bản đồ và Schema GeoCoordinates.
+   - **Clean Station Aggregation:** Hàm `getRailLinesAndStations()` bắt buộc lọc `status: 'ACTIVE'`, `address != 'Unknown'` và `bid_end_date >= now` để không sinh ra các URL nhà ga có 0 tài sản (tránh lỗi Googlebot index phải trang noindex).
+
+3. **Layer 3: Mobile Viewport & Hydration Gate (Playwright Googlebot 412x915)**
+   - Giả lập chuẩn xác Googlebot Smartphone (Viewport `412x915`, Touch enabled, Android UA).
+   - **0 Console Errors:** Tuyệt đối không để phát sinh lỗi React Hydration (Minified React Error `#418` / `#423`). Các thành phần đếm ngược thời gian hoặc nhãn `新着` phải được bảo vệ bằng cờ `isMounted`.
+   - **0 Network 4xx/5xx:** Toàn bộ API nội bộ, ảnh đại diện và font chữ phải phản hồi `200 OK`.
+   - **Tự nhiên cuộn trang:** Thẻ `<html>` và `<body>` không được phép gắn cứng `h-[100dvh] overflow-hidden` trên các trang nội dung chuẩn, đảm bảo Googlebot và người dùng di động cuộn mượt mà.
+
+4. **Layer 4: SEO Integrity & Crawl Budget Gate (Sitemaps & Similarity)**
+   - **Phân mảnh Sitemap (Sitemap Sharding):**
+     - Tuyệt đối loại bỏ sitemap nguyên khối khổng lồ.
+     - `sitemap.xml` là chuẩn `<sitemapindex>` trỏ tới `sitemap/core.xml` và `sitemap/properties.xml`.
+     - `sitemap/core.xml` chỉ chứa các Trang Hub Trường Tồn (< 5,000 URLs: Trang chủ, 47 Tỉnh, Đô thị trọng điểm, Tuyến ga, Lịch đấu giá, Blog, Insights) với `<lastmod>` thực tế. Tốc độ phản hồi đạt chuẩn `< 50ms`.
+   - **Chống Doorway Pages (Pairwise Similarity < 35%):**
+     - Toàn bộ trang khu vực và nhà ga lân cận phải có độ tương đồng 5-char Shingle Jaccard `< 35%`.
+     - Tuyệt đối không dùng đoạn văn boilerplate chung chung. Bắt buộc thay thế bằng **Bảng dữ liệu thực tế (Semantic Fact Table)**, lịch sử giao dịch đấu giá gần nhất (`AuctionResult`) và mạng lưới liên kết thực thể (Internal Link Silos).
+     - Toàn bộ các route con bản đồ tương tác (`/area-map/*`) mang tính tiện ích phải được cấu hình `robots: { index: false, follow: true }`, chỉ giữ lại duy nhất `/area-map` gốc để tập trung 100% Crawl Budget.

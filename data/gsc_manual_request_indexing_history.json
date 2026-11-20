@@ -1,0 +1,63 @@
+{
+  "project": "keibai-koubai",
+  "domain": "https://www.keibai-koubai.com",
+  "daily_quota_limit": 11,
+  "last_updated": "2026-11-20T14:00:00Z",
+  "recommended_daily_batches": [
+    {
+      "batch_id": "batch_day_1_core_hubs",
+      "scheduled_date": "2026-11-20",
+      "status": "READY",
+      "target_urls": [
+        "https://www.keibai-koubai.com/",
+        "https://www.keibai-koubai.com/map",
+        "https://www.keibai-koubai.com/auction/schedule",
+        "https://www.keibai-koubai.com/auction-results",
+        "https://www.keibai-koubai.com/trade-find",
+        "https://www.keibai-koubai.com/search/area",
+        "https://www.keibai-koubai.com/search/station",
+        "https://www.keibai-koubai.com/blogs",
+        "https://www.keibai-koubai.com/insights",
+        "https://www.keibai-koubai.com/area-map",
+        "https://www.keibai-koubai.com/agencies"
+      ]
+    },
+    {
+      "batch_id": "batch_day_2_major_metro_prefectures",
+      "scheduled_date": "2026-11-21",
+      "status": "PENDING",
+      "target_urls": [
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD",
+        "https://www.keibai-koubai.com/search/area/%E5%A4%A7%E9%98%AA%E5%BA%9C",
+        "https://www.keibai-koubai.com/search/area/%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C",
+        "https://www.keibai-koubai.com/search/area/%E6%84%9B%E7%9F%A5%E7%9C%8C",
+        "https://www.keibai-koubai.com/search/area/%E5%9F%BC%E7%8E%89%E7%9C%8C",
+        "https://www.keibai-koubai.com/search/area/%E5%8D%83%E8%91%89%E7%9C%8C",
+        "https://www.keibai-koubai.com/search/area/%E7%A6%8F%E5%B2%A1%E7%9C%8C",
+        "https://www.keibai-koubai.com/search/area/%E5%8C%97%E6%B5%B7%E9%81%93",
+        "https://www.keibai-koubai.com/search/area/%E5%85%B5%E5%BA%AB%E7%9C%8C",
+        "https://www.keibai-koubai.com/search/area/%E4%BA%AC%E9%83%BD%E5%BA%9C",
+        "https://www.keibai-koubai.com/search/area/%E5%AE%AE%E5%9F%8E%E7%9C%8C"
+      ]
+    },
+    {
+      "batch_id": "batch_day_3_top_tokyo_wards",
+      "scheduled_date": "2026-11-22",
+      "status": "PENDING",
+      "target_urls": [
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E4%B8%96%E7%94%B0%E8%B0%B7%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E6%96%B0%E5%AE%BF%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E6%B8%8B%E8%B0%B7%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E7%B7%B4%E9%A6%AC%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E5%A4%A7%E7%94%B0%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E8%B6%B3%E7%AB%8B%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E6%9D%89%E4%B8%A6%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E6%B1%9F%E6%9D%B1%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E6%9D%BF%E6%A9%8B%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E8%91%9B%E9%A3%BE%E5%8C%BA",
+        "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E5%93%81%E5%B7%9D%E5%8C%BA"
+      ]
+    }
+  ],
+  "submission_history": []
+}

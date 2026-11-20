@@ -227,6 +227,7 @@ export default async function AreaSearchPage({
         OR: [{ bid_end_date: { gte: now } }, { bid_end_date: null }],
       },
       _count: { _all: true },
+      orderBy: { _count: { city: 'desc' } },
       take: 12,
     }),
   ]);

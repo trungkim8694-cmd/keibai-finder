@@ -50,7 +50,9 @@ crawler/check_live_results.py
 tests/
 
 # Sensitive Data & PR Portal Credentials
-data/
+data/*
+!data/project_ratchet_scorecard.json
+!data/gsc_manual_request_indexing_history.json
 docs/PR_ACCOUNTS_GUIDE.md
 docs/pr-portal-accounts.md
 *ACCOUNT_CREDENTIALS*

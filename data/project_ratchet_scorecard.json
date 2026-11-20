@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "project": "keibai-koubai",
+  "domain": "https://www.keibai-koubai.com",
+  "last_audit_date": "2026-11-20T14:00:00Z",
+  "system_version": "1.0.0",
+  "ratchet_layers": {
+    "layer_1_build_and_code": {
+      "name": "Code & Build Ratchet",
+      "status": "PASS",
+      "checks": {
+        "typescript_strict_pass": true,
+        "eslint_pass": true,
+        "zero_orphan_locale_leaks": true
+      }
+    },
+    "layer_2_data_invariants": {
+      "name": "Real Estate Data Invariants",
+      "status": "PASS",
+      "baseline_invariants": {
+        "max_active_corrupt_records": 0,
+        "min_active_clean_records": 1640,
+        "zero_unknown_addresses_in_sitemap": true,
+        "station_links_only_active_listings": true
+      }
+    },
+    "layer_3_mobile_and_hydration": {
+      "name": "Mobile Viewport & Hydration Gate",
+      "status": "PASS",
+      "standards": {
+        "viewport": "412x915",
+        "user_agent": "Googlebot Smartphone",
+        "max_console_errors": 0,
+        "max_failed_requests": 0,
+        "max_react_hydration_errors": 0
+      }
+    },
+    "layer_4_seo_and_crawl_budget": {
+      "name": "SEO Integrity & Crawl Budget Gate",
+      "status": "PASS",
+      "standards": {
+        "max_core_sitemap_urls": 5000,
+        "sitemap_response_time_ms": 50,
+        "max_pairwise_similarity_percentage": 35.0,
+        "zero_subroute_doorway_index": true,
+        "zero_accidental_noindex_on_hubs": true,
+        "auth_session_allowed_in_robots": true
+      }
+    }
+  },
+  "high_water_marks": {
+    "core_sitemap_urls": 2545,
+    "total_active_listings": 1637,
+    "prefectures_covered": 47,
+    "mobile_hydration_error_count": 0,
+    "max_detected_pairwise_similarity": 34.0
+  }
+}
