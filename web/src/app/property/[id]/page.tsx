@@ -86,26 +86,47 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const isExpired = (bidEndDate !== null && !isNaN(bidEndDate.getTime()) && bidEndDate < now) || property.status !== 'ACTIVE';
   const isRichEntity = Boolean(property.address && property.address !== 'Unknown' && property.address.trim().length > 2);
 
+  const isMof = property.source_provider === 'MOF';
+  const isKsi = property.source_provider === 'KSI' || property.source_provider === 'KOKUYU';
   const isNta = property.source_provider === 'NTA';
+  const isKoubai = isNta || isKsi;
   const isBudgetHouse = property.property_type === '戸建て' && priceNum > 0 && priceNum <= 5000000;
   const isSpecialSale = property.status === 'SPECIAL_SALE';
 
   const statusPrefix = isSpecialSale
     ? '【特別売却・先着順】'
-    : isNta
-      ? '【国税庁 公売】'
-      : isBudgetHouse
-        ? '【格安戸建て・利回り投資】'
-        : property.status === 'SOLD'
-          ? '【落札結果・過去実績】'
-          : isExpired
-            ? '【入札終了・過去実績】'
-            : '';
+    : isMof
+      ? '【財務省 国有財産売却】'
+      : isNta
+        ? '【国税庁 公売】'
+        : isKsi
+          ? '【官公庁 公売】'
+          : isBudgetHouse
+            ? '【格安戸建て・利回り投資】'
+            : property.status === 'SOLD'
+              ? '【落札結果・過去実績】'
+              : isExpired
+                ? '【入札終了・過去実績】'
+                : '';
 
-  const title = `${statusPrefix}【${priceFormatted}】${address}の${typeStr}｜${property.court_name ? property.court_name + ' ' : ''}${tagStr}情報`;
+  const authorityName = isMof 
+    ? (property.court_name ? `${property.court_name} ` : '財務局 ') 
+    : isKoubai 
+      ? (property.managing_authority ? `${property.managing_authority} ` : '') 
+      : (property.court_name ? `${property.court_name} ` : '');
+
+  const title = `${statusPrefix}【${priceFormatted}】${address}の${typeStr}｜${authorityName}${tagStr}情報`;
+
+  const priceLabelName = isMof ? '予定価格' : isKoubai ? '見積価額' : '売却基準価額';
+  const docGuideName = isMof 
+    ? '物件調書の確認ポイント・一般競争入札手順' 
+    : isKoubai 
+      ? '公売財産明細書の読み方・公売保証金・入札手続き' 
+      : '3点セットの読み方・占有者の明渡し状況・裁判所の期間入札手続き';
+
   const description = isExpired
-    ? `【過去の${tagStr}アーカイブ】${property.address}の${typeStr}（基準価格: ${priceFormatted}）。3点セット（物件明細書・評価書）の分析、占有者立ち退き目安、期間入札後の価格推移・AI査定・類似物件データを公開中。`
-    : `${property.address}の${typeStr}（${tagStr}）。基準価格は${priceFormatted}です。3点セットの読み方・占有者の明渡し状況・裁判所の期間入札手続き・想定利回りシミュレーションを公開中。`;
+    ? `【過去の${tagStr}アーカイブ】${property.address}の${typeStr}（${priceLabelName}: ${priceFormatted}）。${isMof ? '物件調書の分析、国による嘱託登記' : isKoubai ? '公売財産明細の分析' : '3点セット（物件明細書・評価書）の分析、占有者立ち退き目安'}、入札後の価格推移・AI査定・類似物件データを公開中。`
+    : `${property.address}の${typeStr}（${tagStr}）。${priceLabelName}は${priceFormatted}です。${docGuideName}・想定利回りシミュレーションを公開中。`;
   
   // Resolve thumbnail and images priority: Source image first, extracted images fallback
   const { thumbnailUrl: resolvedOgThumb } = resolvePropertyImages({
@@ -451,6 +472,21 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   const validThroughStr = isBidEndDateValid ? bidEndDate.toISOString() : undefined;
   const priceValidUntilStr = isBidEndDateValid ? bidEndDate.toISOString().split('T')[0] : undefined;
 
+  const isMof = property.source_provider === 'MOF';
+  const isKsi = property.source_provider === 'KSI' || property.source_provider === 'KOKUYU';
+  const isNta = property.source_provider === 'NTA';
+  const isKoubai = isNta || isKsi;
+  const isBit = !property.source_provider || property.source_provider === 'BIT';
+
+  const providerCategoryLabel = isMof ? '国有財産売却' : isKoubai ? '公売物件' : '競売物件';
+  const officialSourceUrl = isMof 
+    ? (property.source_url || "https://www.mof.go.jp/")
+    : isNta 
+      ? "https://www.koubai.nta.go.jp/"
+      : isKsi
+        ? (property.source_url || "https://kankocho.jp/")
+        : "https://www.bit.courts.go.jp/";
+
   let accommodationType = "Place";
   if (property.property_type === "戸建て") {
     accommodationType = "SingleFamilyResidence";
@@ -461,8 +497,8 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "RealEstateListing",
-    "name": `${property.address}の${property.property_type || '競売物件'}`,
-    "description": `${property.source_provider === 'NTA' ? '公売物件' : '競売物件'}: ${property.address}にある${property.property_type || '不動産'}です。基準価格: ${jsonLdPrice > 0 ? Math.round(jsonLdPrice / 10000).toLocaleString('ja-JP') + '万円' : '未定'}。Keibai Finder（keibai-koubai.com）によるAI査定と国土交通省取引相場比較データ。`,
+    "name": `${property.address}の${property.property_type || providerCategoryLabel}`,
+    "description": `${providerCategoryLabel}: ${property.address}にある${property.property_type || '不動産'}です。基準価格: ${jsonLdPrice > 0 ? Math.round(jsonLdPrice / 10000).toLocaleString('ja-JP') + '万円' : '未定'}。Keibai Finder（keibai-koubai.com）によるAI査定と国土交通省取引相場比較データ。`,
     "url": `${baseUrl}/property/${id}`,
     "image": ogImageUrl ? [ogImageUrl] : [],
     "datePosted": property.created_at && !isNaN(new Date(property.created_at).getTime()) ? new Date(property.created_at).toISOString() : new Date().toISOString(),
@@ -474,7 +510,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     },
     "creditText": `出典：Keibai Finder（${baseUrl}/property/${id}）｜TQC株式会社`,
     "isBasedOn": [
-      property.source_provider === 'NTA' ? "https://www.koubai.nta.go.jp/" : "https://www.bit.courts.go.jp/",
+      officialSourceUrl,
       "https://www.reinfolib.mlit.go.jp/"
     ],
     "speakable": {
@@ -565,52 +601,120 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     "itemListElement": breadcrumbItems
   };
 
-  // Dynamic FAQ Schema targeting Top 10 High-Traffic Keywords (#1, #2, #4, #5, #7, #9)
+  // Dynamic FAQ Schema customized by Source Provider
+  const faqItems = isMof ? [
+    {
+      "@type": "Question",
+      "name": "この国有財産物件の「物件調書」の確認方法と注意すべきポイントは？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Keibai Finderの物件詳細画面から管轄財務局が公示する公式「物件調書 (PDF)」および公示ページを直接確認可能です。境界標の有無、接道状況、工作物や立木等の残置状況、法令上の制限および国による現況有姿引渡し条件を精読することが重要です。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "財務省の国有財産売却における登記や権利関係の特徴は？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "国有財産の売却では、落札代金完納後に国（管轄財務局）が所有権移転登記を嘱託（嘱託登記）するため、裁判所の競売や一般中古取引と比べて安全で手続きが円滑です。また抵当権等の担保権設定もありません。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "財務局の国有財産 一般競争入札の流れと入札保証金の目安は？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "入札参加にあたっては、入札金額の10%以上の入札保証金を指定金融機関へ事前に納付し、入札書および納付受託書を管轄財務局へ提出します。開札期日に予定価格（最低入札価格）以上で最高価格をつけた方が落札者となります。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "この物件の想定利回りやリノベーションによる高利回り再生のポイントは？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "周辺の成約相場および賃料相場から想定表面利回りをシミュレーション可能です。戸建てや土地の用途地域・建蔽率・容積率を確認の上、再生投資や事業用利用を検討できます。"
+      }
+    }
+  ] : isKoubai ? [
+    {
+      "@type": "Question",
+      "name": "この公売財産の「公売財産明細書」の確認方法とポイントは？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "国税庁（e-Tax・公売公告）や自治体の公式明細書から閲覧可能です。公売財産明細書で権利移転の条件、差押え以外の登記の抹消可否、法定地上権の成否等を必ず確認します。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "公売物件に占有者がいる場合、裁判所の引渡命令は使えますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "公売物件には民事執行法に基づく「引渡命令制度」が適用されません。占有者がいる場合は、落札者自身が任意交渉（立退料・引越し代）または明渡し訴訟（通常裁判）を行う必要があります。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "公売の入札手続きと公売保証金の納付方法は？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "公売参加申込を行い、定められた公売保証金（売却予定価格の10〜20%等）を事前納付した上で入札期間内に入札します。国税庁のe-Tax公売や官公庁オークションシステムでオンライン入札が可能です。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "この公売物件の想定利回りや再生投資のポイントは？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "周辺相場より割安な見積価額で公示されることが多く、立地条件や法規制を精査することで高い実質利回りでの運用が狙えます。"
+      }
+    }
+  ] : [
+    {
+      "@type": "Question",
+      "name": "この競売物件の3点セット（物件明細書・現況調査報告書・評価書）の読み方と確認方法は？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Keibai Finderの物件詳細画面から裁判所公式の3点セットPDFを直接閲覧・ダウンロード可能です。初心者の方はまず「物件明細書」で買受人が引き受ける権利や賃借権の有無、「現況調査報告書」で占有者や建物の現況、「評価書」で周辺相場と公法上の制限（用途地域・建蔽率・再建築の可否）を確認することが鉄則です。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "この物件に占有者（債務者や賃借人）がいる場合、立ち退きまでの費用と期間の目安は？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "落札代金納付後に管轄地方裁判所へ「引渡命令」を申し立てることで、通常1〜2ヶ月程度で退去手続きを進めることができます。自主的な立ち退き交渉（引越し代・立退料）の相場は10万〜30万円、退去に応じず強制執行を行う場合の費用は30万〜80万円程度が目安です。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "地方裁判所での期間入札の流れと入札保証金の振込期限は？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "期間入札では、入札期間内に売却基準価額の20%以上の「入札保証金」を裁判所の指定口座へ振り込み、入札書および振込証明書を添えて管轄裁判所の執行官室へ提出（郵送または持参）します。開札日に最高価買受申出人が決定されます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "この物件の想定利回りやリノベーションによる高利回り再生のポイントは？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "周辺の成約相場および賃料相場から想定表面利回りをシミュレーション可能です。築年数の経過した戸建て（ボロ戸建て）や再建築不可物件でも、水回りや内装の集中リノベーションにより利回り15%〜20%超を狙える賃貸物件として再生する投資手法が注目されています。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "特別売却（先着順）とは何ですか？どのような購入のコツがありますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "期間入札で入札者が現れなかった物件は「特別売却」に移行します。入札競争を行わず、売却基準価額で先着順にて即時購入申出ができる制度です。優良物件は受付初日の朝一番に申し立てが入るため、日程カレンダーを事前に確認して初日に裁判所窓口へ向かうことが最大のコツです。"
+      }
+    }
+  ];
+
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "この競売物件の3点セット（物件明細書・現況調査報告書・評価書）の読み方と確認方法は？",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Keibai Finderの物件詳細画面から裁判所公式の3点セットPDFを直接閲覧・ダウンロード可能です。初心者の方はまず「物件明細書」で買受人が引き受ける権利や賃借権の有無、「現況調査報告書」で占有者や建物の現況、「評価書」で周辺相場と公法上の制限（用途地域・建蔽率・再建築の可否）を確認することが鉄則です。"
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "この物件に占有者（債務者や賃借人）がいる場合、立ち退きまでの費用と期間の目安は？",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "落札代金納付後に管轄地方裁判所へ「引渡命令」を申し立てることで、通常1〜2ヶ月程度で退去手続きを進めることができます。自主的な立ち退き交渉（引越し代・立退料）の相場は10万〜30万円、退去に応じず強制執行を行う場合の費用は30万〜80万円程度が目安です。"
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "地方裁判所での期間入札の流れと入札保証金の振込期限は？",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "期間入札では、入札期間内に売却基準価額の20%以上の「入札保証金」を裁判所の指定口座へ振り込み、入札書および振込証明書を添えて管轄裁判所の執行官室へ提出（郵送または持参）します。開札日に最高価買受申出人が決定されます。"
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "この物件の想定利回りやリノベーションによる高利回り再生のポイントは？",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "周辺の成約相場および賃料相場から想定表面利回りをシミュレーション可能です。築年数の経過した戸建て（ボロ戸建て）や再建築不可物件でも、水回りや内装の集中リノベーションにより利回り15%〜20%超を狙える賃貸物件として再生する投資手法が注目されています。"
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "特別売却（先着順）とは何ですか？どのような購入のコツがありますか？",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "期間入札で入札者が現れなかった物件は「特別売却」に移行します。入札競争を行わず、売却基準価額で先着順にて即時購入申出ができる制度です。優良物件は受付初日の朝一番に申し立てが入るため、日程カレンダーを事前に確認して初日に裁判所窓口へ向かうことが最大のコツです。"
-        }
-      }
-    ]
+    "mainEntity": faqItems
   };
 
   // 5. PROCESS FINAL OBJECTS (SAFE SERIALIZATION FOR RSC)
@@ -1118,8 +1222,15 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         <section id="property-faq-section" className="w-full mt-10 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-6 shadow-2xs">
           <div className="border-b border-slate-200 dark:border-zinc-800 pb-3 mb-5">
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <span className="w-1 h-4 bg-[#1B4F8A] rounded-xs"></span>
-              よくある質問・競売入札ガイド（3点セット・立ち退き・期間入札）
+              <span className={`w-1 h-4 rounded-xs ${
+                isMof ? 'bg-amber-600' :
+                isKoubai ? 'bg-red-600' : 'bg-[#1B4F8A]'
+              }`}></span>
+              {isMof
+                ? 'よくある質問・国有財産入札ガイド（物件調書・一般競争入札・嘱託登記）'
+                : isKoubai
+                  ? 'よくある質問・公売入札ガイド（公売財産明細・見積価額・公売保証金）'
+                  : 'よくある質問・競売入札ガイド（3点セット・立ち退き・期間入札）'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               この物件の調査や入札にあたって、初心者が疑問を持ちやすいポイントを専門的に解説しています。
