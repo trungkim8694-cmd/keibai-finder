@@ -54,14 +54,14 @@ export async function generateMetadata({
         starting_price: { sort: 'asc', nulls: 'last' },
       },
       take: 50,
-    }),
+    }).catch(() => []),
     prisma.property.count({
       where: {
         prefecture: decodedPref,
         city: { contains: decodedCity },
         status: { in: ['SOLD', 'ARCHIVED'] },
       },
-    }),
+    }).catch(() => 0),
     prisma.property.count({
       where: {
         prefecture: decodedPref,
@@ -71,7 +71,7 @@ export async function generateMetadata({
           { bid_end_date: null }
         ],
       },
-    }),
+    }).catch(() => 0),
   ]);
 
   const count = activeProperties.length;
@@ -180,7 +180,7 @@ export default async function AreaSearchPage({
       keyword: decodedCity,
       limit: pageSize,
       page: currentPage,
-    }),
+    }).catch(() => []),
     prisma.property.count({
       where: {
         prefecture: decodedPref,
@@ -189,7 +189,7 @@ export default async function AreaSearchPage({
         address: { not: 'Unknown' },
         OR: [{ bid_end_date: { gte: now } }, { bid_end_date: null }],
       },
-    }),
+    }).catch(() => 0),
     prisma.property.groupBy({
       by: ['property_type'],
       where: {
@@ -200,7 +200,7 @@ export default async function AreaSearchPage({
         OR: [{ bid_end_date: { gte: now } }, { bid_end_date: null }],
       },
       _count: { _all: true },
-    }),
+    }).catch(() => []),
     prisma.auctionResult.findMany({
       where: {
         prefecture: decodedPref,
@@ -216,7 +216,14 @@ export default async function AreaSearchPage({
         bidderCount: true,
         completionDate: true,
       },
-    }),
+    }).then((rows: any[]) => rows.map((r: any) => ({
+      caseNumber: r.caseNumber,
+      address: r.address,
+      basePrice: r.basePrice != null ? Number(r.basePrice) : null,
+      winningPrice: r.winningPrice != null ? Number(r.winningPrice) : null,
+      bidderCount: r.bidderCount,
+      completionDate: r.completionDate ? r.completionDate.toISOString() : null,
+    }))).catch(() => []),
     prisma.property.groupBy({
       by: ['city'],
       where: {
@@ -229,7 +236,7 @@ export default async function AreaSearchPage({
       _count: { _all: true },
       orderBy: { _count: { city: 'desc' } },
       take: 12,
-    }),
+    }).catch(() => []),
   ]);
 
   const properties = Array.isArray(response) ? response : [];
