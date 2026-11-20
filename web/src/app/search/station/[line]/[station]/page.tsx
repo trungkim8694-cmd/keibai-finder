@@ -1,10 +1,10 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
-import { getProperties } from '@/actions/propertyActions';
+import { getProperties, getStationZeroInventoryData } from '@/actions/propertyActions';
 import PropertyCard from '@/components/PropertyCard';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, Train } from 'lucide-react';
+import { ArrowLeft, Train, Building2 } from 'lucide-react';
 
 export const revalidate = 3600; // Cache these pages for 1 hour
 
@@ -26,24 +26,42 @@ export async function generateMetadata({ params }: { params: Promise<{ line: str
   const now = new Date();
   const currentYear = now.getFullYear();
 
-  const properties = await prisma.property.findMany({
-    where: {
-      line_name: { contains: decodedLine },
-      nearest_station: { contains: decodedStation },
-      status: 'ACTIVE',
-      OR: [
-        { bid_end_date: { gte: now } },
-        { bid_end_date: null }
-      ],
-    },
-    select: {
-      starting_price: true,
-    },
-    orderBy: {
-      starting_price: { sort: 'asc', nulls: 'last' },
-    },
-    take: 50,
-  });
+  const [properties, historyCount, lineActiveCount] = await Promise.all([
+    prisma.property.findMany({
+      where: {
+        line_name: { contains: decodedLine },
+        nearest_station: { contains: decodedStation },
+        status: 'ACTIVE',
+        OR: [
+          { bid_end_date: { gte: now } },
+          { bid_end_date: null }
+        ],
+      },
+      select: {
+        starting_price: true,
+      },
+      orderBy: {
+        starting_price: { sort: 'asc', nulls: 'last' },
+      },
+      take: 50,
+    }),
+    prisma.property.count({
+      where: {
+        line_name: { contains: decodedLine },
+        nearest_station: { contains: decodedStation },
+      },
+    }),
+    prisma.property.count({
+      where: {
+        line_name: { contains: decodedLine },
+        status: 'ACTIVE',
+        OR: [
+          { bid_end_date: { gte: now } },
+          { bid_end_date: null }
+        ],
+      },
+    }),
+  ]);
 
   const count = properties.length;
   const minPriceNum = properties[0]?.starting_price ? Number(properties[0].starting_price) : 0;
@@ -51,15 +69,45 @@ export async function generateMetadata({ params }: { params: Promise<{ line: str
 
   // Thin Content Guard
   if (count === 0) {
+    const hasHistoryOrLine = historyCount > 0 || lineActiveCount > 0;
+    if (!hasHistoryOrLine) {
+      return {
+        title: `${decodedLine}・${decodedStation}駅周辺の競売物件・公売物件一覧`,
+        description: `${decodedLine}沿線・${decodedStation}駅周辺の不動産競売・公売情報。駅徒歩圏内の物件状況を随時更新中。`,
+        robots: {
+          index: false,
+          follow: true,
+        },
+        alternates: {
+          canonical: canonicalUrl,
+        },
+      };
+    }
+
+    const title = `【${currentYear}年最新】${decodedLine}・${decodedStation}駅周辺の競売物件・公売物件一覧（次回入札待ち・過去相場公開）`;
+    const description = `${decodedLine}沿線・${decodedStation}駅周辺の不動産競売・公売情報。現在新しい入札公示を待機中です。過去の落札価格実績や${decodedLine}沿線の近隣注目物件を無料公開中。`;
     return {
-      title: `${decodedLine}・${decodedStation}駅周辺の競売物件・公売物件一覧`,
-      description: `${decodedLine}沿線・${decodedStation}駅周辺の不動産競売・公売情報。駅徒歩圏内の物件状況を随時更新中。`,
+      title,
+      description,
       robots: {
-        index: false,
+        index: true,
         follow: true,
       },
       alternates: {
         canonical: canonicalUrl,
+      },
+      openGraph: {
+        title: `${title}｜Keibai Finder`,
+        description,
+        url: canonicalUrl,
+        siteName: 'Keibai Finder',
+        locale: 'ja_JP',
+        type: 'website',
+        images: [{ url: '/keibaikoubai.webp', width: 1200, height: 630, alt: `${decodedLine}・${decodedStation}駅周辺の競売物件` }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        images: ['/keibaikoubai.webp'],
       },
     };
   }
@@ -107,6 +155,14 @@ export default async function StationSearchPage({ params }: { params: Promise<{ 
     stationName: decodedStation,
     limit: 50
   });
+
+  let zeroData = { endedProperties: [] as any[], lineActiveProperties: [] as any[] };
+  if (!properties || properties.length === 0) {
+    zeroData = await getStationZeroInventoryData({
+      lineName: decodedLine,
+      stationName: decodedStation,
+    });
+  }
 
   const jsonLdBreadcrumb = {
     '@context': 'https://schema.org',
@@ -173,11 +229,79 @@ export default async function StationSearchPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {properties.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
-            <p className="text-4xl mb-4">🚉</p>
-            <p className="font-medium text-lg mb-2">現在、この駅周辺に募集中の物件はありません</p>
-            <p className="text-zinc-500 text-sm">別の沿線・駅で検索するか、後日再度ご確認ください。</p>
+        {!properties || properties.length === 0 ? (
+          <div className="space-y-8">
+            {/* Status notice */}
+            <div className="p-6 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-xl">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🚉</span>
+                <div>
+                  <h2 className="text-base font-bold text-amber-900 dark:text-amber-200">
+                    現在、{decodedLine} {decodedStation}駅周辺で入札受付中の物件はありません（次回公示待ち）
+                  </h2>
+                  <p className="text-xs sm:text-sm text-amber-800/90 dark:text-amber-300/80 mt-1.5 leading-relaxed">
+                    新しい入札公示があり次第、本ページに自動反映されます。過去に終了した落札相場データや、{decodedLine}沿線の近隣注目物件をご確認ください。
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2.5">
+                    <Link
+                      href={`/search/station/${encodeURIComponent(decodedLine)}`}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-sm"
+                    >
+                      <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                      {decodedLine}の全駅一覧を見る
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Past Ended / Sold Properties for this Station */}
+            {zeroData.endedProperties.length > 0 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <span>📊</span>
+                    <span>{decodedStation}駅周辺の過去の競売・公売実績（落札・終了データ）</span>
+                  </h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    過去に公示された参考物件です。売却基準価額や駅近相場感の分析にご活用いただけます。
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {zeroData.endedProperties.map((property: any) => (
+                    <PropertyCard key={property.sale_unit_id} property={property} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Section: Active properties along the same train line */}
+            {zeroData.lineActiveProperties.length > 0 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <span>📍</span>
+                    <span>{decodedLine}沿線の現在入札可能な注目物件</span>
+                  </h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    同路線沿線で現在入札受付中の最新物件情報です。
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {zeroData.lineActiveProperties.map((property: any) => (
+                    <PropertyCard key={property.sale_unit_id} property={property} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {zeroData.endedProperties.length === 0 && zeroData.lineActiveProperties.length === 0 && (
+              <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <p className="text-4xl mb-4">🚉</p>
+                <p className="font-medium text-lg mb-2">現在、この駅周辺に募集中の物件はありません</p>
+                <p className="text-zinc-500 text-sm">別の沿線・駅で検索するか、後日再度ご確認ください。</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

@@ -1,9 +1,10 @@
 import React from 'react';
-import { getProperties, getCityStats } from '@/actions/propertyActions';
+import { prisma } from '@/lib/prisma';
+import { getProperties, getCityStats, getPrefectureZeroInventoryData } from '@/actions/propertyActions';
 import PropertyCard from '@/components/PropertyCard';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Building2 } from 'lucide-react';
 
 export const revalidate = 3600; // Cache these pages for 1 hour
 
@@ -13,18 +14,45 @@ export async function generateMetadata({ params }: { params: Promise<{ prefectur
   const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
   const canonicalUrl = `${baseUrl}/search/area/${encodeURIComponent(decodedPref)}`;
   
-  const properties = await getProperties({
-    prefecture: decodedPref,
-    limit: 1,
-  });
-  const count = properties?.length || 0;
+  const [activeCount, totalHistoryCount, minPriceProp] = await Promise.all([
+    prisma.property.count({
+      where: {
+        prefecture: decodedPref,
+        status: 'ACTIVE',
+        address: { not: 'Unknown' },
+        OR: [{ bid_end_date: { gte: new Date() } }, { bid_end_date: null }]
+      }
+    }),
+    prisma.property.count({
+      where: { prefecture: decodedPref }
+    }),
+    prisma.property.findFirst({
+      where: {
+        prefecture: decodedPref,
+        status: 'ACTIVE',
+        address: { not: 'Unknown' },
+        starting_price: { not: null },
+        OR: [{ bid_end_date: { gte: new Date() } }, { bid_end_date: null }]
+      },
+      orderBy: { starting_price: 'asc' },
+      select: { starting_price: true }
+    })
+  ]);
+
+  const minPriceNum = minPriceProp?.starting_price ? Number(minPriceProp.starting_price) : 0;
+  const minPriceMan = minPriceNum > 0 ? Math.round(minPriceNum / 10000) : 0;
+  const priceSnippet = minPriceMan > 0 ? `・最安${minPriceMan.toLocaleString('ja-JP')}万円〜` : '';
+  const currentYear = new Date().getFullYear();
+
+  // Prefecture pages are important regional hubs; keep indexed if prefecture has any active or past listings
+  const shouldIndex = activeCount > 0 || totalHistoryCount > 0;
 
   return {
     // 競売物件・公売物件
-    title: `【2026最新】${decodedPref}のけいばい（競売物件情報）・格安公売物件一覧`,
+    title: `【${currentYear}年最新｜${activeCount}件${priceSnippet}】${decodedPref}のけいばい（競売物件情報）・格安公売物件一覧`,
     description: `${decodedPref}の裁判所競売物件情報（けいばい）・税務署公売情報を一括検索。${decodedPref}の競売物件格安情報、戸建て競売500万以下など注目の売却基準価額と最新スケジュールをリアルタイム掲載中。AI査定で落札相場を分析。`,
     robots: {
-      index: count > 0,
+      index: shouldIndex,
       follow: true,
     },
     alternates: {
@@ -75,6 +103,14 @@ export default async function PrefectureSearchPage({ params }: { params: Promise
   const currentRegion = REGIONS.find((r) => r.prefs.includes(decodedPref));
   const regionName = currentRegion?.name || '近隣地域';
   const neighborPrefectures = currentRegion ? currentRegion.prefs.filter((p) => p !== decodedPref) : [];
+
+  let zeroData = { endedProperties: [] as any[], neighborActiveProperties: [] as any[] };
+  if (properties.length === 0) {
+    zeroData = await getPrefectureZeroInventoryData({
+      prefecture: decodedPref,
+      neighborPrefectures,
+    });
+  }
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -143,10 +179,85 @@ export default async function PrefectureSearchPage({ params }: { params: Promise
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {properties.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
-            <p className="text-4xl mb-4">🏠</p>
-            <p className="font-medium text-lg mb-2">現在、このエリアに募集中の物件はありません</p>
-            <p className="text-zinc-500 text-sm">別の都道府県で検索するか、後日再度ご確認ください。</p>
+          <div className="space-y-8">
+            {/* Status notice */}
+            <div className="p-6 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-xl">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🏛️</span>
+                <div>
+                  <h2 className="text-base font-bold text-amber-900 dark:text-amber-200">
+                    現在、{decodedPref}で入札受付中の物件はありません（次回入札待ち・公示待機中）
+                  </h2>
+                  <p className="text-xs sm:text-sm text-amber-800/90 dark:text-amber-300/80 mt-1.5 leading-relaxed">
+                    裁判所および行政機関による新しい入札公示があり次第、本ページに自動反映されます。過去に落札・終了した相場データや、{regionName}内の近隣都道府県の注目物件をご確認ください。
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2.5">
+                    <Link
+                      href={`/trade-find?pref=${encodeURIComponent(decodedPref)}`}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-950 transition-colors shadow-sm"
+                    >
+                      <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
+                      国土交通省の実勢取引相場を見る
+                    </Link>
+                    <Link
+                      href="/search/area"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-sm"
+                    >
+                      <Building2 className="w-3.5 h-3.5 text-rose-600" />
+                      全国の都道府県一覧を見る
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Past Ended / Sold Properties in this Prefecture */}
+            {zeroData.endedProperties.length > 0 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <span>📊</span>
+                    <span>{decodedPref}の過去の競売・公売実績（落札・終了データ）</span>
+                  </h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    過去に公示された参考物件です。売却基準価額や地域相場感の分析にご活用いただけます。
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {zeroData.endedProperties.map((property: any) => (
+                    <PropertyCard key={property.sale_unit_id} property={property} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Section: Active properties in neighboring prefectures */}
+            {zeroData.neighborActiveProperties.length > 0 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <span>📍</span>
+                    <span>{regionName}（近隣県）の現在入札可能な注目物件</span>
+                  </h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    近隣都道府県で現在入札受付中の最新物件情報です。
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {zeroData.neighborActiveProperties.map((property: any) => (
+                    <PropertyCard key={property.sale_unit_id} property={property} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {zeroData.endedProperties.length === 0 && zeroData.neighborActiveProperties.length === 0 && (
+              <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <p className="text-4xl mb-4">🏠</p>
+                <p className="font-medium text-lg mb-2">現在、このエリアに募集中の物件はありません</p>
+                <p className="text-zinc-500 text-sm">別の都道府県で検索するか、後日再度ご確認ください。</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

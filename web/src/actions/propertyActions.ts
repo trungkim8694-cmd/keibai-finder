@@ -1036,8 +1036,13 @@ export async function getRailLinesAndStations() {
         by: ['line_name', 'nearest_station', 'prefecture'],
         where: {
           status: 'ACTIVE',
+          address: { not: 'Unknown' },
           line_name: { not: null },
-          nearest_station: { not: null }
+          nearest_station: { not: null },
+          OR: [
+            { bid_end_date: { gte: new Date() } },
+            { bid_end_date: null }
+          ]
         },
         _count: {
           _all: true
@@ -1135,4 +1140,149 @@ export async function getAuthorityStats(): Promise<{
       console.error('getAuthorityStats Error', e);
       return { bit: [], nta: [] };
     }
+}
+
+export async function getAreaZeroInventoryData({
+  prefecture,
+  city,
+}: {
+  prefecture: string;
+  city: string;
+}) {
+  try {
+    const now = new Date();
+    const [endedProps, nearbyActiveProps] = await Promise.all([
+      prisma.property.findMany({
+        where: {
+          prefecture: prefecture,
+          city: { contains: city },
+          status: { in: ['SOLD', 'ARCHIVED'] },
+        },
+        orderBy: { updated_at: 'desc' },
+        take: 6,
+      }),
+      prisma.property.findMany({
+        where: {
+          prefecture: prefecture,
+          status: 'ACTIVE',
+          OR: [
+            { bid_end_date: { gte: now } },
+            { bid_end_date: null },
+          ],
+        },
+        orderBy: { starting_price: { sort: 'asc', nulls: 'last' } },
+        take: 6,
+      }),
+    ]);
+
+    const [mappedEnded, mappedNearby] = await Promise.all([
+      mapPropertiesWithStations(endedProps),
+      mapPropertiesWithStations(nearbyActiveProps),
+    ]);
+
+    return {
+      endedProperties: mappedEnded,
+      nearbyActiveProperties: mappedNearby,
+    };
+  } catch (err) {
+    console.error('getAreaZeroInventoryData error', err);
+    return { endedProperties: [], nearbyActiveProperties: [] };
+  }
+}
+
+export async function getStationZeroInventoryData({
+  lineName,
+  stationName,
+}: {
+  lineName: string;
+  stationName: string;
+}) {
+  try {
+    const now = new Date();
+    const [endedProps, lineActiveProps] = await Promise.all([
+      prisma.property.findMany({
+        where: {
+          line_name: { contains: lineName },
+          nearest_station: { contains: stationName },
+          status: { in: ['SOLD', 'ARCHIVED'] },
+        },
+        orderBy: { updated_at: 'desc' },
+        take: 6,
+      }),
+      prisma.property.findMany({
+        where: {
+          line_name: { contains: lineName },
+          status: 'ACTIVE',
+          OR: [
+            { bid_end_date: { gte: now } },
+            { bid_end_date: null },
+          ],
+        },
+        orderBy: { starting_price: { sort: 'asc', nulls: 'last' } },
+        take: 6,
+      }),
+    ]);
+
+    const [mappedEnded, mappedLine] = await Promise.all([
+      mapPropertiesWithStations(endedProps),
+      mapPropertiesWithStations(lineActiveProps),
+    ]);
+
+    return {
+      endedProperties: mappedEnded,
+      lineActiveProperties: mappedLine,
+    };
+  } catch (err) {
+    console.error('getStationZeroInventoryData error', err);
+    return { endedProperties: [], lineActiveProperties: [] };
+  }
+}
+
+export async function getPrefectureZeroInventoryData({
+  prefecture,
+  neighborPrefectures = [],
+}: {
+  prefecture: string;
+  neighborPrefectures?: string[];
+}) {
+  try {
+    const now = new Date();
+    const [endedProps, neighborActiveProps] = await Promise.all([
+      prisma.property.findMany({
+        where: {
+          prefecture: prefecture,
+          status: { in: ['SOLD', 'ARCHIVED'] },
+        },
+        orderBy: { updated_at: 'desc' },
+        take: 6,
+      }),
+      neighborPrefectures.length > 0
+        ? prisma.property.findMany({
+            where: {
+              prefecture: { in: neighborPrefectures },
+              status: 'ACTIVE',
+              OR: [
+                { bid_end_date: { gte: now } },
+                { bid_end_date: null },
+              ],
+            },
+            orderBy: { starting_price: { sort: 'asc', nulls: 'last' } },
+            take: 6,
+          })
+        : [],
+    ]);
+
+    const [mappedEnded, mappedNeighbor] = await Promise.all([
+      mapPropertiesWithStations(endedProps),
+      mapPropertiesWithStations(neighborActiveProps),
+    ]);
+
+    return {
+      endedProperties: mappedEnded,
+      neighborActiveProperties: mappedNeighbor,
+    };
+  } catch (err) {
+    console.error('getPrefectureZeroInventoryData error', err);
+    return { endedProperties: [], neighborActiveProperties: [] };
+  }
 }

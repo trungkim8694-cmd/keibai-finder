@@ -116,7 +116,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   });
   const ogImage = resolvedOgThumb || undefined;
 
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
   const canonicalUrl = `${baseUrl}/property/${id}`;
 
   return {
@@ -347,7 +347,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   const auctionRound = extractAuctionRoundFromData(property.raw_display_data);
 
   // --- Sharing Info ---
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
   const propertyUrl = `${baseUrl}/property/${property.sale_unit_id}`;
   const addressShort = property.address?.substring(0, 30) || id;
   const propertyTitle = `【${formattedStartPrice}】${addressShort} - ${accurateType}`;

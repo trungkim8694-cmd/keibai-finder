@@ -10,6 +10,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: [
           '/',
+          '/api/auth/session',
           '/llms.txt',
           '/llms-full.txt',
           '/api/public/',
@@ -24,6 +25,10 @@ export default function robots(): MetadataRoute.Robots {
           '/admin/',
           '/login/',
           '/*?*keyword=*',
+          '/en/',
+          '/vi/',
+          '/zh/',
+          '/ja/',
         ],
       },
 
@@ -57,6 +62,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
         allow: [
           '/',
+          '/api/auth/session',
           '/llms.txt',
           '/llms-full.txt',
           '/api/public/',
@@ -70,6 +76,10 @@ export default function robots(): MetadataRoute.Robots {
           '/dashboard/',
           '/admin/',
           '/login/',
+          '/en/',
+          '/vi/',
+          '/zh/',
+          '/ja/',
         ],
       },
 
@@ -90,6 +100,9 @@ export default function robots(): MetadataRoute.Robots {
         disallow: '/',
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: [
+      `${baseUrl}/sitemap.xml`,
+      `${baseUrl}/sitemap/core.xml`,
+    ],
   };
 }

@@ -16,12 +16,13 @@ export async function generateMetadata({ params }: { params: Promise<{ line: str
   const allLines = await getRailLinesAndStations();
   const lineData = allLines.find(l => l.line === decodedLine);
   const count = lineData?.count || 0;
+  const lineExists = Boolean(lineData);
 
   return {
     title: `${decodedLine}の駅から競売・公売物件を探す`,
     description: `${decodedLine}沿線の不動産競売・公売物件を駅ごとに検索。通勤・通学に便利な駅近物件を相場より安く見つけることができます。`,
     robots: {
-      index: count > 0,
+      index: lineExists,
       follow: true,
     },
     alternates: {

@@ -55,6 +55,11 @@ export default function PropertyCard({
 
   const [imgSrc, setImgSrc] = useState<string>(resolveInitialThumb);
   const [triedFallback, setTriedFallback] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setImgSrc(resolveInitialThumb());
@@ -122,7 +127,7 @@ export default function PropertyCard({
            <div className="flex items-center gap-1.5 text-[13px] lg:text-[11px]">
              <span className="text-zinc-500 dark:text-zinc-400 font-medium">入札締切:</span>
              <span className="font-bold text-zinc-800 dark:text-zinc-200">{formattedDate}</span>
-             <span className={`text-[12px] lg:text-[11px] ${statusColor}`}>{statusText}</span>
+             {mounted && <span className={`text-[12px] lg:text-[11px] ${statusColor}`}>{statusText}</span>}
            </div>
         </div>
       );
@@ -156,7 +161,7 @@ export default function PropertyCard({
         />
         
         {/* Is New Badge (< 24h) */}
-        {(property as any).created_at && (Date.now() - new Date((property as any).created_at).getTime() < 24 * 60 * 60 * 1000) && (
+        {mounted && (property as any).created_at && (Date.now() - new Date((property as any).created_at).getTime() < 24 * 60 * 60 * 1000) && (
           <div className="absolute top-2 left-2 z-10">
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800/60">
               新着

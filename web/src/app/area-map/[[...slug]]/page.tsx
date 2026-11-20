@@ -11,6 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const decodedParts = resolvedParams.slug ? resolvedParams.slug.map(decodeURIComponent) : [];
   const region = decodedParts.length > 0 ? decodedParts.join(' ') : '全国';
   const prefix = region !== '全国' ? `${region}の` : '';
+  const isSubRoute = Boolean(resolvedParams.slug && resolvedParams.slug.length > 0);
   
   const canonicalPath = resolvedParams.slug
     ? `/area-map/${resolvedParams.slug.join('/')}`
@@ -21,6 +22,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `【登録不要】${prefix}不動産エリア分析マップ｜災害・都市計画・競売物件`,
     description: `登録不要で完全無料！${region}の住所を入力するだけで、洪水、土砂などの自然災害リスクと、都市計画・用途地域、周辺の競売・公売物件を1画面で一括確認できます。不動産投資やマイホーム購入前の物件調査に最適。`,
     keywords: `エリア分析, 用途地域, 都市計画, ハザードマップ, 住所検索, ${region}, 不動産, 災害リスク, 競売物件, 面倒な登録なし`,
+    robots: {
+      index: !isSubRoute,
+      follow: true,
+    },
     alternates: {
       canonical: `https://www.keibai-koubai.com${canonicalPath}`,
     },

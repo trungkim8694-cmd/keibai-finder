@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { type SharedProperty, getPropertyTypeColor } from '../types';
 import { CourtContactLink } from './CourtContactLink';
 import { AsyncStationInfo } from './AsyncStationInfo';
@@ -22,6 +22,11 @@ export function PropertyInfoTags({
   showCourtTag = false,
   variant = 'card' 
 }: InfoTagsProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isDetailHeader = variant === 'detail-header';
   const isKoubai = property.source_provider === 'NTA';
 
@@ -122,7 +127,7 @@ export function PropertyInfoTags({
     const start = created_at ? new Date(created_at).getTime() : end - (45 * 24 * 60 * 60 * 1000);
     
     const percent = Math.min(Math.max(((now - start) / (end - start)) * 100, 0), 100);
-    progressWidth = `${percent}%`;
+    progressWidth = mounted ? `${percent}%` : '0%';
     
     const nowObj = new Date();
     nowObj.setHours(0, 0, 0, 0);
@@ -150,6 +155,16 @@ export function PropertyInfoTags({
         <span className={`text-[10px] font-semibold border px-1.5 py-0.5 rounded shrink-0 ${color.bg} ${color.text} ${color.border} inline-block dark:bg-opacity-20 leading-none`}>
           {accurateType}
         </span>
+        {property.status === 'SOLD' && (
+          <span className="text-[10px] font-bold border border-purple-300 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded shrink-0 inline-flex items-center leading-none">
+            落札済
+          </span>
+        )}
+        {property.status === 'ARCHIVED' && (
+          <span className="text-[10px] font-medium border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded shrink-0 inline-flex items-center leading-none">
+            期間終了
+          </span>
+        )}
         {formattedArea && formattedArea !== '0m²' && (
           <span className="text-[10px] font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded shrink-0 inline-flex items-center leading-none tabular-nums">
             {formattedArea}

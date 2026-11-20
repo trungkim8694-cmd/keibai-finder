@@ -91,13 +91,13 @@ export default function BlogListClient({ articles }: BlogListClientProps) {
     return `${mins}分`;
   };
 
-  // Format date ja-JP
+  // Format date ja-JP deterministically using UTC to avoid SSR/Client timezone hydration mismatches
   const formatDate = (isoString: string) => {
     try {
       const d = new Date(isoString);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
+      const year = d.getUTCFullYear();
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
       return `${year}.${month}.${day}`;
     } catch {
       return isoString;

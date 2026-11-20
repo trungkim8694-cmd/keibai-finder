@@ -129,7 +129,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="ja" className="h-[100dvh] overflow-hidden" suppressHydrationWarning>
+    <html lang="ja" suppressHydrationWarning>
       <head>
         <link
           rel="alternate"
@@ -181,7 +181,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col h-full overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen flex flex-col`}
         suppressHydrationWarning
       >
         <Providers>
