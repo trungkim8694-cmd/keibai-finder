@@ -16,7 +16,8 @@ import {
   Users,
   Clock,
   Wrench,
-  Coins
+  Coins,
+  Compass
 } from 'lucide-react';
 import { StructuredAiAnalysis } from '@/types';
 
@@ -24,6 +25,7 @@ interface AiAnalysisPanelProps {
   analysis: StructuredAiAnalysis;
   saleUnitId: string;
   sourceProvider?: string | null;
+  propertyType?: string | null;
   pdfUrl?: string | null;
 }
 
@@ -31,12 +33,14 @@ export function AiAnalysisPanel({
   analysis, 
   saleUnitId, 
   sourceProvider,
+  propertyType,
   pdfUrl 
 }: AiAnalysisPanelProps) {
   const isMof = sourceProvider === 'MOF';
   const isKsi = sourceProvider === 'KSI';
   const isNta = sourceProvider === 'NTA';
   const isKoubai = isNta || isKsi;
+  const isLand = propertyType === '土地';
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
 
@@ -188,7 +192,9 @@ export function AiAnalysisPanel({
                 <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                   ① 買受人の引受権利
                 </span>
-                <span className="text-[10px] text-slate-400">{isKoubai ? '公売公告・明細' : '物件明細書'}</span>
+                <span className="text-[10px] text-slate-400">
+                  {isMof ? '国との契約・物件調書' : isKoubai ? '公売公告・明細' : '物件明細書'}
+                </span>
               </div>
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
                 {analysis.metrics.assumedRights.value}
@@ -198,7 +204,9 @@ export function AiAnalysisPanel({
               {analysis.metrics.assumedRights.status === 'CLEAR' ? (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="text-emerald-700 dark:text-emerald-400 font-medium">担保権等抹消見込み</span>
+                  <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                    {isMof ? '抵当権なし（国保有財産）' : '担保権等抹消見込み'}
+                  </span>
                 </>
               ) : (
                 <>
@@ -216,7 +224,9 @@ export function AiAnalysisPanel({
                 <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                   ② 占有状況・明渡し
                 </span>
-                <span className="text-[10px] text-slate-400">{isKoubai ? '使用状況・現況' : '現況調査報告書'}</span>
+                <span className="text-[10px] text-slate-400">
+                  {isMof ? '物件調書（現況）' : isKoubai ? '使用状況・現況' : '現況調査報告書'}
+                </span>
               </div>
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
                 {analysis.metrics.occupancy.value}
@@ -236,7 +246,9 @@ export function AiAnalysisPanel({
                 <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                   ③ 滞納管理費等の承継
                 </span>
-                <span className="text-[10px] text-slate-400">{isKoubai ? '公売特記事項' : '評価書/調査報告'}</span>
+                <span className="text-[10px] text-slate-400">
+                  {isMof ? '物件調書（債務承継なし）' : isKoubai ? '公売特記事項' : '評価書/調査報告'}
+                </span>
               </div>
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug tabular-nums">
                 {analysis.metrics.arrears.formatted}
@@ -254,7 +266,9 @@ export function AiAnalysisPanel({
                 <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                   ④ 権利形態・建物現況
                 </span>
-                <span className="text-[10px] text-slate-400">{isKoubai ? '登記簿・現況表示' : '評価書'}</span>
+                <span className="text-[10px] text-slate-400">
+                  {isMof ? '登記簿・現況表示' : isKoubai ? '登記簿・現況表示' : '評価書'}
+                </span>
               </div>
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
                 {analysis.metrics.landAndBuilding.rightType}
@@ -313,67 +327,138 @@ export function AiAnalysisPanel({
           </div>
         )}
 
-        {/* --- DEEP RISK INTELLIGENCE: 占有者 立ち退き 費用 期間 (Keyword #2) --- */}
-        <div className="mt-4 p-4 rounded-lg bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 text-xs space-y-3">
-          <div className="flex items-center justify-between">
+        {/* --- DEEP RISK INTELLIGENCE: 占有者 立ち退き 費用 期間 --- */}
+        {isMof ? (
+          <div className="mt-4 p-4 rounded-lg bg-blue-50/40 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-900/40 text-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1 rounded bg-blue-100 dark:bg-blue-900/60 text-[#1B4F8A] dark:text-blue-300">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </div>
+                <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                  国有財産の引渡し・所有権移転（嘱託登記）と契約手続きの安心ポイント
+                </h4>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/80 text-[#1B4F8A] dark:text-blue-300 font-semibold">
+                国有財産法・会計法準拠
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
+              <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-blue-200/60 dark:border-blue-900/50">
+                <span className="text-slate-500 dark:text-slate-400 block mb-0.5">所有権移転登記の手続き</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 block">国による嘱託登記</span>
+                <span className="text-[10px] text-slate-500">国（財務局）が法務局へ直接登記嘱託を行うため手続安心</span>
+              </div>
+              <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-blue-200/60 dark:border-blue-900/50">
+                <span className="text-slate-500 dark:text-slate-400 block mb-0.5">権利関係の安全性</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 block">抵当権・差押等なし</span>
+                <span className="text-[10px] text-slate-500">旧債務者による担保権や第三者の占有トラブルなし</span>
+              </div>
+              <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-blue-200/60 dark:border-blue-900/50">
+                <span className="text-slate-500 dark:text-slate-400 block mb-0.5">契約・税制上の優遇</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 block">印紙税 非課税</span>
+                <span className="text-[10px] text-slate-500">国との売買契約のため契約書の印紙税は非課税（0円）</span>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              ※ 国有財産の引渡しは「現況有姿（現状のまま）」となります。境界標の有無や越境物、地下埋設物等の有無については、必ず入札前に管轄財務局が公示する「物件調書」の原本精読および現地確認を行ってください。
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 p-4 rounded-lg bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 text-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+                  <Users className="w-3.5 h-3.5" />
+                </div>
+                <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                  占有者・立ち退き（明渡し）費用と期間のシミュレーション
+                </h4>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/80 text-amber-800 dark:text-amber-300 font-semibold">
+                {isKoubai ? '国税徴収法準拠（引渡命令なし）' : '民事執行法第83条準拠'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
+              <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-amber-200/60 dark:border-amber-900/50">
+                <span className="text-slate-500 dark:text-slate-400 block mb-0.5">
+                  {isKoubai ? '明渡し交渉の手続き' : '引渡命令の申立目安期間'}
+                </span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 block">
+                  {isKoubai ? '落札者による任意交渉' : '通常 1〜2ヶ月（代金納付後）'}
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  {isKoubai ? '公売には裁判所の引渡命令制度がありません' : '裁判所の決定により強制執行が可能'}
+                </span>
+              </div>
+              <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-amber-200/60 dark:border-amber-900/50">
+                <span className="text-slate-500 dark:text-slate-400 block mb-0.5">自主退去交渉・立退料相場</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 block">約 10万円 〜 30万円</span>
+                <span className="text-[10px] text-slate-500">引越し代・協力金としての合意目安</span>
+              </div>
+              <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-amber-200/60 dark:border-amber-900/50">
+                <span className="text-slate-500 dark:text-slate-400 block mb-0.5">
+                  {isKoubai ? '訴訟（不調時）費用目安' : '強制執行（断行）費用目安'}
+                </span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 block">約 30万円 〜 80万円</span>
+                <span className="text-[10px] text-slate-500">
+                  {isKoubai ? '明渡し訴訟・弁護士費用等の目安' : '執行官予納金・運送・残置物処分費用'}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              {isKoubai
+                ? '※ 公売財産は裁判所の競売と異なり、民事執行法上の「引渡命令」が申し立てられません。占有者がいる場合は落札者自身が任意交渉（合意退去）または建物明渡請求訴訟を行う必要があります。'
+                : '※ 占有状況が「空き家」の場合は立ち退き費用は発生せず、残置物の処分対応のみとなります。占有者が債務者や第三者の場合、合意による円満退去を第一とし、不調時は裁判所の引渡命令を活用します。'}
+            </p>
+          </div>
+        )}
+
+        {/* --- DEEP VALUE INTELLIGENCE: 土地活用 vs ボロ戸建てリノベーション --- */}
+        {isLand ? (
+          <div className="mt-4 p-4 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 text-xs space-y-2.5">
             <div className="flex items-center gap-2">
-              <div className="p-1 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
-                <Users className="w-3.5 h-3.5" />
+              <div className="p-1 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
+                <Compass className="w-3.5 h-3.5" />
               </div>
               <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                占有者・立ち退き（明渡し）費用と期間のシミュレーション
+                {isMof ? '国有地（土地）の有効活用・建築投資ポイント' : '土地・更地の有効活用・建築投資ポイント'}
               </h4>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/80 text-amber-800 dark:text-amber-300 font-semibold">
-              民事執行法第83条準拠
-            </span>
+
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+              本物件は土地（更地）案件です。用途地域・建蔽率・容積率および接道状況に応じ、実需の注文住宅建築、アパート・賃貸レジデンス開発、事業用オフィス・倉庫・資材置場、太陽光発電用地など幅広い活用が可能です。境界確定状況やインフラ（上下水道・都市ガス・電気）の引き込み状況を{isMof ? '物件調書' : isKoubai ? '公売財産明細書' : '3点セット'}で確認することで、相場対比で割安な取得・高収益開発が期待できます。
+            </p>
           </div>
+        ) : (
+          <div className="mt-4 p-4 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 text-xs space-y-2.5">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
+                <Wrench className="w-3.5 h-3.5" />
+              </div>
+              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                再建築不可・ボロ戸建て・空き家のリノベーション再生投資ポイント
+              </h4>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
-            <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-amber-200/60 dark:border-amber-900/50">
-              <span className="text-slate-500 dark:text-slate-400 block mb-0.5">引渡命令の申立目安期間</span>
-              <span className="font-bold text-slate-900 dark:text-slate-100 block">通常 1〜2ヶ月（代金納付後）</span>
-              <span className="text-[10px] text-slate-500">裁判所の決定により強制執行が可能</span>
-            </div>
-            <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-amber-200/60 dark:border-amber-900/50">
-              <span className="text-slate-500 dark:text-slate-400 block mb-0.5">自主退去交渉・立退料相場</span>
-              <span className="font-bold text-slate-900 dark:text-slate-100 block">約 10万円 〜 30万円</span>
-              <span className="text-[10px] text-slate-500">引越し代・協力金としての合意目安</span>
-            </div>
-            <div className="p-2.5 rounded bg-white dark:bg-zinc-900 border border-amber-200/60 dark:border-amber-900/50">
-              <span className="text-slate-500 dark:text-slate-400 block mb-0.5">強制執行（断行）費用目安</span>
-              <span className="font-bold text-slate-900 dark:text-slate-100 block">約 30万円 〜 80万円</span>
-              <span className="text-[10px] text-slate-500">執行官予納金・運送・残置物処分費用</span>
-            </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+              基準価格が格安な中古戸建て（ボロ戸建て）や、接道要件により建て替えが難しい「再建築不可」物件でも、建築確認申請を要しない<strong>「4号特例リフォーム・大規模スケルトン修繕」</strong>により現代的な住居へ再生が可能です。取得コストを抑えることで、想定利回り15%〜20%超の高利回り賃貸運用モデルとして全国の投資家に注目されています。
+            </p>
           </div>
-
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-            ※ 占有状況が「空き家」の場合は立ち退き費用は発生せず、残置物の処分対応のみとなります。占有者が債務者や第三者の場合、合意による円満退去を第一とし、不調時は裁判所の引渡命令を活用します。
-          </p>
-        </div>
-
-        {/* --- DEEP VALUE INTELLIGENCE: 再建築不可・ボロ戸建てリノベーション高利回り再生 (Keywords #5, #7, #10) --- */}
-        <div className="mt-4 p-4 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 text-xs space-y-2.5">
-          <div className="flex items-center gap-2">
-            <div className="p-1 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
-              <Wrench className="w-3.5 h-3.5" />
-            </div>
-            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-              再建築不可・ボロ戸建て・空き家のリノベーション再生投資ポイント
-            </h4>
-          </div>
-
-          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-            基準価格が格安な中古戸建て（ボロ戸建て）や、接道要件により建て替えが難しい「再建築不可」物件でも、建築確認申請を要しない<strong>「4号特例リフォーム・大規模スケルトン修繕」</strong>により現代的な住居へ再生が可能です。取得コストを抑えることで、想定利回り15%〜20%超の高利回り賃貸運用モデルとして全国の投資家に注目されています。
-          </p>
-        </div>
+        )}
 
         {/* 6. Agency Lead CTA for Complex cases */}
         <div className="mt-4 p-3.5 rounded-lg bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
             <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug">
-              現地確認・占有者明渡し交渉・入札手続きに不安がある場合、管轄エリアの宅建業者・不動産会社をご確認いただけます。
+              {isMof
+                ? '現地確認・物件調書の精読・建築プランや入札価格の査定に不安がある場合、管轄エリアの宅建業者・不動産会社にご相談いただけます。'
+                : '現地確認・占有者明渡し交渉・入札手続きに不安がある場合、管轄エリアの宅建業者・不動産会社をご確認いただけます。'}
             </p>
           </div>
           <a

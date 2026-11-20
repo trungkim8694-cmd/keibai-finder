@@ -822,6 +822,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
       analysis={propertyAiAnalysis}
       saleUnitId={property.sale_unit_id}
       sourceProvider={property.source_provider}
+      propertyType={property.property_type}
       pdfUrl={property.pdf_url}
     />
   );

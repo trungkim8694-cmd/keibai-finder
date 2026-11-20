@@ -203,13 +203,18 @@ export function resolvePropertyAiAnalysis(property: any): StructuredAiAnalysis {
   };
 
   // F. Estimated Hidden Costs (in 10,000 Yen)
+  const isLandOnly = property?.property_type === '土地' || (!property?.building_area && property?.land_area);
   const arrearsMan = Math.round(arrearsYen / 10000);
-  const evictionCostMan = occupancyStatus === 'VACANT' ? 10 : isKoubai ? 45 : 30;
-  let repairCostMan = isMansion ? 60 : 100;
-  if (defectIssues.length >= 2 || rawTextDump.includes('火災')) {
-    repairCostMan = 350;
-  } else if (defectIssues.length === 1) {
-    repairCostMan = 200;
+  // MOF national properties have NO court eviction or debtor occupying
+  const evictionCostMan = isMof ? 0 : occupancyStatus === 'VACANT' ? 10 : isKoubai ? 45 : 30;
+  // Land or MOF state properties don't have building renovation expenses
+  let repairCostMan = (isMof || isLandOnly) ? 0 : isMansion ? 60 : 100;
+  if (!isMof && !isLandOnly) {
+    if (defectIssues.length >= 2 || rawTextDump.includes('火災')) {
+      repairCostMan = 350;
+    } else if (defectIssues.length === 1) {
+      repairCostMan = 200;
+    }
   }
 
   // G. Summary Text & Key Points
@@ -227,7 +232,9 @@ export function resolvePropertyAiAnalysis(property: any): StructuredAiAnalysis {
   const keyPoints: string[] = [];
   if (isMof) {
     keyPoints.push('財務省（管轄財務局）が売主となる国有財産の一般競争入札です。');
-    keyPoints.push('裁判所の競売とは異なり、抵当権等の債務差押処理はなく、残代金納付後に国が所有権移転登記を嘱託します。');
+    keyPoints.push('裁判所の競売とは異なり、抵当権等の債務差押処理はなく、残代金納付後に国が所有権移転登記を嘱託（嘱託登記）します。');
+    keyPoints.push('国との売買契約のため売買契約書の印紙税は非課税（0円）となります（登録免許税等は買受人負担）。');
+    keyPoints.push('国は瑕疵担保責任（契約不適合責任）を負わない現況有姿引渡しのため、現地の境界標や越境物の確認が推奨されます。');
   } else if (isKoubai) {
     keyPoints.push('公売物件のため、裁判所の「引渡命令制度」は適用されません。明渡しは落札者の自主交渉となります。');
   } else {
