@@ -33,14 +33,17 @@ export function AiAnalysisPanel({
   sourceProvider,
   pdfUrl 
 }: AiAnalysisPanelProps) {
-  const isKoubai = sourceProvider === 'NTA';
+  const isMof = sourceProvider === 'MOF';
+  const isKsi = sourceProvider === 'KSI';
+  const isNta = sourceProvider === 'NTA';
+  const isKoubai = isNta || isKsi;
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
 
   // Trigger On-Demand AI scan
   const handleTriggerDeepScan = async () => {
     setIsScanning(true);
-    setScanMessage(isKoubai ? '公売公告PDFをAI解析中...' : '3点セットPDFをAI解析中...');
+    setScanMessage(isMof ? '物件調書PDFをAI解析中...' : isKoubai ? '公売公告PDFをAI解析中...' : '3点セットPDFをAI解析中...');
     try {
       const res = await fetch(`/api/property/${saleUnitId}/ai-scan`, { method: 'POST' });
       if (res.ok) {
@@ -100,13 +103,22 @@ export function AiAnalysisPanel({
           </div>
           <div>
             <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <span>{isKoubai ? 'AI 公売財産明細・重要事項チェック' : 'AI 3点セット・重要事項チェックシート'}</span>
+              <span>{
+                isMof ? 'AI 国有財産物件調書・重要事項チェック' :
+                isKsi ? 'AI 官公庁公売明細・重要事項チェック' :
+                isNta ? 'AI 公売財産明細・重要事項チェック' :
+                'AI 3点セット・重要事項チェックシート'
+              }</span>
               <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-slate-200/70 dark:bg-zinc-700 text-slate-600 dark:text-slate-300">
-                {analysis.sourceType === 'DEEP_PDF_AI' ? 'PDF全文解析済' : '公示データ構造化抽出'}
+                {analysis.sourceType === 'DEEP_PDF_AI' ? 'PDF全文解析済' : (isMof ? '物件調書データ抽出' : '公示データ構造化抽出')}
               </span>
             </h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-              {isKoubai 
+              {isMof
+                ? '財務省（管轄財務局）公開の物件調書・入札公告等の公的情報を基にした客観サマリーです。'
+                : isKsi
+                ? '自治体・官公庁公開の公売財産明細等の公的情報を基にした客観サマリーです。'
+                : isNta 
                 ? '国税庁公売公告・物件明細等の公的情報をAIが整理・分析した客観サマリーです。' 
                 : '裁判所公開の3点セット（物件明細書・現況調査報告書・評価書）を基にした要約です。'}
             </p>
@@ -119,7 +131,7 @@ export function AiAnalysisPanel({
             onClick={handleTriggerDeepScan}
             disabled={isScanning}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-60"
-            title="最新の3点セットPDFを再スキャンします"
+            title={isMof ? '最新の物件調書PDFを再スキャンします' : isKoubai ? '最新の公売公告PDFを再スキャンします' : '最新の3点セットPDFを再スキャンします'}
           >
             <RefreshCw className={`w-3.5 h-3.5 text-[#1B4F8A] dark:text-blue-400 ${isScanning ? 'animate-spin' : ''}`} />
             <span>{isScanning ? '解析実行中...' : 'AI深掘り再解析'}</span>
@@ -383,7 +395,7 @@ export function AiAnalysisPanel({
 
       {/* 7. Legal Disclaimer Footer (Japan Compliance) */}
       <div className="px-5 py-3 bg-slate-50/60 dark:bg-zinc-950/40 border-t border-slate-100 dark:border-zinc-800 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-        ※ 免責事項: 本チェックシートは裁判所または国税庁が公示する公開資料（3点セット等）をAIおよびアルゴリズムにより構造化抽出した参考情報です。法的助言・鑑定評価を構成するものではなく、記載事項の完全性を保証するものではありません。入札にあたっては必ず原本資料の確認および専門家への相談を行ってください。
+        ※ 免責事項: 本チェックシートは裁判所、国税庁または管轄財務局・自治体等が公示する公式資料（物件調書・3点セット・公売財産明細等）をAIおよびアルゴリズムにより構造化抽出した参考情報です。法的助言・鑑定評価を構成するものではなく、記載事項の完全性を保証するものではありません。入札にあたっては必ず原本資料の確認および専門家への相談を行ってください。
       </div>
 
     </section>

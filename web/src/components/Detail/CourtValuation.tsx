@@ -32,7 +32,10 @@ export function CourtValuation({
   valuationSummary,
   relistSummary
 }: CourtValuationProps) {
-  const isKoubai = sourceProvider === 'NTA';
+  const isBit = !sourceProvider || sourceProvider === 'BIT';
+  const isMof = sourceProvider === 'MOF';
+  const isKoubai = sourceProvider === 'NTA' || sourceProvider === 'KSI';
+  const isNta = sourceProvider === 'NTA';
 
   // Calculate Progress Percent for expiration
   let progressPercent = 0;
@@ -67,8 +70,15 @@ export function CourtValuation({
   else if (isCritical) progressColor = 'bg-red-500 dark:bg-red-500 animate-pulse';
   else if (isUrgent) progressColor = 'bg-amber-500 dark:bg-amber-400';
 
-  const priceLabel = valuationSummary?.priceLabel || (isKoubai ? '見積価額' : '売却基準価額');
-  const priceSubLabel = valuationSummary?.priceSubLabel || (isKoubai ? '国税庁公売基準額' : '裁判所評価額');
+  const priceLabel = valuationSummary?.priceLabel || (
+    isMof ? '予定価格（最低入札価格）' :
+    isKoubai ? '見積価額' : '売却基準価額'
+  );
+  const priceSubLabel = valuationSummary?.priceSubLabel || (
+    isMof ? '財務省 国有財産売却' :
+    isNta ? '国税庁公売基準額' :
+    isKoubai ? '官公庁公売' : '裁判所評価額'
+  );
 
   // Format Deposit & Minimum Price
   const depositMan = valuationSummary?.depositYen 
@@ -98,7 +108,10 @@ export function CourtValuation({
           {/* Price & Legal Benchmarks Section */}
           <div className="flex-1 min-w-0">
             <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-wider mb-1 flex items-center gap-1.5">
-              <span className={`w-1 h-3.5 rounded-xs ${isKoubai ? 'bg-red-600' : 'bg-[#1B4F8A]'}`}></span>
+              <span className={`w-1 h-3.5 rounded-xs ${
+                isMof ? 'bg-amber-600' :
+                isKoubai ? 'bg-red-600' : 'bg-[#1B4F8A]'
+              }`}></span>
               <span>{priceLabel}</span>
               <span className="text-[11px] font-normal text-slate-400">（{priceSubLabel}）</span>
             </h2>
@@ -110,7 +123,8 @@ export function CourtValuation({
 
               {/* Sub-metrics Pills */}
               <div className="flex flex-wrap items-center gap-2">
-                {!isKoubai && minBidMan && minBidMan > 0 && (
+                {/* 買受可能価額 (-20%) is strictly a Court Foreclosure (BIT) rule under the Civil Execution Act */}
+                {isBit && minBidMan && minBidMan > 0 && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 border border-blue-200 dark:border-blue-800 tabular-nums" title="売却基準価額から20%減額された最低入札可能価格">
                     <span className="font-medium text-slate-500 dark:text-slate-400">買受可能価額:</span>
                     <span>{minBidMan.toLocaleString('ja-JP')}万円</span>
@@ -119,15 +133,17 @@ export function CourtValuation({
                 )}
 
                 {depositMan && depositMan > 0 && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-zinc-700 tabular-nums" title="入札時に事前に裁判所または国税庁へ納付する保証金">
-                    <span className="text-slate-500 dark:text-slate-400">{isKoubai ? '公売保証金:' : '買受申出保証額:'}</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-zinc-700 tabular-nums" title="入札参加時に納付する保証金">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      {isMof ? '入札保証金(目安):' : isKoubai ? '公売保証金:' : '買受申出保証額:'}
+                    </span>
                     <span className="font-bold text-slate-900 dark:text-slate-100">{depositMan.toLocaleString('ja-JP')}万円</span>
                   </span>
                 )}
 
-                {isKoubai && valuationSummary?.saleDivisionNo && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900 tabular-nums">
-                    <span>区分番号:</span>
+                {valuationSummary?.saleDivisionNo && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded bg-slate-50 dark:bg-zinc-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-zinc-700 tabular-nums">
+                    <span>番号:</span>
                     <span className="font-bold">{valuationSummary.saleDivisionNo}</span>
                   </span>
                 )}
@@ -239,7 +255,7 @@ export function CourtValuation({
             }}
             className="inline-flex items-center gap-1 text-[#1B4F8A] dark:text-blue-400 font-semibold hover:underline shrink-0 text-xs self-end sm:self-auto"
           >
-            <span>{isKoubai ? '公売財産詳細診断 ↓' : '3点セット詳細診断 ↓'}</span>
+            <span>{isMof ? '物件調書詳細診断 ↓' : isKoubai ? '公売財産詳細診断 ↓' : '3点セット詳細診断 ↓'}</span>
           </a>
         </div>
       )}

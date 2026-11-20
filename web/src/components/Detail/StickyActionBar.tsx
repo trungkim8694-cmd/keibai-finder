@@ -15,7 +15,8 @@ export function StickyActionBar({
   shareTitle,
   propertyUrl,
   prefecture,
-  city
+  city,
+  sourceProvider
 }: { 
   saleUnitId: string; 
   predictedPrice: string; 
@@ -25,7 +26,12 @@ export function StickyActionBar({
   propertyUrl?: string;
   prefecture?: string | null;
   city?: string | null;
+  sourceProvider?: string | null;
 }) {
+  const isMof = sourceProvider === 'MOF';
+  const isKoubai = sourceProvider === 'NTA' || sourceProvider === 'KSI';
+  const docLabel = isMof ? '物件調書' : isKoubai ? '公売明細' : '3点セット';
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
 
@@ -125,7 +131,7 @@ export function StickyActionBar({
                 className="hidden lg:flex items-center gap-1 text-xs font-medium border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 h-8 px-2.5 rounded-md hover:bg-slate-50 transition-colors shadow-2xs"
               >
                 <FileText className="w-3.5 h-3.5 text-blue-600" />
-                <span>3点セット</span>
+                <span>{docLabel}</span>
               </a>
             )}
           </div>
@@ -142,7 +148,7 @@ export function StickyActionBar({
           {/* Left: Price Stack (基準価額 & AI想定) */}
           <div className="flex flex-col min-w-0 pr-1 shrink">
             <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-semibold truncate leading-none mb-1">
-              {startPrice ? `基準: ${startPrice}` : '売却基準価額'}
+              {startPrice ? `基準: ${startPrice}` : (isMof ? '予定価格' : isKoubai ? '見積価額' : '売却基準価額')}
             </span>
             <span className="text-sm sm:text-base font-extrabold font-mono tabular-nums text-[#1B4F8A] dark:text-blue-400 leading-none truncate">
               {predictedPrice && predictedPrice !== '-' ? predictedPrice : (startPrice || '査定中')}
@@ -151,17 +157,17 @@ export function StickyActionBar({
 
           {/* Right: Touch-Friendly High-Conversion Action Buttons (Apple HIG >= 44px) */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Quick 3点セット PDF direct download */}
+            {/* Quick PDF direct download */}
             {pdfUrl && (
               <a
                 href={pdfUrl}
                 target="_blank"
                 rel="nofollow noopener noreferrer"
                 className="h-11 px-2.5 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 font-bold text-[11px] flex items-center gap-1 hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
-                title="3点セットPDFを閲覧"
+                title={`${docLabel}PDFを閲覧`}
               >
                 <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="whitespace-nowrap">3点セット</span>
+                <span className="whitespace-nowrap">{docLabel}</span>
               </a>
             )}
 

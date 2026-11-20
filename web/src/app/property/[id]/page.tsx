@@ -731,6 +731,8 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
       sourceUrl={(property as any).source_url}
       bitContactUrl={bitContactUrl}
       rawDisplayData={property.raw_display_data}
+      courtName={property.court_name}
+      managingAuthority={property.managing_authority}
     />
   );
 
@@ -1021,6 +1023,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         shareTitle={propertyTitle}
         prefecture={property.prefecture || undefined}
         city={property.city || undefined}
+        sourceProvider={property.source_provider}
       />
 
       <main className="w-full max-w-7xl mx-auto mt-6 px-4 overflow-x-hidden">

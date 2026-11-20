@@ -7,7 +7,11 @@ import { resolveAccuratePropertyType } from '@/lib/propertyDataNormalizer';
  * seamlessly upgrading to Deep PDF AI data if present.
  */
 export function resolvePropertyAiAnalysis(property: any): StructuredAiAnalysis {
-  const isKoubai = property?.source_provider === 'NTA';
+  const provider = property?.source_provider || 'BIT';
+  const isMof = provider === 'MOF';
+  const isKsi = provider === 'KSI';
+  const isNta = provider === 'NTA';
+  const isKoubai = isNta || isKsi;
   const accurateType = resolveAccuratePropertyType(property);
   const isMansion = accurateType === 'マンション';
   const isCommercialOrBuilding = ['店舗・旅館', '事務所・ビル', '工場・倉庫', '一棟マンション・アパート'].includes(accurateType);
@@ -119,11 +123,16 @@ export function resolvePropertyAiAnalysis(property: any): StructuredAiAnalysis {
   // C. Check Occupancy & Eviction (占有者状況・明渡し)
   let occupancyStatus: 'VACANT' | 'OWNER' | 'THIRD_PARTY' | 'UNKNOWN' = 'OWNER';
   let occupancyValue = '所有者（債務者）占有中';
-  let evictionNote = isKoubai
+  let evictionNote = isMof
+    ? '国有財産売却（国が所有権移転登記を嘱託・現況有姿引渡し）'
+    : isKoubai
     ? '公売財産：引渡命令制度なし（買受人の自主交渉または民事訴訟要）'
     : '代金納付後に裁判所へ引渡命令の申立が可能';
 
-  if (rawTextDump.includes('空家') || rawTextDump.includes('空室') || rawTextDump.includes('無人')) {
+  if (isMof) {
+    occupancyStatus = 'VACANT';
+    occupancyValue = '国（財務局）管理・現況有姿';
+  } else if (rawTextDump.includes('空家') || rawTextDump.includes('空室') || rawTextDump.includes('無人')) {
     occupancyStatus = 'VACANT';
     occupancyValue = '空家・空室状態';
     evictionNote = '占有者なし（残置物処分の要確認）';
@@ -205,7 +214,9 @@ export function resolvePropertyAiAnalysis(property: any): StructuredAiAnalysis {
 
   // G. Summary Text & Key Points
   let summaryText = '';
-  if (complexityLevel === 'A') {
+  if (isMof) {
+    summaryText = `本物件は財務省（${property.court_name || '管轄財務局'}）が公示する国有財産売却案件です。国との直接売買契約となり、所有権移転登記は国が嘱託で行う標準的な一般競争入札プロセスが見込まれます。`;
+  } else if (complexityLevel === 'A') {
     summaryText = `本物件は${occupancyValue}であり、買受人が引き受けるべき権利特記も見当たりません。標準的な${isKoubai ? '公売' : '競売'}取得プロセスが見込まれます。`;
   } else if (complexityLevel === 'B') {
     summaryText = `本物件は${isKoubai ? '公売手続（引渡命令なし）' : (arrearsYen > 0 ? `滞納管理費（約${arrearsMan}万円）の承継` : '一部確認事項')}があります。事前に収支試算と現地確認を推奨します。`;
@@ -214,7 +225,10 @@ export function resolvePropertyAiAnalysis(property: any): StructuredAiAnalysis {
   }
 
   const keyPoints: string[] = [];
-  if (isKoubai) {
+  if (isMof) {
+    keyPoints.push('財務省（管轄財務局）が売主となる国有財産の一般競争入札です。');
+    keyPoints.push('裁判所の競売とは異なり、抵当権等の債務差押処理はなく、残代金納付後に国が所有権移転登記を嘱託します。');
+  } else if (isKoubai) {
     keyPoints.push('公売物件のため、裁判所の「引渡命令制度」は適用されません。明渡しは落札者の自主交渉となります。');
   } else {
     keyPoints.push('競売の代金納付により、抵当権・差押等の担保権は原則すべて裁判所嘱託で抹消されます。');
@@ -241,7 +255,7 @@ export function resolvePropertyAiAnalysis(property: any): StructuredAiAnalysis {
       assumedRights: {
         status: assumedRightsStatus,
         value: assumedRightsValue,
-        sourceRef: isKoubai ? '公売財産明細書' : '物件明細書'
+        sourceRef: isMof ? '物件調書（財務省）' : isKoubai ? '公売財産明細書' : '物件明細書'
       },
       occupancy: {
         status: occupancyStatus,

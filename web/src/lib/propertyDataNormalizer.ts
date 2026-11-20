@@ -297,9 +297,36 @@ export function extractDualAreasAndYear(property: any): DualAreasAndYear {
 export function extractValuationSummary(property: any): ValuationSummary {
   const isNta = property?.source_provider === 'NTA';
   const isKsi = property?.source_provider === 'KSI' || property?.source_provider === 'KOKUYU';
+  const isMof = property?.source_provider === 'MOF';
   const startPriceYen = property?.starting_price ? Number(property.starting_price) : 0;
   const rawData = property?.raw_display_data;
 
+  // 1. MOF - Ministry of Finance National Property Sales
+  if (isMof) {
+    const rawObj = (rawData && typeof rawData === 'object' && !Array.isArray(rawData)) ? rawData : {};
+    let depositYen: number | null = null;
+    if (startPriceYen > 0) {
+      // MOF national bidding requires at least 10% guarantee deposit
+      depositYen = Math.round(startPriceYen * 0.1);
+    }
+
+    return {
+      isNta: false,
+      priceLabel: '予定価格（最低入札価格）',
+      priceSubLabel: '財務省 国有財産売却',
+      startPriceYen,
+      minimumBidPriceYen: null, // NO 20% discount for MOF!
+      depositYen,
+      depositDeadline: null,
+      bidStartDate: property.bid_start_date ? new Date(property.bid_start_date).toLocaleDateString('ja-JP') : null,
+      bidEndDate: property.bid_end_date ? new Date(property.bid_end_date).toLocaleDateString('ja-JP') : null,
+      openDate: null,
+      saleDivisionNo: rawObj.property_no ? `第${rawObj.property_no}号` : null,
+      method: '一般競争入札'
+    };
+  }
+
+  // 2. NTA - National Tax Agency Public Auction
   if (isNta) {
     const overview = (rawData && typeof rawData === 'object' && !Array.isArray(rawData)) ? rawData.overview || {} : {};
     let depositYen: number | null = null;
@@ -324,6 +351,7 @@ export function extractValuationSummary(property: any): ValuationSummary {
     };
   }
 
+  // 3. KSI - Government Auction
   if (isKsi && rawData && typeof rawData === 'object' && !Array.isArray(rawData) && rawData.summary) {
     const summary = rawData.summary || {};
     let depositYen: number | null = null;
@@ -331,12 +359,14 @@ export function extractValuationSummary(property: any): ValuationSummary {
     if (depStr) {
       const cl = normalizeZenkaku(depStr).replace(/[^0-9]/g, '');
       if (cl) depositYen = parseInt(cl, 10);
+    } else if (startPriceYen > 0) {
+      depositYen = Math.round(startPriceYen * 0.1);
     }
 
     return {
       isNta: true,
-      priceLabel: '入札開始価格',
-      priceSubLabel: '官公庁公売（行政財産売却）',
+      priceLabel: '見積価額',
+      priceSubLabel: '官公庁公売（行政・自治体）',
       startPriceYen,
       minimumBidPriceYen: null,
       depositYen,
