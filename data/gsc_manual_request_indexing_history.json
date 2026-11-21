@@ -2,48 +2,47 @@
   "project": "keibai-koubai",
   "domain": "https://www.keibai-koubai.com",
   "daily_quota_limit": 11,
-  "last_updated": "2026-11-20T14:00:00Z",
+  "last_updated": "2026-11-21T15:15:00+07:00",
   "recommended_daily_batches": [
     {
-      "batch_id": "batch_day_1_core_hubs",
-      "scheduled_date": "2026-11-20",
-      "status": "READY",
+      "batch_id": "batch_day_1_regional_striking_hubs",
+      "scheduled_date": "2026-11-21",
+      "status": "COMPLETED",
+      "description": "Top regional hubs đang có thứ hạng TOP 1-10 và CTR cao, đã hoàn tất Zero-Inventory fix",
       "target_urls": [
-        "https://www.keibai-koubai.com/",
-        "https://www.keibai-koubai.com/map",
-        "https://www.keibai-koubai.com/auction/schedule",
-        "https://www.keibai-koubai.com/auction-results",
-        "https://www.keibai-koubai.com/trade-find",
-        "https://www.keibai-koubai.com/search/area",
-        "https://www.keibai-koubai.com/search/station",
-        "https://www.keibai-koubai.com/blogs",
-        "https://www.keibai-koubai.com/insights",
-        "https://www.keibai-koubai.com/area-map",
-        "https://www.keibai-koubai.com/agencies"
+        "https://www.keibai-koubai.com/search/area/%E5%B3%B6%E6%A0%B9%E7%9C%8C/%E6%9D%BE%E6%B1%9F%E5%B8%82",
+        "https://www.keibai-koubai.com/search/area/%E5%B3%B6%E6%A0%B9%E7%9C%8C",
+        "https://www.keibai-koubai.com/search/area/%E5%B1%B1%E5%BD%A2%E7%9C%8C/%E6%96%B0%E5%BA%84%E5%B8%82",
+        "https://www.keibai-koubai.com/search/area/%E6%96%B0%E6%BD%9F%E7%9C%8C/%E6%9D%91%E4%B8%8A%E5%B8%82",
+        "https://www.keibai-koubai.com/search/area/%E9%95%B7%E9%87%8E%E7%9C%8C/%E5%B0%8F%E8%AB%B8%E5%B8%82",
+        "https://www.keibai-koubai.com/search/area/%E9%AB%98%E7%9F%A5%E7%9C%8C",
+        "https://www.keibai-koubai.com/search/area/%E4%B8%89%E9%87%8D%E7%9C%8C"
       ]
     },
     {
-      "batch_id": "batch_day_2_major_metro_prefectures",
-      "scheduled_date": "2026-11-21",
-      "status": "PENDING",
+      "batch_id": "batch_day_2_high_intent_strike_hubs",
+      "scheduled_date": "2026-11-22",
+      "status": "READY",
+      "description": "Các trạm ga & BĐS cụ thể đang có CTR 50-66% + Các đầu não tỉnh thành lớn nhất Nhật Bản",
       "target_urls": [
+        "https://www.keibai-koubai.com/search/station/%E5%9F%BC%E7%8E%89%E9%AB%98%E9%80%9F%E9%89%84%E9%81%93%E7%B7%9A/%E6%96%B0%E4%BA%95%E5%AE%BF",
+        "https://www.keibai-koubai.com/property/00000009872",
+        "https://www.keibai-koubai.com/property/00000001704",
+        "https://www.keibai-koubai.com/trade-find?pref=%E6%84%9B%E7%9F%A5%E7%9C%8C&city=%E8%B1%8A%E6%A9%8B%E5%B8%82&type=%E3%83%9E%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%B3",
         "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD",
         "https://www.keibai-koubai.com/search/area/%E5%A4%A7%E9%98%AA%E5%BA%9C",
         "https://www.keibai-koubai.com/search/area/%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C",
         "https://www.keibai-koubai.com/search/area/%E6%84%9B%E7%9F%A5%E7%9C%8C",
         "https://www.keibai-koubai.com/search/area/%E5%9F%BC%E7%8E%89%E7%9C%8C",
         "https://www.keibai-koubai.com/search/area/%E5%8D%83%E8%91%89%E7%9C%8C",
-        "https://www.keibai-koubai.com/search/area/%E7%A6%8F%E5%B2%A1%E7%9C%8C",
-        "https://www.keibai-koubai.com/search/area/%E5%8C%97%E6%B5%B7%E9%81%93",
-        "https://www.keibai-koubai.com/search/area/%E5%85%B5%E5%BA%AB%E7%9C%8C",
-        "https://www.keibai-koubai.com/search/area/%E4%BA%AC%E9%83%BD%E5%BA%9C",
-        "https://www.keibai-koubai.com/search/area/%E5%AE%AE%E5%9F%8E%E7%9C%8C"
+        "https://www.keibai-koubai.com/search/area/%E7%A6%8F%E5%B2%A1%E7%9C%8C"
       ]
     },
     {
       "batch_id": "batch_day_3_top_tokyo_wards",
-      "scheduled_date": "2026-11-22",
+      "scheduled_date": "2026-11-23",
       "status": "PENDING",
+      "description": "Các quận huyện trọng điểm Tokyo có nhu cầu tìm kiếm Keibai lớn nhất",
       "target_urls": [
         "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E4%B8%96%E7%94%B0%E8%B0%B7%E5%8C%BA",
         "https://www.keibai-koubai.com/search/area/%E6%9D%B1%E4%BA%AC%E9%83%BD/%E6%96%B0%E5%AE%BF%E5%8C%BA",
@@ -59,5 +58,50 @@
       ]
     }
   ],
-  "submission_history": []
+  "submission_history": [
+    {
+      "date": "2026-11-21",
+      "submitted_at": "2026-11-21T15:10:00+07:00",
+      "channel": "GSC_MANUAL_REQUEST_INDEXING",
+      "urls_count": 7,
+      "test_live_status": "100% PASS (URL is available to Google / Page can be indexed)",
+      "submitted_urls": [
+        {
+          "name": "島根県松江市 (Matsue City)",
+          "url": "https://www.keibai-koubai.com/search/area/%E5%B3%B6%E6%A0%B9%E7%9C%8C/%E6%9D%BE%E6%B1%9F%E5%B8%82",
+          "intent": "12+ từ khóa TOP 1-2 đang kéo traffic, Zero-Inventory fix live"
+        },
+        {
+          "name": "島根県 (Shimane Prefecture Hub)",
+          "url": "https://www.keibai-koubai.com/search/area/%E5%B3%B6%E6%A0%B9%E7%9C%8C",
+          "intent": "Hub cấp tỉnh chứa Matsue, Izumo, Oki"
+        },
+        {
+          "name": "山形県新庄市 (Shinjo City)",
+          "url": "https://www.keibai-koubai.com/search/area/%E5%B1%B1%E5%BD%A2%E7%9C%8C/%E6%96%B0%E5%BA%84%E5%B8%82",
+          "intent": "新庄市 競売物件 TOP 14, CTR cực cao 75%"
+        },
+        {
+          "name": "新潟県村上市 (Murakami City)",
+          "url": "https://www.keibai-koubai.com/search/area/%E6%96%B0%E6%BD%9F%E7%9C%8C/%E6%9D%91%E4%B8%8A%E5%B8%82",
+          "intent": "村上市 競売物件 TOP 9.7, 14 impressions"
+        },
+        {
+          "name": "長野県小諸市 (Komoro City)",
+          "url": "https://www.keibai-koubai.com/search/area/%E9%95%B7%E9%87%8E%E7%9C%8C/%E5%B0%8F%E8%AB%B8%E5%B8%82",
+          "intent": "小諸市 差し押さえ 物件 競売 TOP 7.8"
+        },
+        {
+          "name": "高知県 (Kochi Prefecture)",
+          "url": "https://www.keibai-koubai.com/search/area/%E9%AB%98%E7%9F%A5%E7%9C%8C",
+          "intent": "高知市 公売物件 TOP 8.0, 22 impressions"
+        },
+        {
+          "name": "三重県 (Mie Prefecture)",
+          "url": "https://www.keibai-koubai.com/search/area/%E4%B8%89%E9%87%8D%E7%9C%8C",
+          "intent": "競売物件 三重県 TOP 11.1, 7 impressions"
+        }
+      ]
+    }
+  ]
 }
