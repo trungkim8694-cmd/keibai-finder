@@ -213,6 +213,14 @@ export async function getTypeStats() {
 }
 
 
+export const getTotalPropertiesCountCached = unstable_cache(
+  async () => {
+    return getTotalPropertiesCount();
+  },
+  ['total-properties-count'],
+  { revalidate: 3600 }
+);
+
 export async function getTotalPropertiesCount() {
   try {
     return await prisma.property.count({

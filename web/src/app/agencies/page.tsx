@@ -53,7 +53,7 @@ export default async function AgenciesPage() {
   const safeCounts = deepSerialize(countsResult.counts || []);
   const initialTotal = companiesResult.total || 26035;
 
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = 'https://www.keibai-koubai.com';
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -125,13 +125,13 @@ export default async function AgenciesPage() {
         </section>
 
         {/* MAIN DIRECTORY CONTENT - 1280px standard container */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
           <AgenciesDirectoryClient 
             initialCompanies={safeCompanies} 
             prefectureCounts={safeCounts}
             initialTotal={initialTotal}
           />
-        </main>
+        </div>
       </div>
     </>
   );

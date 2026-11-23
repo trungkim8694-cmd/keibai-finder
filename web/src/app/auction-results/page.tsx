@@ -147,7 +147,7 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
       />
 
       {/* Header Banner */}
-      <header className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+      <section className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav className="text-xs text-slate-500 dark:text-slate-400 mb-2">
             <Link href="/" className="hover:text-[#1B4F8A]">
@@ -203,10 +203,10 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
             </div>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         {/* Search & Filter Toolbar */}
         <div className="bg-white dark:bg-zinc-900 rounded-lg border border-slate-200 dark:border-zinc-800 p-3 sm:p-4 mb-6">
           <form method="GET" action="/auction-results" className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
@@ -466,7 +466,7 @@ export default async function AuctionResultsPage({ searchParams }: SearchParamsP
             )}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

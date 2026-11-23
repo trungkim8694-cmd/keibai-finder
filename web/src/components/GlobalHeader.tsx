@@ -3,11 +3,8 @@ import HeaderFavLink from './HeaderFavLink';
 import UserMenu from './UserMenu';
 import HeaderTotalCount from './HeaderTotalCount';
 import HeaderNavMenu from './HeaderNavMenu';
-import { getTotalPropertiesCount } from '@/actions/propertyActions';
 
-export default async function GlobalHeader() {
-  const totalCount = await getTotalPropertiesCount();
-
+export default function GlobalHeader() {
   return (
     <header className="sticky top-0 z-[10000] bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 px-3 sm:px-4 py-2.5 lg:py-2 flex items-center justify-between shadow-xs">
        <div className="flex items-center gap-2 sm:gap-4">
@@ -26,7 +23,7 @@ export default async function GlobalHeader() {
        </div>
 
        <div className="flex items-center gap-2 sm:gap-3 lg:gap-2">
-         <HeaderTotalCount initialCount={totalCount} />
+         <HeaderTotalCount initialCount={1568} />
          <HeaderFavLink />
          <UserMenu />
        </div>

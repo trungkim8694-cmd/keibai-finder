@@ -10,7 +10,7 @@ export const revalidate = 86400; // Cache for 24 hours
 export async function generateMetadata({ params }: { params: Promise<{ line: string }> }): Promise<Metadata> {
   const { line } = await params;
   const decodedLine = decodeURIComponent(line);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = 'https://www.keibai-koubai.com';
   const canonicalUrl = `${baseUrl}/search/station/${encodeURIComponent(decodedLine)}`;
 
   const allLines = await getRailLinesAndStations();
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ line: str
 export default async function LineStationsPage({ params }: { params: Promise<{ line: string }> }) {
   const { line } = await params;
   const decodedLine = decodeURIComponent(line);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = 'https://www.keibai-koubai.com';
   
   const allLines = await getRailLinesAndStations();
   const lineData = allLines.find(l => l.line === decodedLine);

@@ -1,22 +1,22 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
-function VerifyInner() {
-  const searchParams = useSearchParams();
+export default function LoginVerifyPage() {
   const router = useRouter();
-
-  const token = searchParams.get('token');
-  const email = searchParams.get('email');
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
+    const sp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const token = sp?.get('token');
+    const email = sp?.get('email');
+
     if (!token || !email) {
       setStatus('error');
       setErrorMsg('認証リンクが無効です。URLをご確認ください。');
@@ -49,7 +49,7 @@ function VerifyInner() {
     };
 
     performSignIn();
-  }, [token, email, router]);
+  }, [router]);
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-4">
@@ -101,19 +101,5 @@ function VerifyInner() {
         )}
       </div>
     </div>
-  );
-}
-
-export default function LoginVerifyPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-[70vh] flex items-center justify-center p-4">
-          <Loader2 className="w-10 h-10 text-[#1B4F8A] animate-spin" />
-        </div>
-      }
-    >
-      <VerifyInner />
-    </Suspense>
   );
 }

@@ -1,23 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useState, useMemo, useEffect } from 'react';
 import HazardSearchInput from '@/components/HazardMap/HazardSearchInput';
 import { TradeSocialShare } from '@/components/Trade/TradeSocialShare';
 import { PrintButton } from '@/components/PrintButton';
-
-// Dynamic import Leaflet GIS Map Tool to prevent SSR window is not defined
-const HazardMapTool = dynamic(() => import('@/components/HazardMap/HazardMapTool'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full bg-[#F8FAFC] dark:bg-[#0D1117] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-6 h-6 border-2 border-[#1B4F8A] border-t-transparent rounded-full animate-spin"></div>
-        <span className="text-slate-500 dark:text-slate-400 font-medium text-xs">マップ初期化中...</span>
-      </div>
-    </div>
-  )
-});
 
 const PREFECTURE_CENTERS: Record<string, [number, number]> = {
   '北海道': [43.0642, 141.3469],
@@ -75,6 +61,20 @@ interface ClientWrapperProps {
 }
 
 export default function ClientWrapper({ initialSlug = [], regionName = '全国' }: ClientWrapperProps) {
+  const [MapTool, setMapTool] = useState<React.ComponentType<any> | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    import('@/components/HazardMap/HazardMapTool').then((mod) => {
+      if (isMounted) {
+        setMapTool(() => mod.default);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Map Mode: Hazard (災害リスク) or Zoning (都市計画)
   const [mapMode, setMapMode] = useState<'hazard' | 'zoning'>('hazard');
 
@@ -119,7 +119,7 @@ export default function ClientWrapper({ initialSlug = [], regionName = '全国' 
     <div className="flex flex-col flex-1 min-h-0 w-full relative bg-[#F8FAFC] dark:bg-[#0D1117] text-slate-900 dark:text-slate-100 font-sans">
       
       {/* Top Header Bar (Unified Corporate B2B Theme) */}
-      <header className="w-full bg-white dark:bg-[#151B22] border-b border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 shadow-xs print:hidden">
+      <div className="w-full bg-white dark:bg-[#151B22] border-b border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 shadow-xs print:hidden">
         <div className="max-w-7xl mx-auto px-4 py-2 flex flex-row items-center justify-between gap-3">
           
           {/* Left: Branding & Region Title */}
@@ -184,7 +184,7 @@ export default function ClientWrapper({ initialSlug = [], regionName = '全国' 
           </div>
           
         </div>
-      </header>
+      </div>
 
       {/* Mobile Search Bar Row */}
       <div className="md:hidden px-3 py-2 bg-white dark:bg-[#151B22] border-b border-slate-200 dark:border-slate-800 z-10">
@@ -195,19 +195,28 @@ export default function ClientWrapper({ initialSlug = [], regionName = '全国' 
       </div>
 
       {/* Main Full-View GIS Map Workspace (100% Full Width & Height) */}
-      <main className="flex-1 min-h-0 w-full overflow-hidden relative">
-        <HazardMapTool 
-          externalPoint={targetPoint} 
-          flyPoint={flyPoint} 
-          mapMode={mapMode}
-          setMapMode={setMapMode}
-          initialCenter={initialCenter}
-          initialZoom={initialZoom}
-          onLocationSelected={handleLocationSelected}
-          regionName={regionName}
-          selectedAddressTitle={selectedAddressTitle}
-        />
-      </main>
+      <div className="flex-1 min-h-0 w-full overflow-hidden relative">
+        {MapTool ? (
+          <MapTool 
+            externalPoint={targetPoint} 
+            flyPoint={flyPoint} 
+            mapMode={mapMode}
+            setMapMode={setMapMode}
+            initialCenter={initialCenter}
+            initialZoom={initialZoom}
+            onLocationSelected={handleLocationSelected}
+            regionName={regionName}
+            selectedAddressTitle={selectedAddressTitle}
+          />
+        ) : (
+          <div className="w-full h-full bg-[#F8FAFC] dark:bg-[#0D1117] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-6 h-6 border-2 border-[#1B4F8A] border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-slate-500 dark:text-slate-400 font-medium text-xs">マップ初期化中...</span>
+            </div>
+          </div>
+        )}
+      </div>
 
     </div>
   );

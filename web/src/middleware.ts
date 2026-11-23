@@ -21,7 +21,17 @@ function isAdminToken(token: { role?: unknown; email?: unknown } | null): boolea
 }
 
 export async function middleware(req: NextRequest) {
+  const host = req.headers.get("host") || "";
+  if (host === "keibai-koubai.com") {
+    const redirectUrl = new URL(req.nextUrl.pathname + req.nextUrl.search, "https://www.keibai-koubai.com");
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
   const { pathname } = req.nextUrl;
+  if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({ req, secret: NEXTAUTH_SECRET });
   const isAdmin = isAdminToken(token);
 
@@ -46,5 +56,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

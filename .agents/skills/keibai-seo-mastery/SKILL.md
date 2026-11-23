@@ -124,6 +124,21 @@ Khi người dùng yêu cầu **Audit Technical SEO** cho bất kỳ trang nào 
 7. **Module 7 — Internal Link Silos & Click-Depth Flattening:** Kiểm tra mạng lưới liên kết từ `/` xuống 47 Tỉnh thành (`/search/area/[pref]`), Tuyến tàu (`/search/station/[line]`), Phân khúc giá, Lịch đấu giá (`/auction/schedule`), Kết quả (`/auction-results`) và Bài phân tích (`/insights`, `/blogs`).
 8. **Module 8 — AI Search / GEO Readiness (`llms.txt` & Fact Blocks):** Kiểm tra cấu hình AI bots, tệp `/llms.txt` và bảng dữ liệu định lượng cho các công cụ trả lời AI.
 
+### 6.2. ⚠️ Bài Học Xương Máu Số 6 (Cập nhật 2026-11-23) — Giải Phóng SSR Khỏi Bẫy `<div hidden>`, `BAILOUT_TO_CLIENT_SIDE_RENDERING`, Soft-404 & Trùng Lặp Semantic Landmarks
+1. **Cấm tuyệt đối `loading.tsx` bọc ngoài các route SEO công khai (`/property/[id]`, `/search/*`, `/blogs/*`, `/insights/*`):**
+   - Trong Next.js 15 App Router, khi tồn tại `loading.tsx` hoặc `<Suspense>` bọc quanh Server Component bất đồng bộ, Next.js sẽ flush ngay bộ khung skeleton vào thẻ `<main>` đầu tiên (khiến `<main>` có `0%` văn bản thật) và nhốt toàn bộ `230KB–245KB` nội dung SEO thật vào 34 thẻ `<div hidden id="S:...">` kèm hàng chục thẻ `<template id="P:...">` ở cuối trang chờ JS client swap!
+   - **Quy tắc bắt buộc:** Xóa `loading.tsx` và gỡ bỏ `<React.Suspense>` bọc các Server Component trên trang chi tiết để ép Next.js render 100% nội dung trực tiếp vào `<main>` ngay trong Raw SSR HTML (`<div hidden>` = `0 bytes`, văn bản trong `<main>` `> 70%`).
+2. **Diệt tận gốc `BAILOUT_TO_CLIENT_SIDE_RENDERING`:**
+   - Không gọi `useSearchParams()` từ `next/navigation` trong các Client Component dùng trên trang SSR công khai (chuyển sang đọc `new URLSearchParams(window.location.search)` trong `useEffect`).
+   - Với các component bản đồ Leaflet (`KeibaiMap`, `HomeMapPreview`, `HazardMapTool`), thay vì dùng `next/dynamic(..., { ssr: false })` (vốn tự động bơm `<template data-dgst="BAILOUT_TO_CLIENT_SIDE_RENDERING">` vào HTML SSR), hãy dùng dynamic `import()` bên trong `useEffect` kết hợp state sau khi mount để HTML SSR sạch bóng 100% lệnh Bailout.
+3. **Diệt lỗi Soft-404 trong `generateMetadata()` & `Page()`:**
+   - Khi truy vấn không tìm thấy bản ghi (`!property`), **BẮT BUỘC gọi `return notFound();` ngay trong cả `generateMetadata()` lẫn `Page()`**. Tuyệt đối không return `{ title: '物件が見つかりません' }` từ `generateMetadata()` vì sẽ làm Next.js flush sớm header `HTTP 200 OK` gây lỗi Soft-404 nghiêm trọng trên Google Search Console.
+4. **Chuẩn mực Semantic Landmarks (`1 <header>`, `1 <main>`, `1 <h1>`, `1 <footer>`):**
+   - Do `AppLayoutWrapper` ở `RootLayout` đã bọc toàn trang trong `<GlobalHeader>` (`<header>`), `<main>` và `<GlobalFooter>` (`<footer>`), các trang con (`page.tsx`) **TUYỆT ĐỐI KHÔNG** dùng thêm thẻ `<header>`, `<main>`, `<footer>` (hãy dùng `<section>` hoặc `<div>`).
+   - Khi thiết kế giao diện Responsive (Mobile + Desktop tách cột trên `/property/[id]`), chỉ render **đúng 1 thẻ `<h1>` duy nhất** trong DOM; khối tiêu đề ở layout thứ 2 bắt buộc dùng `<div aria-hidden="true">` để tránh lỗi Duplicate `<h1>`.
+5. **Thống nhất tuyệt đối Canonical & Redirect 308 về `https://www.keibai-koubai.com` (`www`):**
+   - Mọi `canonical`, `sitemap`, `middleware.ts` (308 Permanent Redirect từ `keibai-koubai.com` sang `www.keibai-koubai.com`) và biến môi trường `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_BASE_URL`, `NEXTAUTH_URL` phải trỏ đồng nhất 100% về `https://www.keibai-koubai.com`.
+
 ---
 
 ## 7. 🔗 Quy Chuẩn Đối Ứng Press & Media Hai Chiều (`/company`)

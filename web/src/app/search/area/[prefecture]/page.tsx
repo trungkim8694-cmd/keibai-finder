@@ -11,7 +11,7 @@ export const revalidate = 3600; // Cache these pages for 1 hour
 export async function generateMetadata({ params }: { params: Promise<{ prefecture: string }> }): Promise<Metadata> {
   const { prefecture } = await params;
   const decodedPref = decodeURIComponent(prefecture);
-  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
+  const baseUrl = 'https://www.keibai-koubai.com';
   const canonicalUrl = `${baseUrl}/search/area/${encodeURIComponent(decodedPref)}`;
   
   const [activeCount, totalHistoryCount, minPriceProp] = await Promise.all([
@@ -89,7 +89,7 @@ const REGIONS = [
 export default async function PrefectureSearchPage({ params }: { params: Promise<{ prefecture: string }> }) {
   const { prefecture } = await params;
   const decodedPref = decodeURIComponent(prefecture);
-  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
+  const baseUrl = 'https://www.keibai-koubai.com';
 
   // Fetch properties filtered by prefecture
   const [properties, cityStats] = await Promise.all([

@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ line: str
   const { line, station } = await params;
   const decodedLine = safeDecodeURIComponent(line);
   const decodedStation = safeDecodeURIComponent(station);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = 'https://www.keibai-koubai.com';
   const canonicalUrl = `${baseUrl}/search/station/${encodeURIComponent(decodedLine)}/${encodeURIComponent(decodedStation)}`;
 
   const now = new Date();
@@ -148,7 +148,7 @@ export default async function StationSearchPage({ params }: { params: Promise<{ 
   const { line, station } = await params;
   const decodedLine = safeDecodeURIComponent(line);
   const decodedStation = safeDecodeURIComponent(station);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = 'https://www.keibai-koubai.com';
 
   // Fetch properties filtered by line and station + neighbor stations along the same line
   const now = new Date();

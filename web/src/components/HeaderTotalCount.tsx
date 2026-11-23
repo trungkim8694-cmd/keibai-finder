@@ -1,10 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { getTotalPropertiesCount } from '@/actions/propertyActions';
 
-export default function HeaderTotalCount({ initialCount }: { initialCount: number }) {
+export default function HeaderTotalCount({ initialCount = 1568 }: { initialCount?: number }) {
   const [count, setCount] = useState(initialCount);
 
   useEffect(() => {
+    getTotalPropertiesCount().then((c) => {
+      if (c && c > 0) setCount(c);
+    }).catch(() => {});
+
     const handleUpdate = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (customEvent.detail !== undefined) {

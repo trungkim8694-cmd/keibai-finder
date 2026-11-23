@@ -486,7 +486,7 @@ export async function sendContactAutoReplyEmail(params: {
       所属団体：公益社団法人 全日本不動産協会 / 不動産保証協会<br>
       所在地：〒171-0022 東京都豊島区南池袋二丁目３３−６ 佐藤ビルディング３Ｆ<br>
       代表電話：03-6907-1219（平日 09:30〜18:00） / FAX：03-6701-2399<br>
-      WEB：<a href="https://keibai-koubai.com" style="color: #1B4F8A;">https://keibai-koubai.com</a>
+      WEB：<a href="https://www.keibai-koubai.com" style="color: #1B4F8A;">https://www.keibai-koubai.com</a>
     </div>
   </div>
 </body>

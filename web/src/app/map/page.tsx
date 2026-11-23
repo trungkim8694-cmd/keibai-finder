@@ -1,7 +1,6 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getProperties, getAreaStats } from '@/actions/propertyActions';
 import type { BoundingBox, SearchFilters } from '@/actions/propertyActions';
 import PropertyCard from '@/components/PropertyCard';
@@ -16,15 +15,7 @@ import { MapIcon, ListBulletIcon } from '@heroicons/react/20/solid';
 
 import SidebarFooter from '@/components/SidebarFooter';
 import MobileMapPeekCard from '@/components/MobileMapPeekCard';
-
-const KeibaiMap = dynamic(() => import('@/components/KeibaiMap'), { 
-  ssr: false, 
-  loading: () => (
-    <div className="w-full h-full bg-zinc-100 dark:bg-zinc-900 animate-pulse flex items-center justify-center text-zinc-400">
-      地図を読み込み中...
-    </div>
-  )
-});
+import KeibaiMap from '@/components/KeibaiMap';
 
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
@@ -343,9 +334,7 @@ export default function DashboardPage() {
       
       {/* 2. Docked Horizontal B2B Toolbar (Search & Filter) */}
       <div className="w-full z-40 bg-white dark:bg-zinc-900 shrink-0 relative">
-        <Suspense fallback={<div className="h-[88px] w-full animate-pulse bg-slate-50 dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800"></div>}>
-          <SearchBar onSearch={handleSearch} onMobileFilterOpenChange={setIsFilterModalOpen} />
-        </Suspense>
+        <SearchBar onSearch={handleSearch} onMobileFilterOpenChange={setIsFilterModalOpen} />
       </div>
 
       {/* 3. Fixed Split-Screen App Shell (SUUMO / LIFULL HOME'S / KENBIYA Standard) */}

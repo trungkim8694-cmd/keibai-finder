@@ -28,7 +28,7 @@ export async function generateMetadata({
   const currentPage = Math.max(1, parseInt(sParams?.page || '1', 10));
   const decodedPref = safeDecodeURIComponent(prefecture);
   const decodedCity = safeDecodeURIComponent(city);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = 'https://www.keibai-koubai.com';
   const pageSuffix = currentPage > 1 ? `?page=${currentPage}` : '';
   const canonicalUrl = `${baseUrl}/search/area/${encodeURIComponent(decodedPref)}/${encodeURIComponent(decodedCity)}${pageSuffix}`;
 
@@ -169,7 +169,7 @@ export default async function AreaSearchPage({
   const currentPage = Math.max(1, parseInt(sParams?.page || '1', 10));
   const decodedPref = safeDecodeURIComponent(prefecture);
   const decodedCity = safeDecodeURIComponent(city);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = 'https://www.keibai-koubai.com';
   const pageSize = 50;
 
   // Fetch properties and total count for crawlable pagination + facts for unique SEO value

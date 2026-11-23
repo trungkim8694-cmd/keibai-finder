@@ -95,7 +95,7 @@ export default async function BlogsPage() {
       />
 
       {/* 1. 3-Tier Header & Breadcrumbs Section */}
-      <header className="bg-white dark:bg-[#151B22] border-b border-slate-200/90 dark:border-slate-800/90 pt-6 pb-8">
+      <section className="bg-white dark:bg-[#151B22] border-b border-slate-200/90 dark:border-slate-800/90 pt-6 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
           
           {/* Breadcrumb */}
@@ -125,12 +125,12 @@ export default async function BlogsPage() {
             </p>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* 2. Main Content (Interactive Client List) */}
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <BlogListClient articles={serializedArticles} />
-      </main>
+      </div>
 
       {/* 3. B2B Newsletter & Guidance Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">

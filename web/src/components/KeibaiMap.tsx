@@ -1,6 +1,6 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import React, { useState, useEffect } from 'react';
 import type { BoundingBox } from '../actions/propertyActions';
 
 export interface KeibaiMapProps {
@@ -20,15 +20,29 @@ export interface KeibaiMapProps {
   onSearchAreaClick?: () => void;
 }
 
-const KeibaiMapInner = dynamic(() => import('./KeibaiMapInner'), { 
-  ssr: false, 
-  loading: () => (
-    <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800 animate-pulse flex items-center justify-center font-bold text-zinc-500">
-      地図を読み込み中...
-    </div>
-  )
-});
-
 export default function KeibaiMap(props: KeibaiMapProps) {
-  return <KeibaiMapInner {...props} />;
+  const [MapComponent, setMapComponent] = useState<React.ComponentType<KeibaiMapProps> | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    import('./KeibaiMapInner').then((mod) => {
+      if (isMounted) {
+        setMapComponent(() => mod.default);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (!MapComponent) {
+    return (
+      <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800 animate-pulse flex items-center justify-center font-bold text-zinc-500">
+        地図を読み込み中...
+      </div>
+    );
+  }
+
+  return <MapComponent {...props} />;
 }
+

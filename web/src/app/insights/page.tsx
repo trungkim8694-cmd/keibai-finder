@@ -67,7 +67,7 @@ export default async function InsightsHubPage() {
       />
       
       {/* 3-Tier Header Banner */}
-      <header className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#151B22]">
+      <section className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#151B22]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <nav aria-label="パンくずリスト" className="text-xs text-slate-500 dark:text-slate-400 mb-2">
             <Link href="/" className="hover:text-[#1B4F8A] dark:hover:text-sky-400 transition-colors">
@@ -84,10 +84,10 @@ export default async function InsightsHubPage() {
             価格乖離（マージン）20%以上の注目割安案件をピックアップ。公的取引相場データに基づき、プロの投資家視点で市場の歪みと投資機会をお届けします。
           </p>
         </div>
-      </header>
+      </section>
 
       {/* Main Grid / List */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         {digests.length === 0 ? (
           <div className="text-center p-8 sm:p-12 bg-white dark:bg-[#151B22] rounded-lg border border-slate-200 dark:border-slate-800">
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">現在、公開されているレポートはありません。</p>
@@ -133,7 +133,7 @@ export default async function InsightsHubPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

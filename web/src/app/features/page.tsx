@@ -102,7 +102,7 @@ export default function FeaturesIndexPage() {
       />
 
       {/* 3-Tier Header Banner */}
-      <header className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#151B22]">
+      <section className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#151B22]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {/* Breadcrumbs */}
           <nav aria-label="パンくずリスト" className="text-xs text-slate-500 dark:text-slate-400 mb-2">
@@ -121,10 +121,10 @@ export default function FeaturesIndexPage() {
             Keibai Finder エコシステムが提供する強力なデータ分析ツール一覧です。目的に合わせたツールを選択し、投資機会を最大化してください。
           </p>
         </div>
-      </header>
+      </section>
 
       {/* Main Grid Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {featureCards.map((card) => {
             const Icon = card.icon;
@@ -155,7 +155,7 @@ export default function FeaturesIndexPage() {
             );
           })}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

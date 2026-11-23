@@ -16,7 +16,7 @@ import { CourtValuation } from '@/components/Detail/CourtValuation';
 import { AiAnalysisPanel } from '@/components/Detail/AiAnalysisPanel';
 import { resolvePropertyAiAnalysis } from '@/lib/aiRiskExtractor';
 import { getSourceProviderMeta, isPublicAuctionProvider } from '@/lib/sourceProviderConfig';
-import { MarketValuation } from '@/components/Detail/MarketValuation';
+import { getMarketValuationData } from '@/components/Detail/MarketValuation';
 import { RoiCalculator } from '@/components/Detail/RoiCalculator';
 import { AuctionHistoryBadge } from '@/components/Detail/AuctionHistoryBadge';
 import { PropertyInfoTags } from '@/components/PropertyInfoTags';
@@ -27,7 +27,6 @@ import { NearbyActiveGrid } from '@/components/Detail/NearbyActiveGrid';
 import { Inbox, HelpCircle, ChevronDown, BookOpen, Scale, Sparkles } from 'lucide-react';
 import { ImageGallery } from '@/components/Detail/ImageGallery';
 import { Metadata } from 'next';
-import { headers } from 'next/headers';
 import { logBotHitAsync } from '@/lib/botTracker';
 import { PropertyComments } from '@/components/Detail/PropertyComments';
 import { PropertyAgencies } from '@/components/Detail/PropertyAgencies';
@@ -66,12 +65,17 @@ function deepSerialize(data: any): any {
 }
 
 export const revalidate = 3600; // Cache property details for 1 hour
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const property = await getPropertyById(id);
   
-  if (!property) return { title: '物件が見つかりません', robots: { index: false, follow: false } };
+  if (!property) return notFound();
 
   const priceNum = property.starting_price ? Number(property.starting_price) : 0;
   // Format price in Man-yen for better CTR
@@ -139,7 +143,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   });
   const ogImage = resolvedOgThumb || undefined;
 
-  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
+  const baseUrl = 'https://www.keibai-koubai.com';
   const canonicalUrl = `${baseUrl}/property/${id}`;
 
   return {
@@ -172,21 +176,13 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   // Fix Next.js 15+ async params error by awaiting params
   const { id } = await params;
 
-  // Track search engine crawlers asynchronously
-  try {
-    const headersList = await headers();
-    const userAgent = headersList.get('user-agent');
-    const ip = headersList.get('cf-connecting-ip') || headersList.get('x-forwarded-for') || headersList.get('x-real-ip');
-    logBotHitAsync({ url: `/property/${id}`, userAgent, ip });
-  } catch {
-    // Silently continue
-  }
-
   const property = await getPropertyById(id);
 
   if (!property) {
     return notFound();
   }
+
+  logBotHitAsync({ url: `/property/${id}`, userAgent: null, ip: null });
 
   console.log('PropertyDetail render -> prefecture:', property.prefecture, 'city:', property.city);
 
@@ -377,7 +373,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   const auctionRound = extractAuctionRoundFromData(property.raw_display_data);
 
   // --- Sharing Info ---
-  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
+  const baseUrl = 'https://www.keibai-koubai.com';
   const propertyUrl = `${baseUrl}/property/${property.sale_unit_id}`;
   const addressShort = property.address?.substring(0, 30) || id;
   const propertyTitle = `【${formattedStartPrice}】${addressShort} - ${accurateType}`;
@@ -432,14 +428,24 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
       }).then(res => res.companies || [])
     : Promise.resolve([]);
 
-  // RUN ALL 6 IN PARALLEL SAFELY with Promise.allSettled to prevent single peripheral failures from crashing the page
-  const [stationsSettled, nearbySettled, soldSettled, similarSettled, commentsSettled, agenciesSettled] = await Promise.allSettled([
+  const marketValPromise = property.prefecture && property.city
+    ? getMarketValuationData({
+        prefecture: property.prefecture,
+        city: property.city,
+        rawAddress: (property as any).address,
+        propertyType: property.property_type || '戸建て',
+      })
+    : Promise.resolve(null);
+
+  // RUN ALL 7 IN PARALLEL SAFELY with Promise.allSettled to prevent single peripheral failures from crashing the page
+  const [stationsSettled, nearbySettled, soldSettled, similarSettled, commentsSettled, agenciesSettled, marketValSettled] = await Promise.allSettled([
     stationsPromise,
     nearbyActivePromise,
     nearbySoldPromise,
     historyPromise,
     commentsPromise,
-    agenciesPromise
+    agenciesPromise,
+    marketValPromise
   ]);
 
   const stationsResult = stationsSettled.status === 'fulfilled' ? stationsSettled.value : [];
@@ -448,6 +454,16 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   const similarProps = similarSettled.status === 'fulfilled' ? similarSettled.value : [];
   const propertyComments = commentsSettled.status === 'fulfilled' ? commentsSettled.value : [];
   const agenciesResult = agenciesSettled.status === 'fulfilled' ? agenciesSettled.value : [];
+  const marketValElement = marketValSettled.status === 'fulfilled' && marketValSettled.value
+    ? marketValSettled.value.render({
+        basePriceNum: property.starting_price ? Number(property.starting_price) : 0,
+        propertyArea: parsedArea,
+        dbMlitEstimatedPrice: property.mlit_estimated_price ? Number(property.mlit_estimated_price) : null,
+        dbMlitInvestmentGap: property.mlit_investment_gap ? Number(property.mlit_investment_gap) : null,
+        sourceProvider: property.source_provider,
+        displayPropertyType: resolveAccuratePropertyType(property),
+      })
+    : null;
 
   const safeComments = deepSerialize(propertyComments || []);
   const safeAgencies = deepSerialize(agenciesResult || []);
@@ -792,54 +808,66 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   const propertyAiAnalysis = resolvePropertyAiAnalysis(property);
 
   // --- UI CHUNKS ---
-  const TitleAndTagsUI = (
-    <div className="w-full">
-      <div className="mb-2 flex justify-between items-center w-full gap-2">
-        <div className="min-w-[0]">
-          <span className="text-xs font-semibold block truncate">
-            {isPublicAuctionProvider(property.source_provider) ? (() => {
-              const meta = getSourceProviderMeta(property.source_provider);
-              return (
-                <CourtContactLink 
-                  courtName={property.managing_authority ? property.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : (property.court_name || meta.authorityFallback)} 
-                  contactUrl={(property as any).contact_url || property.source_url} 
-                  theme={meta.linkTheme}
-                />
-              );
-            })() : (
-              <CourtContactLink courtName={property.court_name} contactUrl={bitContactUrl} />
-            )}
-          </span>
-        </div>
-        {property.mlit_investment_gap !== null && property.mlit_investment_gap !== undefined && property.mlit_investment_gap > 0 && (() => {
-          const startNum = property.starting_price ? Number(property.starting_price) : 0;
-          const estNum = property.mlit_estimated_price ? Number(property.mlit_estimated_price) : 0;
-          const diffMan = estNum > startNum ? Math.round((estNum - startNum) / 10000) : 0;
+  const renderTitleAndTagsUI = (isPrimaryHeading: boolean) => {
+    const headingText = !(property as any).prefecture && !(property as any).city
+      ? '詳細情報'
+      : cleanAddress((property as any).address, (property as any).prefecture, (property as any).city);
 
-          return (
-            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 border border-blue-200/90 dark:border-blue-800/60 tabular-nums shadow-2xs">
-              <span className="text-[10px]">🏷️</span>
-              {diffMan > 0 
-                ? `市場比 約${diffMan.toLocaleString()}万円安 (${property.mlit_investment_gap.toFixed(0)}%割安)`
-                : `市場相場より ${property.mlit_investment_gap.toFixed(0)}% 割安`
-              }
+    return (
+      <div className="w-full">
+        <div className="mb-2 flex justify-between items-center w-full gap-2">
+          <div className="min-w-[0]">
+            <span className="text-xs font-semibold block truncate">
+              {isPublicAuctionProvider(property.source_provider) ? (() => {
+                const meta = getSourceProviderMeta(property.source_provider);
+                return (
+                  <CourtContactLink 
+                    courtName={property.managing_authority ? property.managing_authority.split('\n').join('').replace(/\s+/g, ' ').trim() : (property.court_name || meta.authorityFallback)} 
+                    contactUrl={(property as any).contact_url || property.source_url} 
+                    theme={meta.linkTheme}
+                  />
+                );
+              })() : (
+                <CourtContactLink courtName={property.court_name} contactUrl={bitContactUrl} />
+              )}
             </span>
-          );
-        })()}
+          </div>
+          {property.mlit_investment_gap !== null && property.mlit_investment_gap !== undefined && property.mlit_investment_gap > 0 && (() => {
+            const startNum = property.starting_price ? Number(property.starting_price) : 0;
+            const estNum = property.mlit_estimated_price ? Number(property.mlit_estimated_price) : 0;
+            const diffMan = estNum > startNum ? Math.round((estNum - startNum) / 10000) : 0;
+
+            return (
+              <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold bg-blue-50 dark:bg-blue-950/60 text-[#1B4F8A] dark:text-blue-300 border border-blue-200/90 dark:border-blue-800/60 tabular-nums shadow-2xs">
+                <span className="text-[10px]">🏷️</span>
+                {diffMan > 0 
+                  ? `市場比 約${diffMan.toLocaleString()}万円安 (${property.mlit_investment_gap.toFixed(0)}%割安)`
+                  : `市場相場より ${property.mlit_investment_gap.toFixed(0)}% 割安`
+                }
+              </span>
+            );
+          })()}
+        </div>
+        {isPrimaryHeading ? (
+          <h1 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">
+            {headingText}
+          </h1>
+        ) : (
+          <div className="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2" aria-hidden="true">
+            {headingText}
+          </div>
+        )}
+        
+        <div className="mb-3">
+           <PropertyInfoTags property={serializedProperty} displayArea={displayArea} showCourtTag={false} variant="detail-header">
+             {serializedHistory.length > 1 && (
+               <AuctionHistoryBadge history={serializedHistory} relistSummary={serializedRelistSummary} variant="compact" />
+             )}
+           </PropertyInfoTags>
+        </div>
       </div>
-      <h1 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">
-        {!(property as any).prefecture && !(property as any).city ? '詳細情報' : cleanAddress((property as any).address, (property as any).prefecture, (property as any).city)}
-      </h1>
-      
-      <div className="mb-3">
-         <PropertyInfoTags property={serializedProperty} displayArea={displayArea} showCourtTag={false} variant="detail-header">
-           {serializedHistory.length > 1 && (
-             <AuctionHistoryBadge history={serializedHistory} relistSummary={serializedRelistSummary} variant="compact" />
-           )}
-         </PropertyInfoTags>
-      </div>
-    </div>
-  );
+    );
+  };
 
   // Priority: Source images first (thumbnail at index 0), followed by extracted images
   const { thumbnailUrl: resolvedDetailThumbnail, images: resolvedGalleryImages } = resolvePropertyImages({
@@ -1089,46 +1117,29 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
 
   const nodeDetailMap = property.lat && property.lng ? (
     <div className="mb-8 lg:mb-0">
-      <React.Suspense fallback={<div className="h-64 bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded-2xl" />}>
-        <DetailMapComponent 
-          property={safeProperty}
-          nearestStations={safeNearestStations}
-          nearbyActive={safeNearbyActive}
-          nearbySold={safeNearbySold}
-        />
-      </React.Suspense>
+      <DetailMapComponent 
+        property={safeProperty}
+        nearestStations={safeNearestStations}
+        nearbyActive={safeNearbyActive}
+        nearbySold={safeNearbySold}
+      />
     </div>
   ) : null;
 
   const nodeMarketComparison = property.lat && property.lng ? (
     <div className="mb-8 lg:mb-0">
-      <React.Suspense fallback={<div className="h-48 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-2xl" />}>
-        <MarketComparison 
-          nearbySold={safeNearbySold} 
-          stations={safeNearestStations} 
-          prefecture={property.prefecture || undefined}
-          city={property.city || undefined}
-        />
-      </React.Suspense>
+      <MarketComparison 
+        nearbySold={safeNearbySold} 
+        stations={safeNearestStations} 
+        prefecture={property.prefecture || undefined}
+        city={property.city || undefined}
+      />
     </div>
   ) : null;
 
-  const nodeMarketValuation = property.prefecture && property.city ? (
+  const nodeMarketValuation = marketValElement ? (
     <div className="mb-8 lg:mb-0">
-      <React.Suspense fallback={<div className="h-48 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-2xl" />}>
-        <MarketValuation 
-          prefecture={property.prefecture}
-          city={property.city}
-          rawAddress={(property as any).address}
-          propertyType={property.property_type || '戸建て'}
-          basePriceNum={basePriceNum}
-          propertyArea={parsedArea}
-          dbMlitEstimatedPrice={property.mlit_estimated_price ? Number(property.mlit_estimated_price) : null}
-          dbMlitInvestmentGap={property.mlit_investment_gap ? Number(property.mlit_investment_gap) : null}
-          sourceProvider={property.source_provider}
-          displayPropertyType={resolveAccuratePropertyType(property)}
-        />
-      </React.Suspense>
+      {marketValElement}
     </div>
   ) : null;
 
@@ -1182,7 +1193,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         sourceProvider={property.source_provider}
       />
 
-      <main className="w-full max-w-7xl mx-auto mt-6 px-4 overflow-x-hidden">
+      <div className="w-full max-w-7xl mx-auto mt-6 px-4 overflow-x-hidden">
         {!isAvailable && (
           <div className="mb-6 rounded-lg border border-amber-300 dark:border-amber-800/80 bg-amber-50/90 dark:bg-amber-950/40 p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -1220,7 +1231,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         {/* --- MOBILE LAYOUT (Single Column) --- */}
         <div className="flex lg:hidden max-w-4xl mx-auto flex-col w-full">
           <section className="bg-white dark:bg-zinc-900 rounded-lg p-5 shadow-none border border-slate-200 dark:border-zinc-800 mb-6">
-            {TitleAndTagsUI}
+            {renderTitleAndTagsUI(true)}
             {ImageGalleryUI && <div className="mt-4">{ImageGalleryUI}</div>}
             {CourtValuationUI}
             {PdfLinksUI}
@@ -1246,7 +1257,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
           {/* LEFT COLUMN */}
           <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
             <section className="bg-white dark:bg-zinc-900 rounded-lg p-6 shadow-none border border-slate-200 dark:border-zinc-800">
-              {TitleAndTagsUI}
+              {renderTitleAndTagsUI(false)}
               {ImageGalleryUI && <div className="mt-4">{ImageGalleryUI}</div>}
               {CourtValuationUI}
               {PdfLinksUI}
@@ -1337,7 +1348,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
           />
         </div>
 
-      </main>
+      </div>
     </div>
     </>
   );

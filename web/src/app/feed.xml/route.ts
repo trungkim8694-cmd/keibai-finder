@@ -28,7 +28,7 @@ function formatYen(amount: bigint | number | null | undefined): string {
 }
 
 export async function GET(req: NextRequest) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com';
+  const baseUrl = 'https://www.keibai-koubai.com';
   const userAgent = req.headers.get('user-agent');
   const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
   logBotHitAsync({ url: '/feed.xml', userAgent, ip, httpStatus: 200 });

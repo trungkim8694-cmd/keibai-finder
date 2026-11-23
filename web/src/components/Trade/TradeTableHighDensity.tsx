@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { MlitTransaction } from '@/lib/mlitApi';
 import { ChevronLeft, ChevronRight, Train, ArrowUpDown, ArrowUp, ArrowDown, Building2, MapPin } from 'lucide-react';
 
@@ -60,7 +60,6 @@ export default function TradeTableHighDensity({
   perPage = 20
 }: TradeTableHighDensityProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [sortField, setSortField] = useState<SortField>('period');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -68,7 +67,7 @@ export default function TradeTableHighDensity({
   const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
 
   const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
     params.set('page', newPage.toString());
     router.push(`/trade-find?${params.toString()}`);
   };

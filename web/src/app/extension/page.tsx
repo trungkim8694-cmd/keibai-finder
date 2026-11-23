@@ -487,7 +487,7 @@ export default function ExtensionLandingPage() {
       </section>
 
       {/* 8. Footer */}
-      <footer className="py-8 px-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
+      <div className="py-8 px-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-7xl mx-auto space-y-2">
           <p>© 2026 Keibai Finder / Keibai-Koubai. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
@@ -504,7 +504,7 @@ export default function ExtensionLandingPage() {
             </Link>
           </div>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }

@@ -85,7 +85,7 @@ export default async function AuctionSchedulePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
-      <main className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-slate-100 pb-16">
+      <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-slate-100 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
           {/* Breadcrumb Navigation */}
           <nav aria-label="パンくずリスト" className="text-xs text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-1.5 flex-wrap">
@@ -105,7 +105,7 @@ export default async function AuctionSchedulePage() {
           {/* Interactive Schedule Component */}
           <AuctionScheduleClient initialData={scheduleData} />
         </div>
-      </main>
+      </div>
     </>
   );
 }

@@ -23,7 +23,7 @@ function escapeXml(unsafe: string): string {
 }
 
 export async function GET() {
-  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
+  const baseUrl = 'https://www.keibai-koubai.com';
   const stableBuildDate = new Date('2026-11-01T00:00:00Z');
 
   try {

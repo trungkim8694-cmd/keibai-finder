@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import dynamic from 'next/dynamic';
+import React, { useState, useEffect } from 'react';
 import type { PreviewProperty } from './HomeMapPreviewInner';
 import { Map, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -10,19 +9,21 @@ interface HomeMapPreviewProps {
   properties: PreviewProperty[];
 }
 
-const HomeMapPreviewInner = dynamic(() => import('./HomeMapPreviewInner'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[400px] sm:h-[460px] rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900/60 flex flex-col items-center justify-center gap-3 animate-pulse">
-      <div className="p-3 rounded-full bg-slate-200 dark:bg-zinc-800 text-slate-400">
-        <Map className="w-6 h-6 animate-spin" />
-      </div>
-      <span className="text-xs font-bold text-slate-500">地図データを読み込み中...</span>
-    </div>
-  ),
-});
-
 export default function HomeMapPreview({ properties }: HomeMapPreviewProps) {
+  const [MapComponent, setMapComponent] = useState<React.ComponentType<{ properties: PreviewProperty[] }> | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    import('./HomeMapPreviewInner').then((mod) => {
+      if (isMounted) {
+        setMapComponent(() => mod.default);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <section className="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/90 dark:border-zinc-800 p-5 sm:p-7 shadow-xs space-y-4">
       {/* Section Header */}
@@ -51,7 +52,16 @@ export default function HomeMapPreview({ properties }: HomeMapPreviewProps) {
       </div>
 
       {/* Interactive Map Component */}
-      <HomeMapPreviewInner properties={properties} />
+      {MapComponent ? (
+        <MapComponent properties={properties} />
+      ) : (
+        <div className="w-full h-[400px] sm:h-[460px] rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900/60 flex flex-col items-center justify-center gap-3 animate-pulse">
+          <div className="p-3 rounded-full bg-slate-200 dark:bg-zinc-800 text-slate-400">
+            <Map className="w-6 h-6 animate-spin" />
+          </div>
+          <span className="text-xs font-bold text-slate-500">地図データを読み込み中...</span>
+        </div>
+      )}
     </section>
   );
 }

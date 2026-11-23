@@ -55,7 +55,7 @@ export default function MapFeatureLandingPage() {
       />
 
       {/* 3-Tier Layout TIER 1: Header Banner with Breadcrumbs */}
-      <header className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+      <section className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <nav className="text-xs text-slate-500 dark:text-slate-400 mb-2">
             <Link href="/" className="hover:text-[#1B4F8A] transition-colors">
@@ -90,10 +90,10 @@ export default function MapFeatureLandingPage() {
             </Link>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* 3-Tier Layout TIER 2 & 3: Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-12">
         {/* Section 1: Map Search */}
         <section className="bg-white dark:bg-[#151B22] rounded-lg border border-slate-200 dark:border-zinc-800 p-6 sm:p-8 shadow-sm">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -261,7 +261,7 @@ export default function MapFeatureLandingPage() {
             </div>
           </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

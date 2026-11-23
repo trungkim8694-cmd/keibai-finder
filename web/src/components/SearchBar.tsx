@@ -6,7 +6,7 @@ import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react
 import { MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, MapIcon, StarIcon } from '@heroicons/react/20/solid';
 import { RotateCcw, Bookmark, Coins, Building2, Scale, Train, MapPin, Check } from 'lucide-react';
 import { getSearchSuggestions, getFacetedStats, SearchSuggestion } from '../actions/propertyActions';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import useSWR from 'swr';
 
 export interface Station {
@@ -168,7 +168,6 @@ export default function SearchBar({ onSearch, onMobileFilterOpenChange }: Search
   
   const router = useRouter();
   const pathname = usePathname() || '/map';
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     setIsMounted(true);
@@ -204,7 +203,8 @@ export default function SearchBar({ onSearch, onMobileFilterOpenChange }: Search
   const authorityData = stats?.authorityStats || { bit: [], nta: [] };
   
   useEffect(() => {
-     if (isMounted) {
+     if (isMounted && typeof window !== 'undefined') {
+        const searchParams = new URLSearchParams(window.location.search);
         const initialOverrides: any = {};
 
         const lineParam = searchParams.get('line') || searchParams.get('lineName');
@@ -933,7 +933,7 @@ export default function SearchBar({ onSearch, onMobileFilterOpenChange }: Search
                            <button
                              type="button"
                              onClick={() => {
-                                const params = new URLSearchParams(searchParams.toString());
+                                const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
                                 const effectiveNationwide = isNationwide || selectedPrefectures.length === 0;
                                 if (!effectiveNationwide && selectedPrefectures.length > 0) {
                                   params.set('prefs', selectedPrefectures.join(','));
@@ -1237,7 +1237,7 @@ export default function SearchBar({ onSearch, onMobileFilterOpenChange }: Search
                        triggerSearch({ lineName: val, stationName: undefined }); 
                        
                        // URL Sync
-                       const params = new URLSearchParams(searchParams.toString());
+                       const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
                        if (val !== 'ALL') {
                           params.set('line', val);
                        } else {
@@ -1260,7 +1260,7 @@ export default function SearchBar({ onSearch, onMobileFilterOpenChange }: Search
                          setSelectedLine('ALL');
                          setSelectedStation('ALL');
                          triggerSearch({ lineName: undefined, stationName: undefined });
-                         const params = new URLSearchParams(searchParams.toString());
+                         const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
                          params.delete('line');
                          const queryStr = params.toString();
                          router.replace(queryStr ? `${pathname}?${queryStr}` : pathname, { scroll: false });
@@ -1340,7 +1340,7 @@ export default function SearchBar({ onSearch, onMobileFilterOpenChange }: Search
                      setSort(v); 
                      triggerSearch({ sort: v }); 
                      // Sync URL
-                     const params = new URLSearchParams(searchParams.toString());
+                     const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
                      params.set('sort', v);
                      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
                    }} className="text-sm lg:text-[11px] font-bold border-none bg-transparent outline-none text-blue-600 dark:text-blue-400 cursor-pointer appearance-none">

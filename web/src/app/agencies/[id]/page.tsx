@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
   }
 
-  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
+  const baseUrl = 'https://www.keibai-koubai.com';
   const canonicalUrl = `${baseUrl}/agencies/${id}`;
 
   return {
@@ -98,7 +98,7 @@ export default async function AgencyPage({ params }: { params: Promise<{ id: str
     hasReviewed = !!review;
   }
 
-  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
+  const baseUrl = 'https://www.keibai-koubai.com';
   const agencyJsonLd = {
     '@context': 'https://schema.org',
     '@graph': [

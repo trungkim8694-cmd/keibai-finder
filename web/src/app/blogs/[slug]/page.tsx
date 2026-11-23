@@ -236,7 +236,7 @@ export default async function LogDetailPage({ params }: Props) {
           <article className="lg:col-span-8 b2b-card bg-white dark:bg-[#151B22] border border-slate-200/90 dark:border-slate-800/90 rounded-lg p-6 sm:p-10 space-y-8">
             
             {/* Header */}
-            <header className="space-y-4 pb-6 border-b border-slate-200/80 dark:border-slate-800/80">
+            <div className="space-y-4 pb-6 border-b border-slate-200/80 dark:border-slate-800/80">
               <div className="flex flex-wrap items-center gap-3">
                 {isCaution ? (
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60">
@@ -269,7 +269,7 @@ export default async function LogDetailPage({ params }: Props) {
                   </span>
                 ))}
               </div>
-            </header>
+            </div>
 
             {/* Featured Image */}
             {article.featuredImage && (

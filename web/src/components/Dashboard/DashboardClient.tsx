@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { 
   Kanban, 
   MessageSquare, 
@@ -90,8 +90,15 @@ export function DashboardClient({
   partnerLeads: initialPartnerLeads,
 }: DashboardClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'favorites';
+  const [activeTab, setActiveTab] = useState<string>('favorites');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const t = sp.get('tab');
+      if (t) setActiveTab(t);
+    }
+  }, []);
 
   // State
   const [favorites, setFavorites] = useState(initialFavorites);
@@ -121,7 +128,8 @@ export function DashboardClient({
 
   // Tab switcher
   const setTab = (tabName: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    setActiveTab(tabName);
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
     params.set('tab', tabName);
     router.push(`/dashboard?${params.toString()}`);
   };

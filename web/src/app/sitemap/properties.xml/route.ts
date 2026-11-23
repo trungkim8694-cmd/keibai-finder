@@ -22,7 +22,7 @@ function escapeXml(unsafe: string): string {
 }
 
 export async function GET() {
-  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keibai-koubai.com').replace(/\/$/, '');
+  const baseUrl = 'https://www.keibai-koubai.com';
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   try {

@@ -180,7 +180,7 @@ export default async function DigestDetailPage({ params }: Props) {
         </div>
 
         {/* Header */}
-        <header className="space-y-6 mb-10 pb-10 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="space-y-6 mb-10 pb-10 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex flex-wrap items-center gap-3">
             <span className="flex items-center gap-1.5 text-sm font-medium text-zinc-500 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1 rounded-full">
               <Calendar className="w-4 h-4" />
@@ -197,7 +197,7 @@ export default async function DigestDetailPage({ params }: Props) {
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-zinc-900 dark:text-zinc-50 leading-tight">
             {title}
           </h1>
-        </header>
+        </div>
 
         {/* Content Body */}
         <ArticleContent content={rawContent} />

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Search, RotateCcw, SlidersHorizontal, ChevronDown, Building2, MapPin } from 'lucide-react';
 
 export const JAPAN_PREFECTURES = [
@@ -34,27 +34,27 @@ export default function TradeAdvancedFilter({
   initialBuildingAge = '',
 }: TradeAdvancedFilterProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const [pref, setPref] = useState(initialPref || searchParams.get('pref') || '');
-  const [city, setCity] = useState(initialCity || searchParams.get('city') || '');
-  const [type, setType] = useState(initialType || searchParams.get('type') || '戸建て');
-  const [minPrice, setMinPrice] = useState(initialMinPrice || searchParams.get('minPrice') || '');
-  const [maxPrice, setMaxPrice] = useState(initialMaxPrice || searchParams.get('maxPrice') || '');
-  const [maxWalk, setMaxWalk] = useState(initialMaxWalk || searchParams.get('maxWalk') || '');
-  const [buildingAge, setBuildingAge] = useState(initialBuildingAge || searchParams.get('buildingAge') || '');
+  const [pref, setPref] = useState(initialPref || '');
+  const [city, setCity] = useState(initialCity || '');
+  const [type, setType] = useState(initialType || '戸建て');
+  const [minPrice, setMinPrice] = useState(initialMinPrice || '');
+  const [maxPrice, setMaxPrice] = useState(initialMaxPrice || '');
+  const [maxWalk, setMaxWalk] = useState(initialMaxWalk || '');
+  const [buildingAge, setBuildingAge] = useState(initialBuildingAge || '');
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Sync state if searchParams change externally
+  // Sync state if initial props or URL searchParams change externally
   useEffect(() => {
-    setPref(searchParams.get('pref') || initialPref || '');
-    setCity(searchParams.get('city') || initialCity || '');
-    setType(searchParams.get('type') || initialType || '戸建て');
-    setMinPrice(searchParams.get('minPrice') || initialMinPrice || '');
-    setMaxPrice(searchParams.get('maxPrice') || initialMaxPrice || '');
-    setMaxWalk(searchParams.get('maxWalk') || initialMaxWalk || '');
-    setBuildingAge(searchParams.get('buildingAge') || initialBuildingAge || '');
-  }, [searchParams, initialPref, initialCity, initialType, initialMinPrice, initialMaxPrice, initialMaxWalk, initialBuildingAge]);
+    const sp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    setPref(initialPref || sp?.get('pref') || '');
+    setCity(initialCity || sp?.get('city') || '');
+    setType(initialType || sp?.get('type') || '戸建て');
+    setMinPrice(initialMinPrice || sp?.get('minPrice') || '');
+    setMaxPrice(initialMaxPrice || sp?.get('maxPrice') || '');
+    setMaxWalk(initialMaxWalk || sp?.get('maxWalk') || '');
+    setBuildingAge(initialBuildingAge || sp?.get('buildingAge') || '');
+  }, [initialPref, initialCity, initialType, initialMinPrice, initialMaxPrice, initialMaxWalk, initialBuildingAge]);
 
   // Expand filter section automatically if any sub-filter is active
   useEffect(() => {
