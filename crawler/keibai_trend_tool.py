@@ -28,14 +28,14 @@ OFFLINE_TREND_KEYWORDS = [
         "prompt": "東京都内の不動産競売における最新の落札価格動向と、23区および多摩地区の価格乖離率を実データに基づき解説せよ。"
     },
     {
-        "id": "saikenchiku-fuka-renovation",
-        "keyword": "再建築不可 競売 リノベーション",
+        "id": "akiya-saisei-keibai-yield",
+        "keyword": "空き家再生 競売 高利回り",
         "category": "HIGH_YIELD_TYPE",
         "monthly_volume": 16900,
         "growth": 52.1,
         "trend_level": "BREAKING",
-        "target_url": "/search?keyword=再建築不可",
-        "prompt": "建築基準法第43条但し書き規定を踏まえた、再建築不可競売物件の再生ノウハウと利回り最大化戦略を解説せよ。"
+        "target_url": "/map?types[]=%E6%88%B8%E5%BB%BA%E3%81%A6&minGap=20",
+        "prompt": "空き家再生競売物件を活用した低リスク高利回り不動産投資のノウハウと、現地調査の必須チェックポイントを解説せよ。"
     },
     {
         "id": "keibai-3tenset-read",

@@ -52,7 +52,7 @@ export default function FeaturesIndexPage() {
       icon: TrendingUp,
       iconBg: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60',
       title: '検索需要トレンド分析',
-      description: 'Google・Yahoo!の検索需要ボリューム、前月比急上昇率を可視化。利回り20%超の再建築不可や格安戸建てなど市場の注目テーマを即座に特定します。',
+      description: 'Google・Yahoo!の検索需要ボリューム、前月比急上昇率を可視化。利回り20%超の空き家再生や格安戸建てなど市場の注目テーマを即座に特定します。',
       actionText: 'トレンドを分析',
       accentColor: 'text-[#1B4F8A] dark:text-sky-400 group-hover:text-[#143D6C] dark:group-hover:text-sky-300',
     },

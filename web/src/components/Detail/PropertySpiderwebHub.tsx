@@ -299,12 +299,12 @@ export function PropertySpiderwebHub({
             <span>🏛️ 国税庁 公売 物件 検索 (全国)</span>
           </Link>
 
-          {/* #7 再建築不可 競売 リノベーション */}
+          {/* #7 空き家再生 競売 リノベーション */}
           <Link
             href="/map?minGap=40"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-[11px] font-medium transition-colors"
           >
-            <span>🔨 再建築不可 競売 リノベーション再生</span>
+            <span>🔨 空き家・古民家 競売リノベーション再生</span>
           </Link>
 
           {/* #8 埼玉 戸建て 競売 500万以下 */}

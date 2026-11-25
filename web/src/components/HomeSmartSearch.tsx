@@ -263,17 +263,17 @@ export default function HomeSmartSearch({ prefCountMap = {} }: HomeSmartSearchPr
             <span>急上昇トレンド:</span>
           </span>
           <Link
-            href="/map?keyword=%E5%86%8D%E5%BB%BA%E7%AF%89%E4%B8%8D%E5%8F%AF"
+            href="/map?types[]=%E6%88%B8%E5%BB%BA%E3%81%A6&maxPrice=5000000"
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-400 bg-rose-50/70 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-medium transition-colors"
           >
-            <span>#再建築不可</span>
+            <span>#500万以下戸建て</span>
             <span className="text-[9px] font-bold px-1 rounded bg-rose-200/60 dark:bg-rose-900/80 text-rose-700 dark:text-rose-300">HOT</span>
           </Link>
           <Link
-            href="/map?types[]=%E6%88%B8%E5%BB%BA%E3%81%A6&maxPrice=5000000"
+            href="/map?types[]=%E3%83%9E%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%B3"
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-900/60 hover:border-amber-400 bg-amber-50/70 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-medium transition-colors"
           >
-            <span>#500万以下戸建て</span>
+            <span>#区分マンション</span>
             <span className="text-[9px] font-bold px-1 rounded bg-amber-200/60 dark:bg-amber-900/80 text-amber-800 dark:text-amber-300">格安</span>
           </Link>
           <Link

@@ -167,7 +167,7 @@ export default function KeywordTrendsClient({ initialKeywords, stats }: Props) {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="キーワード・地域・質問内容で検索（例: 再建築不可, 3点セット, 埼玉）"
+              placeholder="キーワード・地域・質問内容で検索（例: ボロ戸建て, 3点セット, 埼玉）"
               className="w-full h-9 pl-9 pr-4 text-xs bg-slate-50 dark:bg-[#0D1117] border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-[#1B4F8A]"
             />
             {searchTerm && (

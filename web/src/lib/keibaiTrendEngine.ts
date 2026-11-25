@@ -2,7 +2,7 @@ import { prisma } from './prisma';
 
 export type TrendCategory = 
   | 'AREA_DEAL'          // 地域・エリア別 格安案件 (Tokyo, Osaka, Saitama...)
-  | 'HIGH_YIELD_TYPE'     // 物件種別・高利回り再生 (再建築不可, マンション, ボロ戸建て...)
+  | 'HIGH_YIELD_TYPE'     // 物件種別・高利回り再生 (空き家再生, マンション, ボロ戸建て...)
   | 'RISK_AND_LEGAL'      // 実務・3点セット・法務リスク (立ち退き, 瑕疵免責, 住宅ローン...)
   | 'BIDDING_PROCEDURE'   // 入札手続き・裁判所攻略 (期間入札, 特別売却, 売却基準価額...)
   | 'KOUBAI_TAX';         // 国税庁・公売・税金滞納 (インターネット公売, 差押物件...)
@@ -120,7 +120,7 @@ export const KEIBAI_TREND_DATABASE: KeibaiTrendKeyword[] = [
     targetUrl: '/search/area/神奈川県',
     keyQuestions: [
       '横浜地裁管内の競売物件の平均入札者数と落札倍率の傾向は？',
-      '湘南・鎌倉エリアの再建築不可や擁壁リスク物件の注意点は？'
+      '湘南・鎌倉エリアの擁壁リスクや築古物件の注意点は？'
     ],
     agentPrompt: '神奈川県内の競売投資におけるエリア別入札倍率と、横浜地裁・川崎支部・横須賀支部の傾向を解説せよ。'
   },
@@ -147,8 +147,8 @@ export const KEIBAI_TREND_DATABASE: KeibaiTrendKeyword[] = [
 
   // 2. HIGH YIELD & ASSET REGENERATION (物件種別・高利回り再生)
   {
-    id: 'saikenchiku-fuka-renovation',
-    keyword: '再建築不可 競売 リノベーション',
+    id: 'akiya-saisei-keibai-yield',
+    keyword: '空き家再生 競売 高利回り',
     category: 'HIGH_YIELD_TYPE',
     categoryLabel: '物件種別・高利回り',
     monthlySearchVolume: 16900,
@@ -157,14 +157,14 @@ export const KEIBAI_TREND_DATABASE: KeibaiTrendKeyword[] = [
     difficulty: 52,
     cpcYen: 310,
     intent: 'COMMERCIAL',
-    targetAudience: '接道義務を満たさない格安物件を再生して高利回り（20%超）を狙う上級投資家',
-    targetUrl: '/search?keyword=再建築不可',
+    targetAudience: '格安の空き家・中古戸建てを再生して高利回り（20%超）を狙う個人投資家',
+    targetUrl: '/map?types[]=%E6%88%B8%E5%BB%BA%E3%81%A6&minGap=20',
     keyQuestions: [
-      '接道義務を満たさない競売物件を適法にリフォーム・増改築する制限は？',
-      '隣地買い取りや但し書き道路適用による再建築可能化スキームとは？',
-      '銀行融資が出ない再建築不可物件の現金買い付けと回収期間は？'
+      '空き家競売物件を適法にリフォーム・再生する費用相場は？',
+      '地方・郊外の築古空き家で入居者を早期に客付けするスキームとは？',
+      '低予算で現金買い付けした空き家投資の投資回収期間は？'
     ],
-    agentPrompt: '建築基準法第43条但し書き規定を踏まえた、再建築不可競売物件の再生ノウハウと利回り最大化戦略を解説せよ。'
+    agentPrompt: '空き家再生競売物件を活用した低リスク高利回り不動産投資のノウハウと、現地調査の必須チェックポイントを解説せよ。'
   },
   {
     id: 'kubun-mansion-vacant-solution',

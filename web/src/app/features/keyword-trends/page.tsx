@@ -9,7 +9,7 @@ export const revalidate = 3600; // Cập nhật định kỳ mỗi 1 giờ
 
 export const metadata: Metadata = {
   title: '【2026年最新】不動産競売・公売 検索需要トレンド・急上昇キーワード分析ツール',
-  description: '裁判所競売および国税庁公売における検索キーワード需要のリアルタイム分析。格安エリア、利回り20%超の再建築不可物件、3点セットの読み方から占有者立ち退きまで、AI Agentと連動した最新トレンドを網羅。',
+  description: '裁判所競売および国税庁公売における検索キーワード需要のリアルタイム分析。格安エリア、利回り20%超の空き家再生物件、3点セットの読み方から占有者立ち退きまで、AI Agentと連動した最新トレンドを網羅。',
   alternates: {
     canonical: 'https://www.keibai-koubai.com/features/keyword-trends',
   },
